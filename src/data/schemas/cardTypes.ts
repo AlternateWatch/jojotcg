@@ -179,7 +179,8 @@ export type EvolutionRequirement =
   | { kind: 'BASE_ACTIVE_CHARACTER_OR_STAND'; characterId: string; standId?: string }
   | { kind: 'CONSUME_HAND_ITEM_TAG'; catalystTag: string; label: string }
   | { kind: 'EQUIPPED_ITEM_TAG'; catalystTag: string; label: string }
-  | { kind: 'BENCH_CHARACTER_PRESENT'; characterId: string; label: string };
+  | { kind: 'BENCH_CHARACTER_PRESENT'; characterId: string; label: string }
+  | { kind: 'BENCH_STAND_PRESENT'; standId: string; consumeOnEvolve?: boolean; label: string };
 
 export interface EvolutionCard extends BaseCard {
   type: 'EVOLUTION';

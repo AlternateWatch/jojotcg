@@ -372,15 +372,22 @@ export function checkEvolutionRequirements(
   state: GameState,
   playerId: PlayerId,
   evo: EvolutionCard,
-): { ok: boolean; reason?: string; handCatalystIndices: number[] } {
+): {
+  ok: boolean;
+  reason?: string;
+  handCatalystIndices: number[];
+  consumedBenchStandIndices: number[];
+} {
   const player = state.players[playerId];
   const handCatalystIndices: number[] = [];
+  const consumedBenchStandIndices: number[] = [];
 
   if (player.evolutionsPlayedThisTurn >= state.rules.maxEvolutionsPerTurn) {
     return {
       ok: false,
       reason: `Solo puedes realizar ${state.rules.maxEvolutionsPerTurn} evolución por turno.`,
       handCatalystIndices,
+      consumedBenchStandIndices,
     };
   }
 
@@ -390,6 +397,7 @@ export function checkEvolutionRequirements(
       ok: false,
       reason: 'Necesitas un personaje en el Puesto Activo para evolucionar.',
       handCatalystIndices,
+      consumedBenchStandIndices,
     };
   }
 
@@ -406,6 +414,7 @@ export function checkEvolutionRequirements(
             ok: false,
             reason: `Requiere tener a ${getCharacterCard(req.characterId)?.name ?? req.characterId} en el Puesto Activo.`,
             handCatalystIndices,
+            consumedBenchStandIndices,
           };
         }
         break;
@@ -416,6 +425,7 @@ export function checkEvolutionRequirements(
             ok: false,
             reason: `Requiere tener equipado a ${getStandCard(req.standId)?.name ?? req.standId} en el Puesto Activo.`,
             handCatalystIndices,
+            consumedBenchStandIndices,
           };
         }
         break;
@@ -426,6 +436,7 @@ export function checkEvolutionRequirements(
             ok: false,
             reason: `Solo se puede jugar si el usuario activo es ${getCharacterCard(req.characterId)?.name ?? req.characterId}.`,
             handCatalystIndices,
+            consumedBenchStandIndices,
           };
         }
         if (standProfile && req.standId && standProfile.currentCardId !== req.standId) {
@@ -433,6 +444,7 @@ export function checkEvolutionRequirements(
             ok: false,
             reason: `${activeProfile.name} ya tiene otro Stand incompatible equipado (${standProfile.name}).`,
             handCatalystIndices,
+            consumedBenchStandIndices,
           };
         }
         break;
@@ -446,6 +458,7 @@ export function checkEvolutionRequirements(
             ok: false,
             reason: `Falta requisito: ${req.label}.`,
             handCatalystIndices,
+            consumedBenchStandIndices,
           };
         }
         break;
@@ -461,6 +474,7 @@ export function checkEvolutionRequirements(
             ok: false,
             reason: `Falta requisito: ${req.label}.`,
             handCatalystIndices,
+            consumedBenchStandIndices,
           };
         }
         handCatalystIndices.push(idx);
@@ -475,14 +489,35 @@ export function checkEvolutionRequirements(
             ok: false,
             reason: `Falta requisito: ${req.label}.`,
             handCatalystIndices,
+            consumedBenchStandIndices,
           };
+        }
+        break;
+      }
+      case 'BENCH_STAND_PRESENT': {
+        const benchIdx = player.bench.findIndex(
+          (b, i) =>
+            !consumedBenchStandIndices.includes(i) &&
+            b.attachedStand !== null &&
+            getEffectiveStandProfile(b.attachedStand).currentCardId === req.standId,
+        );
+        if (benchIdx === -1) {
+          return {
+            ok: false,
+            reason: `Falta requisito: ${req.label}.`,
+            handCatalystIndices,
+            consumedBenchStandIndices,
+          };
+        }
+        if (req.consumeOnEvolve) {
+          consumedBenchStandIndices.push(benchIdx);
         }
         break;
       }
     }
   }
 
-  return { ok: true, handCatalystIndices };
+  return { ok: true, handCatalystIndices, consumedBenchStandIndices };
 }
 
 export function getAttackNominalMaxDamage(atk: AttackDef): number {

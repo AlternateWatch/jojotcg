@@ -110,9 +110,11 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     expect(hasValidStartingHand(['char-hol-horse', 'stand-emperor'])).toBe(true);
     // Without Turn 1 DG cap (fallback for all-high-DG custom decks), DIO + The World is valid
     expect(hasValidStartingHand(['char-dio', 'stand-the-world'], null)).toBe(true);
-    // Characters with own attacks (Jonathan, Stray Cat) -> valid
+    // Characters with own attacks (Jonathan) and DG 3 User + Stray Cat Stand -> valid
     expect(hasValidStartingHand(['char-jonathan-joestar'])).toBe(true);
-    expect(hasValidStartingHand(['char-stray-cat'])).toBe(true);
+    expect(hasValidStartingHand(['char-shigekiyo-yangu', 'stand-stray-cat'])).toBe(true);
+    // Stray Cat alone is a Stand, not a Character -> invalid starting hand
+    expect(hasValidStartingHand(['stand-stray-cat'])).toBe(false);
   });
 
   it('¡Atracción entre usuarios de Stand! searches up to 2 Basic Energies from deck and shuffles', () => {

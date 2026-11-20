@@ -634,4 +634,27 @@ export const STAND_CARDS: StandCard[] = [
       },
     ],
   },
+  {
+    id: 'stand-stray-cat',
+    name: 'Stray Cat',
+    type: 'STAND',
+    part: 4,
+    imageId: 'stray-cat',
+    assetFolder: 'official',
+    requiredDg: 3,
+    attacks: [
+      {
+        id: 'atk-aerokinesis',
+        name: 'Aerokinesis',
+        energyCost: ['COLORLESS'],
+        baseDamage: 20,
+        damageLabel: '2x10',
+        effectText: 'Lanza una moneda. Si sale cara, el oponente pasa a tener sangrado.',
+        coinFlip: {
+          count: 1,
+          onHeads: [{ kind: 'STATUS', status: 'BLEED', target: 'DEFENDER' }],
+        },
+      },
+    ],
+  },
 ];

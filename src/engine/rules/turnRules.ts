@@ -502,6 +502,20 @@ export function applyEvolveCard(
     }
   }
 
+  // Consume any required bench Stands (e.g. Stray Cat for Bites The Dust): user stays on bench without Stand
+  const consumedStandNotes: string[] = [];
+  for (const benchIdx of reqCheck.consumedBenchStandIndices) {
+    const benchUser = player.bench[benchIdx];
+    if (benchUser && benchUser.attachedStand) {
+      const consumedStand = benchUser.attachedStand;
+      const standName = getStandCard(consumedStand.cardId)?.name ?? consumedStand.cardId;
+      const userName = getEffectiveCharacterProfile(benchUser).name;
+      player.discard.push(consumedStand.cardId, ...consumedStand.evolvedCardIds);
+      benchUser.attachedStand = null;
+      consumedStandNotes.push(`${standName} se consume y ${userName} queda sin Stand`);
+    }
+  }
+
   player.evolutionsPlayedThisTurn += 1;
 
   if (evo.evolutionTarget === 'CHARACTER') {
@@ -547,7 +561,9 @@ export function applyEvolveCard(
     type: 'CARD_EVOLVED',
     playerId,
     evolutionCardId: evo.id,
-    message: `¡EVOLUCIÓN! ${player.name} evoluciona a ${evo.name}.`,
+    message: `¡EVOLUCIÓN! ${player.name} evoluciona a ${evo.name}.${
+      consumedStandNotes.length > 0 ? ` (${consumedStandNotes.join('; ')}).` : ''
+    }`,
   });
 }
 

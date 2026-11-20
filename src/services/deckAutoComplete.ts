@@ -120,6 +120,8 @@ export function autoCompleteDeck(
         if (req.standId) tryAdd(req.standId);
       } else if (req.kind === 'BENCH_CHARACTER_PRESENT') {
         tryAdd(req.characterId);
+      } else if (req.kind === 'BENCH_STAND_PRESENT') {
+        tryAdd(req.standId);
       } else if (req.kind === 'CONSUME_HAND_ITEM_TAG' || req.kind === 'EQUIPPED_ITEM_TAG') {
         const catalyst = ALL_CARDS.find(
           (c) => c.type === 'ITEM' && c.catalystTag === req.catalystTag,

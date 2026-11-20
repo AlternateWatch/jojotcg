@@ -96,7 +96,7 @@ export const CARD_SYNERGIES: Record<string, CardSynergyInfo> = {
     summary: 'Con Koichi en banca, su Stand activo inflige +10 daño.',
   },
   'char-yoshikage-kira': {
-    partnerCardIds: ['stand-killer-queen', 'evo-kosaku-kawajiri', 'evo-killer-queen-bites-the-dust', 'char-stray-cat'],
+    partnerCardIds: ['stand-killer-queen', 'evo-kosaku-kawajiri', 'evo-killer-queen-bites-the-dust', 'stand-stray-cat'],
     summary: 'Con Killer Queen: +10 HP max y +10 daño. Evoluciona a Kosaku Kawajiri y Bites The Dust.',
   },
   'char-jotaro-kujo': {
@@ -220,7 +220,7 @@ export const PRESET_DECKS: SavedDeck[] = [
     updatedAt: '2026-01-01T00:00:00.000Z',
     cardIds: [
       'char-yoshikage-kira',
-      'char-stray-cat',
+      'stand-stray-cat',
       'char-esidisi',
       'char-wamuu',
       'char-akira-otoishi',

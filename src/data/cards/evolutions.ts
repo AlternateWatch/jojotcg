@@ -120,11 +120,16 @@ export const EVOLUTION_CARDS: EvolutionCard[] = [
     requiredDg: 6,
     requirements: [
       { kind: 'BASE_ATTACHED_STAND', standId: 'stand-killer-queen' },
-      { kind: 'BENCH_CHARACTER_PRESENT', characterId: 'char-stray-cat', label: 'Stray Cat en la banca' },
+      {
+        kind: 'BENCH_STAND_PRESENT',
+        standId: 'stand-stray-cat',
+        consumeOnEvolve: true,
+        label: 'Stray Cat equipado en un usuario de tu banca (se consume)',
+      },
       { kind: 'CONSUME_HAND_ITEM_TAG', catalystTag: 'stand-arrow', label: 'Flecha de Stand en mano' },
     ],
     requirementText:
-      'Para evolucionar a Killer Queen a Bites The Dust, es necesario tener a Stray Cat en la banca y una Flecha de Stand.',
+      'Para evolucionar a Killer Queen a Bites The Dust, necesitas tener a Stray Cat equipado en un usuario de tu banca (se consume y ese usuario queda sin Stand) y una Flecha de Stand.',
     attacks: [
       {
         id: 'atk-transmutacion-stray-cat',

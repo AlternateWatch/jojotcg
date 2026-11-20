@@ -38,19 +38,44 @@ describe('Special Evolutions & Deterministic AI Simulation', () => {
     expect(state.players.P2.active!.currentHp).toBe(40);
   });
 
-  it('evolves Killer Queen: Bites The Dust (requires Stray Cat + Flecha de Stand) and bounces enemy bench to deck', () => {
+  it('evolves Killer Queen: Bites The Dust (consumes Stray Cat Stand from bench user + Flecha de Stand) and bounces enemy bench to deck', () => {
     let state = buildControlledBattleState({
       p1ActiveId: 'char-yoshikage-kira',
       p1ActiveStandId: 'stand-killer-queen',
-      p1BenchIds: ['char-stray-cat'],
+      p1BenchIds: ['char-shigekiyo-yangu'],
       p1ActiveEnergies: ['PSYCHIC', 'PSYCHIC', 'FIRE', 'FIRE'],
-      p1Hand: ['evo-killer-queen-bites-the-dust', 'item-flecha-de-stand'],
+      p1Hand: ['evo-killer-queen-bites-the-dust', 'item-flecha-de-stand', 'stand-stray-cat'],
       p2ActiveId: 'char-dio', // 160 HP
       p2BenchIds: ['char-iggy'],
       phase: 'PREPARATION',
     });
 
+    // Stray Cat is a Stand -> cannot be played alone to bench!
+    expect(
+      dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: 2 }).ok,
+    ).toBe(false);
+
+    // Without Stray Cat equipped on a bench user -> cannot evolve yet
+    expect(
+      dispatchAction(state, { type: 'EVOLVE_CARD', playerId: 'P1', handIndex: 0 }).ok,
+    ).toBe(false);
+
+    // Equip Stray Cat onto Shigekiyo on bench (DG 3 >= 3)
+    state = mustDispatch(state, {
+      type: 'EQUIP_STAND',
+      playerId: 'P1',
+      handIndex: 2,
+      targetInstanceId: state.players.P1.bench[0]!.instanceId,
+    });
+    expect(state.players.P1.bench[0]!.attachedStand?.cardId).toBe('stand-stray-cat');
+
+    // Evolve Killer Queen -> Bites The Dust: Stray Cat is consumed and Shigekiyo stays on bench WITHOUT Stand!
     state = mustDispatch(state, { type: 'EVOLVE_CARD', playerId: 'P1', handIndex: 0 });
+    expect(state.players.P1.bench).toHaveLength(1);
+    expect(state.players.P1.bench[0]!.attachedStand).toBeNull();
+    expect(state.players.P1.discard).toContain('stand-stray-cat');
+    expect(state.players.P1.discard).toContain('item-flecha-de-stand');
+
     state = mustDispatch(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
     state = mustDispatch(state, {
       type: 'USE_ATTACK',

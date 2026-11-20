@@ -814,35 +814,4 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     },
     attacks: [],
   },
-  {
-    id: 'char-stray-cat',
-    name: 'Stray Cat',
-    type: 'CHARACTER',
-    part: 4,
-    imageId: 'stray-cat',
-    assetFolder: 'official',
-    categories: ['STAND_USER'],
-    maxHp: 80,
-    dg: 3,
-    signatureAbility: {
-      id: 'NONE',
-      name: 'STAND INDEPENDIENTE',
-      text: 'Aliado indispensable en la banca para evolucionar a Killer Queen en Killer Queen: Bites The Dust.',
-      trigger: 'PASSIVE',
-    },
-    attacks: [
-      {
-        id: 'atk-aerokinesis',
-        name: 'Aerokinesis',
-        energyCost: ['COLORLESS'],
-        baseDamage: 20,
-        damageLabel: '2x10',
-        effectText: 'Lanza una moneda. Si sale cara, el oponente pasa a tener sangrado.',
-        coinFlip: {
-          count: 1,
-          onHeads: [{ kind: 'STATUS', status: 'BLEED', target: 'DEFENDER' }],
-        },
-      },
-    ],
-  },
 ];

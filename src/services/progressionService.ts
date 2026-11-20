@@ -116,6 +116,7 @@ const LEGACY_ITEM_ID_MIGRATION: Record<string, string> = {
   'item-llamada-del-destino': 'item-flecha-de-stand',
   'item-impulso-espiritual': 'item-comida-de-tonio',
   'item-cambio-tactico': 'item-suministros-speedwagon',
+  'char-stray-cat': 'stand-stray-cat',
 };
 
 /**
