@@ -11,6 +11,7 @@ import {
 import { DEFAULT_RULES_CONFIG } from '../data/rulesConfig';
 import type { AiDifficulty } from '../engine/ai/tacticalAi';
 import { createSystemRng, type RngProvider } from '../engine/rng';
+import type { SavedDeck } from './storageService';
 
 export interface PlayerProgression {
   coins: number;
@@ -143,6 +144,31 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
     ...progression,
     ownedCards: nextOwned,
   };
+}
+
+/**
+ * Migrates legacy/deleted item IDs inside saved custom decks and removes any unknown IDs
+ * while respecting copy limits per card type.
+ */
+export function normalizeSavedDecks(decks: readonly SavedDeck[]): SavedDeck[] {
+  return decks.map((deck) => {
+    const counts = new Map<string, number>();
+    const nextIds: string[] = [];
+    for (const rawId of deck.cardIds) {
+      const mappedId = LEGACY_ITEM_ID_MIGRATION[rawId] ?? rawId;
+      const card = getCardById(mappedId);
+      if (!card) continue;
+      const limit = DEFAULT_RULES_CONFIG.maxCopiesByType[card.type];
+      const current = counts.get(mappedId) ?? 0;
+      if (limit !== null && current >= limit) continue;
+      counts.set(mappedId, current + 1);
+      nextIds.push(mappedId);
+    }
+    return {
+      ...deck,
+      cardIds: nextIds,
+    };
+  });
 }
 
 export function getMaxCollectibleCopies(cardId: string): number {

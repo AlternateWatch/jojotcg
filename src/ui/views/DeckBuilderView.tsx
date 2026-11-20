@@ -39,6 +39,7 @@ export function DeckBuilderView() {
     activeSaved && !activeSaved.isPreset ? activeSaved.id : null,
   );
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
+  const [deckNotice, setDeckNotice] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importJson, setImportJson] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
@@ -85,10 +86,21 @@ export function DeckBuilderView() {
     const effectiveLimit =
       ruleLimit === null ? owned : Math.min(ruleLimit, owned);
     const current = counts.get(cardId) ?? 0;
-    if (current >= effectiveLimit) return;
-    if (cardIds.length >= DEFAULT_RULES_CONFIG.maxDeckSize) return;
+    if (cardIds.length >= DEFAULT_RULES_CONFIG.maxDeckSize) {
+      setDeckNotice(
+        `El mazo ya está completo (${cardIds.length}/${DEFAULT_RULES_CONFIG.maxDeckSize}). Quita primero alguna carta de la lista derecha para añadir a ${card.name}.`,
+      );
+      return;
+    }
+    if (current >= effectiveLimit) {
+      setDeckNotice(
+        `Ya llevas el máximo disponible de ${card.name} en este mazo (${current}/${effectiveLimit}).`,
+      );
+      return;
+    }
     setCardIds((prev) => [...prev, cardId]);
     setSaveFeedback(null);
+    setDeckNotice(null);
   };
 
   const removeCard = (cardId: string) => {
@@ -100,9 +112,10 @@ export function DeckBuilderView() {
       return next;
     });
     setSaveFeedback(null);
+    setDeckNotice(null);
   };
 
-  const handleSave = () => {
+  const handleSave = (): string => {
     const id = editingCustomId ?? `custom-deck-${Date.now()}`;
     saveDeck({
       id,
@@ -112,6 +125,18 @@ export function DeckBuilderView() {
     setEditingCustomId(id);
     setSelectedDeckId(id);
     setSaveFeedback('Mazo guardado.');
+    setDeckNotice(null);
+    return id;
+  };
+
+  const handleTestDeck = () => {
+    const matchesSaved =
+      activeSaved &&
+      activeSaved.cardIds.length === cardIds.length &&
+      activeSaved.cardIds.every((id, i) => id === cardIds[i]) &&
+      activeSaved.name === deckName.trim();
+    const deckIdToUse = matchesSaved ? activeSaved.id : handleSave();
+    openBattleSetup('VS_AI', deckIdToUse);
   };
 
   const handleDelete = () => {
@@ -269,10 +294,10 @@ export function DeckBuilderView() {
                 <Trash2 size={14} />
               </button>
             )}
-            {validation.valid && missingOwned.length === 0 && (editingCustomId || activeSaved) && (
+            {validation.valid && missingOwned.length === 0 && (
               <button
                 type="button"
-                onClick={() => openBattleSetup('VS_AI', editingCustomId ?? activeSaved?.id)}
+                onClick={handleTestDeck}
                 className="jojo-btn-ink inline-flex items-center gap-1.5 px-3.5 py-2 font-jojo-heading text-xs tracking-widest text-[#00e599] uppercase"
               >
                 <Play size={13} /> Probar
@@ -284,6 +309,11 @@ export function DeckBuilderView() {
         {saveFeedback && (
           <div className="border-2 border-[#060508] bg-[#00b87c] px-4 py-1.5 text-xs font-bold text-[#0b090e]">
             {saveFeedback}
+          </div>
+        )}
+        {deckNotice && (
+          <div className="border-2 border-[#060508] bg-[#f2c12e] px-4 py-1.5 text-xs font-bold text-[#0b090e]">
+            {deckNotice}
           </div>
         )}
 
@@ -337,10 +367,7 @@ export function DeckBuilderView() {
                 const unlocked = owned > 0;
                 const effectiveLimit =
                   ruleLimit === null ? owned : Math.min(ruleLimit, owned);
-                const atLimit =
-                  !unlocked ||
-                  count >= effectiveLimit ||
-                  cardIds.length >= DEFAULT_RULES_CONFIG.maxDeckSize;
+                const atLimit = !unlocked || count >= effectiveLimit;
 
                 return (
                   <div key={card.id} className="flex flex-col items-center gap-1.5">
@@ -436,18 +463,28 @@ export function DeckBuilderView() {
               missingOwned.length > 0) && (
               <div className="space-y-1 text-[11px]">
                 {missingOwned.length > 0 && (
-                  <div className="flex items-center justify-between gap-2 border-l-4 border-[#e6194b] bg-[#2a0c16] px-2.5 py-1.5 text-rose-200">
-                    <span>
-                      Te faltan <strong>{missingOwned.length}</strong> carta(s) por desbloquear en
-                      este mazo.
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setScreen('SHOP')}
-                      className="shrink-0 border border-[#060508] bg-[#f2c12e] px-2 py-0.5 font-jojo-heading text-[10px] tracking-wider text-[#0b090e] uppercase"
-                    >
-                      <ShoppingBag size={10} className="mr-1 inline" /> Tienda
-                    </button>
+                  <div className="flex flex-col gap-1.5 border-l-4 border-[#e6194b] bg-[#2a0c16] px-2.5 py-2 text-rose-200">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>
+                        Te faltan <strong>{missingOwned.length}</strong> carta(s) por desbloquear en
+                        este mazo:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setScreen('SHOP')}
+                        className="shrink-0 border border-[#060508] bg-[#f2c12e] px-2 py-0.5 font-jojo-heading text-[10px] tracking-wider text-[#0b090e] uppercase"
+                      >
+                        <ShoppingBag size={10} className="mr-1 inline" /> Tienda
+                      </button>
+                    </div>
+                    <div className="text-[10px] text-rose-300">
+                      {missingOwned
+                        .map((m) => {
+                          const c = getCardById(m.cardId);
+                          return `${c?.name ?? m.cardId} (${m.owned}/${m.needed})`;
+                        })
+                        .join(' · ')}
+                    </div>
                   </div>
                 )}
                 {validation.errors.map((e, i) => (
@@ -475,39 +512,50 @@ export function DeckBuilderView() {
                   Haz clic en las cartas de la izquierda para añadirlas al mazo.
                 </p>
               ) : (
-                groupedDeckEntries.map((entry) => (
-                  <div
-                    key={entry.cardId}
-                    className={`flex items-center justify-between gap-2 border border-[#060508] border-l-4 bg-[#0e0b14] px-2.5 py-1.5 text-xs ${TYPE_LEFT_BAR[entry.type]}`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => openInspector(entry.cardId)}
-                      className="min-w-0 flex-1 truncate text-left font-semibold text-[#f5efe0] hover:text-[#f2c12e]"
+                groupedDeckEntries.map((entry) => {
+                  const ownedEntry = getOwnedCount(progression, entry.cardId);
+                  const isMissingCopy = entry.count > ownedEntry;
+                  return (
+                    <div
+                      key={entry.cardId}
+                      className={`flex items-center justify-between gap-2 border border-[#060508] border-l-4 px-2.5 py-1.5 text-xs ${
+                        isMissingCopy ? 'bg-[#2a0c16]' : 'bg-[#0e0b14]'
+                      } ${TYPE_LEFT_BAR[entry.type]}`}
                     >
-                      {entry.name}
-                    </button>
-                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => removeCard(entry.cardId)}
-                        className="border border-[#060508] bg-[#1e1829] px-1.5 text-zinc-300 hover:bg-[#e6194b] hover:text-white"
+                        onClick={() => openInspector(entry.cardId)}
+                        className="min-w-0 flex-1 truncate text-left font-semibold text-[#f5efe0] hover:text-[#f2c12e]"
                       >
-                        −
+                        {entry.name}
+                        {isMissingCopy && (
+                          <span className="ml-1.5 border border-[#060508] bg-[#e6194b] px-1 py-0.2 font-mono text-[9px] font-bold text-white uppercase">
+                            Falta ({ownedEntry}/{entry.count})
+                          </span>
+                        )}
                       </button>
-                      <span className="w-5 text-center font-mono font-bold text-[#f2c12e]">
-                        {entry.count}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => addCard(entry.cardId)}
-                        className="border border-[#060508] bg-[#1e1829] px-1.5 text-zinc-300 hover:bg-[#f2c12e] hover:text-[#0b090e]"
-                      >
-                        +
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => removeCard(entry.cardId)}
+                          className="border border-[#060508] bg-[#1e1829] px-1.5 text-zinc-300 hover:bg-[#e6194b] hover:text-white"
+                        >
+                          −
+                        </button>
+                        <span className="w-5 text-center font-mono font-bold text-[#f2c12e]">
+                          {entry.count}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => addCard(entry.cardId)}
+                          className="border border-[#060508] bg-[#1e1829] px-1.5 text-zinc-300 hover:bg-[#f2c12e] hover:text-[#0b090e]"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

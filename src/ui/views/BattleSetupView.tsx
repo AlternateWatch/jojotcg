@@ -12,6 +12,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { getCardById } from '../../data/cardRegistry';
 import { STARTER_DECK_ID } from '../../data/progressionData';
 import { ENERGY_META, type EnergyType } from '../../data/schemas/cardTypes';
 import type { AiDifficulty } from '../../engine/ai/tacticalAi';
@@ -345,18 +346,28 @@ export function BattleSetupView() {
                   <p className="mt-1.5 text-xs text-zinc-400">{p1Deck.description}</p>
                 )}
                 {p1Missing.length > 0 && (
-                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-l-4 border-[#e6194b] bg-[#2a0c16] px-2.5 py-2 text-xs text-rose-200">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Lock size={13} /> Te faltan <strong>{p1Missing.length}</strong> carta(s) para
-                      jugar este mazo.
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setScreen('SHOP')}
-                      className="jojo-btn-primary inline-flex items-center gap-1 px-2.5 py-1 font-jojo-heading text-[11px] tracking-wider uppercase"
-                    >
-                      <ShoppingBag size={12} /> Abrir Sobres
-                    </button>
+                  <div className="mt-2 space-y-1.5 border-l-4 border-[#e6194b] bg-[#2a0c16] px-2.5 py-2 text-xs text-rose-200">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Lock size={13} /> Te faltan <strong>{p1Missing.length}</strong> carta(s) para
+                        jugar este mazo.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setScreen('SHOP')}
+                        className="jojo-btn-primary inline-flex items-center gap-1 px-2.5 py-1 font-jojo-heading text-[11px] tracking-wider uppercase"
+                      >
+                        <ShoppingBag size={12} /> Abrir Sobres
+                      </button>
+                    </div>
+                    <div className="text-[11px] text-rose-300">
+                      {p1Missing
+                        .map((m) => {
+                          const c = getCardById(m.cardId);
+                          return `${c?.name ?? m.cardId} (${m.owned}/${m.needed})`;
+                        })
+                        .join(' · ')}
+                    </div>
                   </div>
                 )}
               </div>
