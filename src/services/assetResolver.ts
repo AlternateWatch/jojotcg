@@ -13,7 +13,7 @@ export interface CardAssetInfo {
 }
 
 /**
- * Manifest of all 57 official card PNGs provided by the user.
+ * Manifest of all 58 official card PNGs provided by the user.
  * Adding new artwork only requires dropping the file into public/assets/cards/<folder>/
  * and registering its imageId (or setting a custom override in user settings).
  */
@@ -67,6 +67,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'silver-chariot',
   'star-platinum',
   'star-platinum-the-world',
+  'stray-cat',
   'the-fool',
   'the-hand',
   'the-world',

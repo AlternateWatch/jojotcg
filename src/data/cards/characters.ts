@@ -814,7 +814,6 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     },
     attacks: [],
   },
-  // Placeholder character required for Killer Queen: Bites The Dust evolution
   {
     id: 'char-stray-cat',
     name: 'Stray Cat',
@@ -827,19 +826,23 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     dg: 3,
     signatureAbility: {
       id: 'NONE',
-      name: 'BURBUJA DE AIRE',
+      name: 'STAND INDEPENDIENTE',
       text: 'Aliado indispensable en la banca para evolucionar a Killer Queen en Killer Queen: Bites The Dust.',
       trigger: 'PASSIVE',
     },
     attacks: [
       {
-        id: 'atk-air-bubble',
-        name: 'Burbuja de Aire Comprimido',
+        id: 'atk-aerokinesis',
+        name: 'Aerokinesis',
         energyCost: ['COLORLESS'],
         baseDamage: 20,
-        damageLabel: '20',
+        damageLabel: '2x10',
+        effectText: 'Lanza una moneda. Si sale cara, el oponente pasa a tener sangrado.',
+        coinFlip: {
+          count: 1,
+          onHeads: [{ kind: 'STATUS', status: 'BLEED', target: 'DEFENDER' }],
+        },
       },
     ],
-    tags: ['placeholder-pending'],
   },
 ];
