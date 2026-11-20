@@ -23,6 +23,7 @@ import {
 import { getOpponentId } from '../../engine/helpers/stateHelpers';
 import type { GamePhase } from '../../engine/types/state';
 import { CARD_BACK_PATTERN_URL, PLAYMAT_THEMES } from '../../services/assetResolver';
+import { onlineService } from '../../services/onlineService';
 import { computeBattleReward } from '../../services/progressionService';
 import type { PlaymatThemeId, UserSettings } from '../../services/storageService';
 import { useAppStore } from '../../store/useAppStore';
@@ -103,6 +104,9 @@ export function BattleView() {
   const battleRewardClaimed = useBattleStore((s) => s.battleRewardClaimed);
   const lastBattleReward = useBattleStore((s) => s.lastBattleReward);
   const claimBattleReward = useBattleStore((s) => s.claimBattleReward);
+  const onlineRoomCode = useBattleStore((s) => s.onlineRoomCode);
+  const onlineRole = useBattleStore((s) => s.onlineRole);
+  const applyRemoteOnlineRoom = useBattleStore((s) => s.applyRemoteOnlineRoom);
 
   const settings = useAppStore((s) => s.settings);
   const awardBattleReward = useAppStore((s) => s.awardBattleReward);
@@ -167,11 +171,31 @@ export function BattleView() {
     if (!gameState || gameState.phase !== 'GAME_OVER' || !gameState.winnerId || battleRewardClaimed) {
       return;
     }
-    const p1Won = gameState.winnerId === 'P1';
-    const reward = computeBattleReward(mode, aiDifficulty, p1Won);
-    awardBattleReward(reward.coins, p1Won);
+    const localPlayerId = mode === 'ONLINE' && onlineRole ? onlineRole : 'P1';
+    const didWin = gameState.winnerId === localPlayerId;
+    const reward = computeBattleReward(mode, aiDifficulty, didWin);
+    awardBattleReward(reward.coins, didWin);
     claimBattleReward(reward);
-  }, [gameState, mode, aiDifficulty, battleRewardClaimed, awardBattleReward, claimBattleReward]);
+  }, [gameState, mode, onlineRole, aiDifficulty, battleRewardClaimed, awardBattleReward, claimBattleReward]);
+
+  // Live polling synchronization for ONLINE 1v1 matches
+  useEffect(() => {
+    if (mode !== 'ONLINE' || !onlineRoomCode) return;
+    let cancelled = false;
+    const poll = async () => {
+      const res = await onlineService.pollRoom(onlineRoomCode);
+      if (!cancelled && res.ok) {
+        applyRemoteOnlineRoom(res.room);
+      }
+    };
+    const interval = window.setInterval(() => {
+      void poll();
+    }, 900);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [mode, onlineRoomCode, applyRemoteOnlineRoom]);
 
   // Auto-clear floating per-card damage/status popups after readable window
   useEffect(() => {
@@ -223,7 +247,7 @@ export function BattleView() {
   }
 
   const theme = PLAYMAT_THEMES[settings.playmatTheme];
-  const myId = getControllingPlayerId(gameState, mode);
+  const myId = getControllingPlayerId(gameState, mode, onlineRole);
   const enemyId = getOpponentId(myId);
   const myPlayer = gameState.players[myId];
   const enemyPlayer = gameState.players[enemyId];
@@ -383,6 +407,22 @@ export function BattleView() {
                 IA {aiDifficulty === 'EASY' ? 'Fácil' : aiDifficulty === 'HARD' ? 'Difícil' : 'Normal'}
               </span>
             )}
+            {mode === 'ONLINE' && (
+              <span className="border border-[#060508] bg-[#00b87c] px-2 py-0.5 font-mono text-[10px] font-black text-[#0b090e] uppercase">
+                ONLINE · SALA {onlineRoomCode}
+              </span>
+            )}
+            {mode === 'ONLINE' &&
+              gameState.phase !== 'GAME_OVER' &&
+              ((gameState.pendingPrompt && gameState.pendingPrompt.playerId !== myId) ||
+                (!gameState.pendingPrompt &&
+                  gameState.phase !== 'SETUP_MULLIGAN' &&
+                  gameState.phase !== 'SETUP_ACTIVE' &&
+                  gameState.activePlayerId !== myId)) && (
+                <span className="border border-[#060508] bg-[#e6194b] px-1.5 py-0.5 font-mono text-[10px] font-bold text-white uppercase">
+                  TURNO DEL RIVAL...
+                </span>
+              )}
             {mode === 'VS_AI' && gameState.players[gameState.activePlayerId].isAi && (
               <span className="border border-[#060508] bg-[#e6194b] px-1.5 py-0.5 font-mono text-[10px] font-bold text-white uppercase">
                 {aiPaused ? 'IA PAUSADA' : 'IA ACTUANDO...'}
@@ -991,6 +1031,7 @@ export function BattleView() {
       <AnimatePresence>
         {gameState.pendingPrompt &&
           !gameState.players[gameState.pendingPrompt.playerId].isAi &&
+          (mode !== 'ONLINE' || gameState.pendingPrompt.playerId === myId) &&
           !hotseatHandoffTo && (
             <PromptOverlay
               key={gameState.pendingPrompt.kind}

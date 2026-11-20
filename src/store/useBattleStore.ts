@@ -6,6 +6,7 @@ import { createSystemRng, type CoinResult, type RngProvider } from '../engine/rn
 import type { GameAction } from '../engine/types/actions';
 import type { CombatEvent } from '../engine/types/events';
 import type { GameState, PlayerId } from '../engine/types/state';
+import { onlineService, type OnlineRoomSnapshot } from '../services/onlineService';
 import {
   extractAttackingPlayerId,
   extractCardPopups,
@@ -18,7 +19,7 @@ import {
   type ITurnSplash,
 } from '../ui/vfx/vfxClassifier';
 
-export type BattleMode = 'VS_AI' | 'HOTSEAT';
+export type BattleMode = 'VS_AI' | 'HOTSEAT' | 'ONLINE';
 
 export interface CoinShowcaseState {
   id: string;
@@ -66,8 +67,13 @@ interface BattleStoreState {
   isAiThinking: boolean;
   battleRewardClaimed: boolean;
   lastBattleReward: { coins: number; label: string } | null;
+  onlineRoomCode: string | null;
+  onlineRole: PlayerId | null;
+  onlineVersion: number;
 
   startBattle: (config: StartBattleConfig, usePrivacyCurtain: boolean) => void;
+  startOnlineBattle: (room: OnlineRoomSnapshot) => Promise<void>;
+  applyRemoteOnlineRoom: (room: OnlineRoomSnapshot) => void;
   rematch: (usePrivacyCurtain: boolean) => void;
   dispatch: (action: GameAction, usePrivacyCurtain?: boolean) => boolean;
   stepAiIfNeeded: () => void;
@@ -84,11 +90,18 @@ interface BattleStoreState {
   resetBattle: () => void;
 }
 
-export function getControllingPlayerId(state: GameState, mode: BattleMode): PlayerId {
+export function getControllingPlayerId(
+  state: GameState,
+  mode: BattleMode,
+  onlineRole?: PlayerId | null,
+): PlayerId {
   // In VS_AI mode, the tabletop perspective must ALWAYS remain on the human player (P1),
   // even while the AI resolves setup steps or pending prompts (e.g. deck search, bench promote).
   if (mode === 'VS_AI') {
     return 'P1';
+  }
+  if (mode === 'ONLINE' && onlineRole) {
+    return onlineRole;
   }
 
   if (state.pendingPrompt) return state.pendingPrompt.playerId;
@@ -265,6 +278,9 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   isAiThinking: false,
   battleRewardClaimed: false,
   lastBattleReward: null,
+  onlineRoomCode: null,
+  onlineRole: null,
+  onlineVersion: 0,
 
   startBattle: (config, _usePrivacyCurtain) => {
     const rng = createSystemRng();
@@ -299,6 +315,93 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       isAiThinking: false,
       battleRewardClaimed: false,
       lastBattleReward: null,
+      onlineRoomCode: null,
+      onlineRole: null,
+      onlineVersion: 0,
+    });
+  },
+
+  startOnlineBattle: async (room) => {
+    const rng = createSystemRng();
+    let initialState = room.gameState;
+    let nextVersion = room.version;
+
+    if (!initialState && room.p1 && room.p2) {
+      const created = createGame({
+        p1Name: room.p1.name,
+        p2Name: room.p2.name,
+        p1Deck: room.p1.deckIds,
+        p2Deck: room.p2.deckIds,
+        p1IsAi: false,
+        p2IsAi: false,
+        firstPlayerId: room.firstPlayerId ?? 'P1',
+        rng,
+      });
+      const pushRes = await onlineService.pushRoomState({
+        roomCode: room.roomCode,
+        gameState: created,
+        lastEvents: [],
+        isInitial: true,
+      });
+      initialState = pushRes.gameState ?? created;
+      if (typeof pushRes.version === 'number') {
+        nextVersion = pushRes.version;
+      }
+    }
+
+    set({
+      gameState: initialState,
+      mode: 'ONLINE',
+      onlineRoomCode: room.roomCode,
+      onlineRole: room.role,
+      onlineVersion: nextVersion,
+      rng,
+      lastError: null,
+      coinShowcase: null,
+      impactBanner: null,
+      vfxCue: null,
+      cardPopups: [],
+      attackingPlayerId: null,
+      turnSplash: null,
+      recentTicker: [],
+      aiPaused: false,
+      extraAiDelayMs: 0,
+      hotseatHandoffTo: null,
+      selectedHandIndex: null,
+      isAiThinking: false,
+      battleRewardClaimed: false,
+      lastBattleReward: null,
+    });
+  },
+
+  applyRemoteOnlineRoom: (room) => {
+    const { gameState: prevGameState, onlineVersion, onlineRole, recentTicker } = get();
+    if (!room.gameState) return;
+    if (prevGameState && room.version <= onlineVersion) return;
+
+    const viewerId: PlayerId = onlineRole ?? room.role;
+    const events: CombatEvent[] = Array.isArray(room.lastEvents) ? room.lastEvents : [];
+    const coinShowcase = extractCoinEvent(events) ?? get().coinShowcase;
+    const impactBanner = extractImpactBanner(events);
+    const vfxCue = extractThreeVfxCue(events, viewerId);
+    const cardPopups = extractCardPopups(events);
+    const attackingPlayerId = extractAttackingPlayerId(events);
+    const turnSplash = prevGameState ? extractTurnSplash(prevGameState, room.gameState) : null;
+    const addedTicker = formatActionTickerEntries(events, room.gameState);
+    const nextTicker =
+      addedTicker.length > 0 ? [...recentTicker, ...addedTicker].slice(-5) : recentTicker;
+
+    set({
+      gameState: room.gameState,
+      onlineVersion: room.version,
+      coinShowcase,
+      impactBanner: impactBanner ?? get().impactBanner,
+      vfxCue: vfxCue ?? get().vfxCue,
+      cardPopups: cardPopups.length > 0 ? cardPopups : get().cardPopups,
+      attackingPlayerId,
+      turnSplash: turnSplash ?? get().turnSplash,
+      recentTicker: nextTicker,
+      selectedHandIndex: null,
     });
   },
 
@@ -310,8 +413,13 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   },
 
   dispatch: (action, usePrivacyCurtain = true) => {
-    const { gameState, rng, mode, recentTicker } = get();
+    const { gameState, rng, mode, recentTicker, onlineRoomCode, onlineRole } = get();
     if (!gameState) return false;
+
+    if (mode === 'ONLINE' && onlineRole && action.playerId !== onlineRole) {
+      set({ lastError: 'Espera a que tu rival online realice su acción.' });
+      return false;
+    }
 
     const prevActor = getNextActingPlayer(gameState);
     const result = dispatchAction(gameState, action, rng);
@@ -320,7 +428,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       return false;
     }
 
-    const viewerId = getControllingPlayerId(result.state, mode);
+    const viewerId = getControllingPlayerId(result.state, mode, onlineRole);
     const nextActor = getNextActingPlayer(result.state);
     const coinShowcase = extractCoinEvent(result.events) ?? get().coinShowcase;
     const impactBanner = extractImpactBanner(result.events);
@@ -344,8 +452,11 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       hotseatHandoffTo = nextActor;
     }
 
+    const nextVersion = get().onlineVersion + 1;
+
     set({
       gameState: result.state,
+      onlineVersion: nextVersion,
       lastError: null,
       coinShowcase,
       impactBanner: impactBanner ?? get().impactBanner,
@@ -358,6 +469,20 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       hotseatHandoffTo,
       selectedHandIndex: null,
     });
+
+    if (mode === 'ONLINE' && onlineRoomCode) {
+      void onlineService
+        .pushRoomState({
+          roomCode: onlineRoomCode,
+          gameState: result.state,
+          lastEvents: result.events,
+        })
+        .then((res) => {
+          if (res.ok && typeof res.version === 'number') {
+            set((s) => ({ onlineVersion: Math.max(s.onlineVersion, res.version!) }));
+          }
+        });
+    }
 
     return true;
   },
@@ -422,7 +547,11 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   confirmHotseatHandoff: () => set({ hotseatHandoffTo: null }),
   clearError: () => set({ lastError: null }),
   setSelectedHandIndex: (selectedHandIndex) => set({ selectedHandIndex }),
-  resetBattle: () =>
+  resetBattle: () => {
+    const { mode, onlineRoomCode } = get();
+    if (mode === 'ONLINE' && onlineRoomCode) {
+      void onlineService.leaveRoom(onlineRoomCode);
+    }
     set({
       gameState: null,
       lastError: null,
@@ -440,5 +569,9 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       isAiThinking: false,
       battleRewardClaimed: false,
       lastBattleReward: null,
-    }),
+      onlineRoomCode: null,
+      onlineRole: null,
+      onlineVersion: 0,
+    });
+  },
 }));

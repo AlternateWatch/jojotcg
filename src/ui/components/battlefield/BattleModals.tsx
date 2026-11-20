@@ -105,6 +105,29 @@ export function BattleModals({
         </motion.div>
       )}
 
+      {/* ONLINE WAITING FOR OPPONENT SETUP */}
+      {mode === 'ONLINE' &&
+        ((gameState.phase === 'SETUP_MULLIGAN' && myPlayer.mulliganConfirmed) ||
+          (gameState.phase === 'SETUP_ACTIVE' && myPlayer.setupActiveChosen)) && (
+          <motion.div
+            key="modal-online-setup-wait"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 flex items-center justify-center bg-[#060508]/80 p-4"
+          >
+            <div className="jojo-panel max-w-md space-y-3 p-6 text-center">
+              <div className="font-jojo-display text-2xl text-[#f2c12e] uppercase">
+                ESPERANDO AL RIVAL ONLINE...
+              </div>
+              <p className="text-xs text-zinc-300">
+                Tu rival está preparando su mano inicial o eligiendo su Personaje Activo. El duelo
+                comenzará automáticamente en cuanto confirme.
+              </p>
+            </div>
+          </motion.div>
+        )}
+
       {/* SETUP STARTING ACTIVE */}
       {gameState.phase === 'SETUP_ACTIVE' && !myPlayer.isAi && !myPlayer.setupActiveChosen && (
         <motion.div
@@ -278,13 +301,15 @@ export function BattleModals({
             )}
 
             <div className="flex flex-wrap justify-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={onRematch}
-                className="jojo-btn-primary inline-flex items-center gap-2 px-6 py-3 font-jojo-heading text-base tracking-[0.14em] uppercase"
-              >
-                <RefreshCw size={16} /> Revancha
-              </button>
+              {mode !== 'ONLINE' && (
+                <button
+                  type="button"
+                  onClick={onRematch}
+                  className="jojo-btn-primary inline-flex items-center gap-2 px-6 py-3 font-jojo-heading text-base tracking-[0.14em] uppercase"
+                >
+                  <RefreshCw size={16} /> Revancha
+                </button>
+              )}
               {onOpenShop && (
                 <button
                   type="button"

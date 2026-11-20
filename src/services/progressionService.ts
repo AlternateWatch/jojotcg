@@ -521,17 +521,28 @@ export function craftRandomCard(
 }
 
 export function computeBattleReward(
-  mode: 'VS_AI' | 'HOTSEAT',
+  mode: 'VS_AI' | 'HOTSEAT' | 'ONLINE',
   difficulty: AiDifficulty,
-  playerOneWon: boolean,
+  didWin: boolean,
 ): { coins: number; label: string } {
+  if (mode === 'ONLINE') {
+    return didWin
+      ? {
+          coins: 300,
+          label: 'Victoria Online 1v1',
+        }
+      : {
+          coins: 80,
+          label: 'Combate Online 1v1 (Participación)',
+        };
+  }
   if (mode === 'HOTSEAT') {
     return {
       coins: BATTLE_REWARDS.HOTSEAT_WIN,
       label: 'Recompensa de Duelo Local',
     };
   }
-  if (!playerOneWon) {
+  if (!didWin) {
     return {
       coins: BATTLE_REWARDS.LOSS_CONSOLATION,
       label: 'Recompensa de combate (Experiencia)',

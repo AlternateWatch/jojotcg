@@ -37,7 +37,7 @@ interface AppStoreState {
   customDecks: SavedDeck[];
   allDecks: SavedDeck[];
   inspectedCardId: string | null;
-  preferredBattleMode: 'VS_AI' | 'HOTSEAT';
+  preferredBattleMode: 'VS_AI' | 'HOTSEAT' | 'ONLINE';
   preselectedDeckId: string | null;
 
   setScreen: (screen: AppScreen) => void;
@@ -53,7 +53,7 @@ interface AppStoreState {
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
   logoutAccount: () => Promise<void>;
 
-  openBattleSetup: (mode: 'VS_AI' | 'HOTSEAT', preselectedDeckId?: string) => void;
+  openBattleSetup: (mode: 'VS_AI' | 'HOTSEAT' | 'ONLINE', preselectedDeckId?: string) => void;
   openInspector: (cardId: string) => void;
   closeInspector: () => void;
 

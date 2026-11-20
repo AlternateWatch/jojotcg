@@ -24,6 +24,35 @@ const DB_CONFIG = {
 
 let pool = null;
 
+// ===================== ONLINE MULTIPLAYER MATCHMAKING & ROOMS =====================
+// roomCode -> { code, isPrivate, status, p1, p2, gameState, lastEvents, version, updatedAt }
+const onlineRooms = new Map();
+// Queue of public room codes waiting for an opponent
+const matchmakingQueue = [];
+
+function generateRoomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars[crypto.randomInt(0, chars.length)];
+  }
+  return onlineRooms.has(code) ? generateRoomCode() : code;
+}
+
+function cleanupStaleRooms() {
+  const now = Date.now();
+  const maxAgeMs = 45 * 60 * 1000; // 45 minutes
+  for (const [code, room] of onlineRooms.entries()) {
+    if (now - room.updatedAt > maxAgeMs) {
+      onlineRooms.delete(code);
+      const qIdx = matchmakingQueue.indexOf(code);
+      if (qIdx !== -1) matchmakingQueue.splice(qIdx, 1);
+    }
+  }
+}
+
+setInterval(cleanupStaleRooms, 60 * 1000).unref?.();
+
 async function initDatabase() {
   try {
     pool = mysql.createPool(DB_CONFIG);
@@ -133,15 +162,291 @@ function safeParseJson(raw, fallback) {
 }
 
 async function handleApiRequest(req, res, pathname) {
-  if (!pool) {
-    await initDatabase();
-  }
-  if (!pool) {
-    sendJson(res, 503, { error: 'Base de datos MySQL no disponible.' });
-    return;
-  }
-
   try {
+    // ===================== ONLINE MULTIPLAYER ENDPOINTS =====================
+    if (req.method === 'POST' && pathname === '/api/online/find-match') {
+      const body = await readJsonBody(req);
+      const playerToken = String(body.playerToken || '').trim();
+      const playerName = String(body.playerName || 'Jugador').trim().slice(0, 24) || 'Jugador';
+      const deckIds = Array.isArray(body.deckIds) ? body.deckIds : [];
+
+      if (!playerToken || deckIds.length === 0) {
+        sendJson(res, 400, { error: 'Token de jugador y mazo requeridos.' });
+        return;
+      }
+
+      // Remove any existing waiting rooms from this same playerToken
+      for (const [code, r] of onlineRooms.entries()) {
+        if (r.status === 'WAITING' && r.p1.token === playerToken) {
+          onlineRooms.delete(code);
+          const qIdx = matchmakingQueue.indexOf(code);
+          if (qIdx !== -1) matchmakingQueue.splice(qIdx, 1);
+        }
+      }
+
+      // Find first available public waiting room in queue
+      while (matchmakingQueue.length > 0) {
+        const queuedCode = matchmakingQueue.shift();
+        const room = onlineRooms.get(queuedCode);
+        if (room && room.status === 'WAITING' && room.p1.token !== playerToken) {
+          room.p2 = { token: playerToken, name: playerName, deckIds };
+          room.status = 'PLAYING';
+          room.firstPlayerId = Math.random() < 0.5 ? 'P1' : 'P2';
+          room.version += 1;
+          room.updatedAt = Date.now();
+
+          sendJson(res, 200, {
+            roomCode: room.code,
+            role: 'P2',
+            status: room.status,
+            isPrivate: false,
+            p1: { name: room.p1.name, deckIds: room.p1.deckIds },
+            p2: { name: room.p2.name, deckIds: room.p2.deckIds },
+            firstPlayerId: room.firstPlayerId,
+            gameState: room.gameState,
+            lastEvents: room.lastEvents,
+            version: room.version,
+          });
+          return;
+        }
+      }
+
+      // Otherwise create a new public room and enqueue it
+      const code = generateRoomCode();
+      const newRoom = {
+        code,
+        isPrivate: false,
+        status: 'WAITING',
+        p1: { token: playerToken, name: playerName, deckIds },
+        p2: null,
+        firstPlayerId: 'P1',
+        gameState: null,
+        lastEvents: [],
+        version: 1,
+        updatedAt: Date.now(),
+      };
+      onlineRooms.set(code, newRoom);
+      matchmakingQueue.push(code);
+
+      sendJson(res, 200, {
+        roomCode: code,
+        role: 'P1',
+        status: 'WAITING',
+        isPrivate: false,
+        p1: { name: newRoom.p1.name, deckIds: newRoom.p1.deckIds },
+        p2: null,
+        firstPlayerId: newRoom.firstPlayerId,
+        gameState: null,
+        lastEvents: [],
+        version: 1,
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/online/create-private') {
+      const body = await readJsonBody(req);
+      const playerToken = String(body.playerToken || '').trim();
+      const playerName = String(body.playerName || 'Jugador 1').trim().slice(0, 24) || 'Jugador 1';
+      const deckIds = Array.isArray(body.deckIds) ? body.deckIds : [];
+
+      if (!playerToken || deckIds.length === 0) {
+        sendJson(res, 400, { error: 'Token de jugador y mazo requeridos.' });
+        return;
+      }
+
+      const code = generateRoomCode();
+      const newRoom = {
+        code,
+        isPrivate: true,
+        status: 'WAITING',
+        p1: { token: playerToken, name: playerName, deckIds },
+        p2: null,
+        firstPlayerId: Math.random() < 0.5 ? 'P1' : 'P2',
+        gameState: null,
+        lastEvents: [],
+        version: 1,
+        updatedAt: Date.now(),
+      };
+      onlineRooms.set(code, newRoom);
+
+      sendJson(res, 200, {
+        roomCode: code,
+        role: 'P1',
+        status: 'WAITING',
+        isPrivate: true,
+        p1: { name: newRoom.p1.name, deckIds: newRoom.p1.deckIds },
+        p2: null,
+        firstPlayerId: newRoom.firstPlayerId,
+        gameState: null,
+        lastEvents: [],
+        version: 1,
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/online/join-private') {
+      const body = await readJsonBody(req);
+      const code = String(body.roomCode || '').trim().toUpperCase();
+      const playerToken = String(body.playerToken || '').trim();
+      const playerName = String(body.playerName || 'Jugador 2').trim().slice(0, 24) || 'Jugador 2';
+      const deckIds = Array.isArray(body.deckIds) ? body.deckIds : [];
+
+      const room = onlineRooms.get(code);
+      if (!room) {
+        sendJson(res, 404, { error: `No existe ninguna sala con el código "${code}".` });
+        return;
+      }
+
+      if (room.p1.token === playerToken) {
+        sendJson(res, 400, { error: 'Ya eres el anfitrión de esta sala.' });
+        return;
+      }
+
+      if (room.status !== 'WAITING' || room.p2) {
+        sendJson(res, 409, { error: 'Esta sala ya está llena o en combate.' });
+        return;
+      }
+
+      // Remove from public queue if someone joined via code
+      const qIdx = matchmakingQueue.indexOf(code);
+      if (qIdx !== -1) matchmakingQueue.splice(qIdx, 1);
+
+      room.p2 = { token: playerToken, name: playerName, deckIds };
+      room.status = 'PLAYING';
+      room.version += 1;
+      room.updatedAt = Date.now();
+
+      sendJson(res, 200, {
+        roomCode: room.code,
+        role: 'P2',
+        status: room.status,
+        isPrivate: room.isPrivate,
+        p1: { name: room.p1.name, deckIds: room.p1.deckIds },
+        p2: { name: room.p2.name, deckIds: room.p2.deckIds },
+        firstPlayerId: room.firstPlayerId,
+        gameState: room.gameState,
+        lastEvents: room.lastEvents,
+        version: room.version,
+      });
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/online/room') {
+      const urlObj = new URL(req.url || '/', 'http://localhost');
+      const code = (urlObj.searchParams.get('code') || '').trim().toUpperCase();
+      const playerToken = (urlObj.searchParams.get('token') || '').trim();
+
+      const room = onlineRooms.get(code);
+      if (!room) {
+        sendJson(res, 404, { error: 'La sala ya no existe o fue cerrada.' });
+        return;
+      }
+
+      const role =
+        room.p1?.token === playerToken ? 'P1' : room.p2?.token === playerToken ? 'P2' : null;
+      if (!role) {
+        sendJson(res, 403, { error: 'No perteneces a esta sala.' });
+        return;
+      }
+
+      sendJson(res, 200, {
+        roomCode: room.code,
+        role,
+        status: room.status,
+        isPrivate: room.isPrivate,
+        p1: room.p1 ? { name: room.p1.name, deckIds: room.p1.deckIds } : null,
+        p2: room.p2 ? { name: room.p2.name, deckIds: room.p2.deckIds } : null,
+        firstPlayerId: room.firstPlayerId,
+        gameState: room.gameState,
+        lastEvents: room.lastEvents,
+        version: room.version,
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/online/push-state') {
+      const body = await readJsonBody(req);
+      const code = String(body.roomCode || '').trim().toUpperCase();
+      const playerToken = String(body.playerToken || '').trim();
+      const nextGameState = body.gameState;
+      const lastEvents = Array.isArray(body.lastEvents) ? body.lastEvents : [];
+
+      const room = onlineRooms.get(code);
+      if (!room) {
+        sendJson(res, 404, { error: 'Sala no encontrada.' });
+        return;
+      }
+
+      const isParticipant =
+        room.p1?.token === playerToken || room.p2?.token === playerToken;
+      if (!isParticipant) {
+        sendJson(res, 403, { error: 'No autorizado en esta sala.' });
+        return;
+      }
+
+      // Ignore duplicate init pushes if gameState is already initialized and body.isInitial
+      if (body.isInitial && room.gameState) {
+        sendJson(res, 200, {
+          ok: true,
+          version: room.version,
+          gameState: room.gameState,
+          lastEvents: room.lastEvents,
+        });
+        return;
+      }
+
+      room.gameState = nextGameState;
+      room.lastEvents = lastEvents;
+      room.version += 1;
+      room.updatedAt = Date.now();
+      if (nextGameState?.phase === 'GAME_OVER') {
+        room.status = 'FINISHED';
+      }
+
+      sendJson(res, 200, {
+        ok: true,
+        version: room.version,
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/online/leave') {
+      const body = await readJsonBody(req);
+      const code = String(body.roomCode || '').trim().toUpperCase();
+      const playerToken = String(body.playerToken || '').trim();
+
+      const room = onlineRooms.get(code);
+      if (room && (room.p1?.token === playerToken || room.p2?.token === playerToken)) {
+        const qIdx = matchmakingQueue.indexOf(code);
+        if (qIdx !== -1) matchmakingQueue.splice(qIdx, 1);
+
+        if (room.status === 'WAITING') {
+          onlineRooms.delete(code);
+        } else if (room.gameState && room.gameState.phase !== 'GAME_OVER') {
+          const leaverRole = room.p1?.token === playerToken ? 'P1' : 'P2';
+          const winnerRole = leaverRole === 'P1' ? 'P2' : 'P1';
+          const leaverName = leaverRole === 'P1' ? room.p1.name : room.p2?.name || 'Rival';
+          room.gameState.phase = 'GAME_OVER';
+          room.gameState.winnerId = winnerRole;
+          room.gameState.winReason = `${leaverName} abandonó la partida online.`;
+          room.status = 'FINISHED';
+          room.version += 1;
+          room.updatedAt = Date.now();
+        }
+      }
+
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    // ===================== MYSQL AUTH & USER ENDPOINTS =====================
+    if (!pool) {
+      await initDatabase();
+    }
+    if (!pool) {
+      sendJson(res, 503, { error: 'Base de datos MySQL no disponible.' });
+      return;
+    }
     if (req.method === 'POST' && pathname === '/api/auth/register') {
       const body = await readJsonBody(req);
       const username = String(body.username || '').trim();
