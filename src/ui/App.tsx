@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import { BookOpen, Coins } from 'lucide-react';
+import { BookOpen, Coins, User, UserCheck } from 'lucide-react';
 import { useAppStore, type AppScreen } from '../store/useAppStore';
 import { CardInspectorModal } from './components/cards/CardInspectorModal';
+import { AuthModal } from './components/common/AuthModal';
 import { MenuTransitionWipe } from './components/common/MenuTransitionWipe';
 import { RulesModal } from './components/common/RulesModal';
 import { BattleSetupView } from './views/BattleSetupView';
@@ -59,7 +60,14 @@ export function App() {
   const screen = useAppStore((s) => s.screen);
   const setScreen = useAppStore((s) => s.setScreen);
   const coins = useAppStore((s) => s.progression.coins);
+  const authUser = useAppStore((s) => s.authUser);
+  const setShowAuthModal = useAppStore((s) => s.setShowAuthModal);
+  const hydrateAuthSession = useAppStore((s) => s.hydrateAuthSession);
   const [showRules, setShowRules] = useState(false);
+
+  useEffect(() => {
+    void hydrateAuthSession();
+  }, [hydrateAuthSession]);
 
   const prevScreenRef = useRef<AppScreen>(screen);
   const [transitionMeta, setTransitionMeta] = useState<{
@@ -183,6 +191,25 @@ export function App() {
                     <BookOpen size={13} />
                     <span className="hidden sm:inline">Reglas</span>
                   </motion.button>
+
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => setShowAuthModal(true)}
+                    title={
+                      authUser
+                        ? `Cuenta conectada: ${authUser.username} (datos guardados en servidor)`
+                        : 'Modo invitado (datos no se guardan al cerrar ventana) — Clic para Iniciar Sesión o Crear Cuenta'
+                    }
+                    className={`ml-1 inline-flex items-center gap-1.5 border-2 border-[#060508] px-2.5 py-1 font-jojo-heading text-xs tracking-wider uppercase shadow-[2px_2px_0_#060508] transition ${
+                      authUser
+                        ? 'bg-[#00b87c] text-[#0b090e] hover:bg-[#00e599]'
+                        : 'bg-[#e6194b] text-white hover:bg-[#ff2a5f]'
+                    }`}
+                  >
+                    {authUser ? <UserCheck size={13} /> : <User size={13} />}
+                    <span>{authUser ? authUser.username : 'Invitado · Guardar'}</span>
+                  </motion.button>
                 </div>
               </div>
             </motion.nav>
@@ -217,6 +244,7 @@ export function App() {
 
         <CardInspectorModal />
         <RulesModal open={showRules} onClose={() => setShowRules(false)} />
+        <AuthModal />
       </div>
     </MotionConfig>
   );

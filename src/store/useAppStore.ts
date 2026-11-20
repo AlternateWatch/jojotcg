@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { PRESET_DECKS } from '../data/cardRegistry';
 import { getBoosterPackById } from '../data/progressionData';
 import type { AiDifficulty } from '../engine/ai/tacticalAi';
+import { authService, type AuthUser } from '../services/authService';
 import {
   craftRandomCard,
   createInitialProgression,
@@ -13,7 +14,6 @@ import {
 } from '../services/progressionService';
 import {
   DEFAULT_SETTINGS,
-  storageService,
   type PlaymatThemeId,
   type SavedDeck,
   type UserSettings,
@@ -29,6 +29,9 @@ export type AppScreen =
 
 interface AppStoreState {
   screen: AppScreen;
+  authUser: AuthUser | null;
+  authReady: boolean;
+  showAuthModal: boolean;
   settings: UserSettings;
   progression: PlayerProgression;
   customDecks: SavedDeck[];
@@ -38,6 +41,18 @@ interface AppStoreState {
   preselectedDeckId: string | null;
 
   setScreen: (screen: AppScreen) => void;
+  setShowAuthModal: (open: boolean) => void;
+  hydrateAuthSession: () => Promise<void>;
+  loginAccount: (
+    username: string,
+    password: string,
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  registerAccount: (
+    username: string,
+    password: string,
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  logoutAccount: () => Promise<void>;
+
   openBattleSetup: (mode: 'VS_AI' | 'HOTSEAT', preselectedDeckId?: string) => void;
   openInspector: (cardId: string) => void;
   closeInspector: () => void;
@@ -63,21 +78,92 @@ interface AppStoreState {
   resetProgression: () => void;
 }
 
-const initialSettings = storageService.loadSettings();
-const initialCustomDecks = storageService.loadDecks();
-const initialProgression = storageService.loadProgression();
+// Legacy localStorage cleanup so guest mode never persists data across window closes
+if (typeof window !== 'undefined' && window.localStorage) {
+  try {
+    window.localStorage.removeItem('jojo_tcg_progression_v1');
+    window.localStorage.removeItem('jojo_tcg_decks_v1');
+    window.localStorage.removeItem('jojo_tcg_settings_v1');
+  } catch {
+    // Ignore
+  }
+}
 
 export const useAppStore = create<AppStoreState>((set, get) => ({
   screen: 'HOME',
-  settings: initialSettings ?? DEFAULT_SETTINGS,
-  progression: initialProgression,
-  customDecks: initialCustomDecks,
-  allDecks: [...PRESET_DECKS, ...initialCustomDecks],
+  authUser: null,
+  authReady: false,
+  showAuthModal: false,
+  settings: { ...DEFAULT_SETTINGS },
+  progression: createInitialProgression(),
+  customDecks: [],
+  allDecks: [...PRESET_DECKS],
   inspectedCardId: null,
   preferredBattleMode: 'VS_AI',
   preselectedDeckId: null,
 
   setScreen: (screen) => set({ screen }),
+  setShowAuthModal: (showAuthModal) => set({ showAuthModal }),
+
+  hydrateAuthSession: async () => {
+    const me = await authService.fetchMe();
+    if (me) {
+      set({
+        authUser: me.user,
+        authReady: true,
+        progression: me.progression,
+        customDecks: me.customDecks,
+        allDecks: [...PRESET_DECKS, ...me.customDecks],
+        settings: me.settings,
+      });
+    } else {
+      set({ authReady: true });
+    }
+  },
+
+  loginAccount: async (username, password) => {
+    const res = await authService.login(username, password);
+    if (!res.ok) return res;
+    set({
+      authUser: res.data.user,
+      progression: res.data.progression,
+      customDecks: res.data.customDecks,
+      allDecks: [...PRESET_DECKS, ...res.data.customDecks],
+      settings: res.data.settings,
+      showAuthModal: false,
+    });
+    return { ok: true };
+  },
+
+  registerAccount: async (username, password) => {
+    const { progression, customDecks, settings } = get();
+    const res = await authService.register(username, password, {
+      progression,
+      customDecks,
+      settings,
+    });
+    if (!res.ok) return res;
+    set({
+      authUser: res.data.user,
+      progression: res.data.progression,
+      customDecks: res.data.customDecks,
+      allDecks: [...PRESET_DECKS, ...res.data.customDecks],
+      settings: res.data.settings,
+      showAuthModal: false,
+    });
+    return { ok: true };
+  },
+
+  logoutAccount: async () => {
+    await authService.logout();
+    set({
+      authUser: null,
+      settings: { ...DEFAULT_SETTINGS },
+      progression: createInitialProgression(),
+      customDecks: [],
+      allDecks: [...PRESET_DECKS],
+    });
+  },
 
   openBattleSetup: (mode, preselectedDeckId) =>
     set({
@@ -92,35 +178,35 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   setPlaymatTheme: (playmatTheme) =>
     set((state) => {
       const next = { ...state.settings, playmatTheme };
-      storageService.saveSettings(next);
+      if (state.authUser) void authService.syncAccountData({ settings: next });
       return { settings: next };
     }),
 
   setHotseatPrivacyScreen: (hotseatPrivacyScreen) =>
     set((state) => {
       const next = { ...state.settings, hotseatPrivacyScreen };
-      storageService.saveSettings(next);
+      if (state.authUser) void authService.syncAccountData({ settings: next });
       return { settings: next };
     }),
 
   setAnimationSpeed: (animationSpeed) =>
     set((state) => {
       const next = { ...state.settings, animationSpeed };
-      storageService.saveSettings(next);
+      if (state.authUser) void authService.syncAccountData({ settings: next });
       return { settings: next };
     }),
 
   setEnable3dVfx: (enable3dVfx) =>
     set((state) => {
       const next = { ...state.settings, enable3dVfx };
-      storageService.saveSettings(next);
+      if (state.authUser) void authService.syncAccountData({ settings: next });
       return { settings: next };
     }),
 
   setAiDifficulty: (aiDifficulty) =>
     set((state) => {
       const next = { ...state.settings, aiDifficulty };
-      storageService.saveSettings(next);
+      if (state.authUser) void authService.syncAccountData({ settings: next });
       return { settings: next };
     }),
 
@@ -133,7 +219,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           [imageId]: url,
         },
       };
-      storageService.saveSettings(next);
+      if (state.authUser) void authService.syncAccountData({ settings: next });
       return { settings: next };
     }),
 
@@ -142,7 +228,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       const copy = { ...state.settings.customImageOverrides };
       delete copy[imageId];
       const next: UserSettings = { ...state.settings, customImageOverrides: copy };
-      storageService.saveSettings(next);
+      if (state.authUser) void authService.syncAccountData({ settings: next });
       return { settings: next };
     }),
 
@@ -157,14 +243,14 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       const nextDecks = exists
         ? state.customDecks.map((d) => (d.id === saved.id ? saved : d))
         : [...state.customDecks, saved];
-      storageService.saveDecks(nextDecks);
+      if (state.authUser) void authService.syncAccountData({ customDecks: nextDecks });
       return { customDecks: nextDecks, allDecks: [...PRESET_DECKS, ...nextDecks] };
     }),
 
   deleteDeck: (deckId) =>
     set((state) => {
       const nextDecks = state.customDecks.filter((d) => d.id !== deckId);
-      storageService.saveDecks(nextDecks);
+      if (state.authUser) void authService.syncAccountData({ customDecks: nextDecks });
       return { customDecks: nextDecks, allDecks: [...PRESET_DECKS, ...nextDecks] };
     }),
 
@@ -181,7 +267,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       outcomes.push(out);
       current = out.nextProgression;
     }
-    storageService.saveProgression(current);
+    if (get().authUser) void authService.syncAccountData({ progression: current });
     set({ progression: current });
     return outcomes;
   },
@@ -190,7 +276,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const current = get().progression;
     const outcome = craftRandomCard(current, recipeId, customSelection);
     if (outcome.ok) {
-      storageService.saveProgression(outcome.nextProgression);
+      if (get().authUser) {
+        void authService.syncAccountData({ progression: outcome.nextProgression });
+      }
       set({ progression: outcome.nextProgression });
     }
     return outcome;
@@ -204,7 +292,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         wins: state.progression.wins + (won ? 1 : 0),
         losses: state.progression.losses + (won ? 0 : 1),
       };
-      storageService.saveProgression(next);
+      if (state.authUser) void authService.syncAccountData({ progression: next });
       return { progression: next };
     }),
 
@@ -214,14 +302,14 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         ...state.progression,
         coins: state.progression.coins + Math.max(0, amount),
       };
-      storageService.saveProgression(next);
+      if (state.authUser) void authService.syncAccountData({ progression: next });
       return { progression: next };
     }),
 
   resetProgression: () =>
-    set(() => {
+    set((state) => {
       const fresh = createInitialProgression();
-      storageService.saveProgression(fresh);
+      if (state.authUser) void authService.syncAccountData({ progression: fresh });
       return { progression: fresh };
     }),
 }));

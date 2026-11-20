@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ShieldAlert, UserCheck } from 'lucide-react';
 import { getCardById } from '../../data/cardRegistry';
 import { PLAYMAT_THEMES } from '../../services/assetResolver';
 import { getCollectionProgress } from '../../services/progressionService';
@@ -22,6 +22,8 @@ export function HomeView() {
   const setPlaymatTheme = useAppStore((s) => s.setPlaymatTheme);
   const openInspector = useAppStore((s) => s.openInspector);
   const progression = useAppStore((s) => s.progression);
+  const authUser = useAppStore((s) => s.authUser);
+  const setShowAuthModal = useAppStore((s) => s.setShowAuthModal);
 
   const coll = getCollectionProgress(progression);
 
@@ -123,6 +125,39 @@ export function HomeView() {
                 ADVENTURE <span className="text-[#e6194b]">TCG</span>
               </span>
             </h1>
+
+            {/* Guest / Account Persistence Banner */}
+            <div className="pt-2">
+              {authUser ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAuthModal(true)}
+                  className="inline-flex items-center gap-2 border-2 border-[#060508] bg-[#00b87c] px-3.5 py-1.5 text-left text-xs font-bold text-[#0b090e] shadow-[3px_3px_0_#060508] transition hover:bg-[#00e599]"
+                >
+                  <UserCheck size={15} />
+                  <span>
+                    Conectado como <strong>{authUser.username}</strong> · Progreso guardado en el
+                    servidor
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowAuthModal(true)}
+                  className="inline-flex max-w-lg items-center gap-2.5 border-2 border-[#060508] border-l-4 border-l-[#f2c12e] bg-[#1b1426] px-3.5 py-2 text-left text-xs text-zinc-200 shadow-[4px_4px_0_#060508] transition hover:border-[#f2c12e]"
+                >
+                  <ShieldAlert size={18} className="shrink-0 text-[#f2c12e]" />
+                  <span>
+                    Jugando como <strong>Invitado</strong> (tus datos se borrarán al cerrar la
+                    ventana).{' '}
+                    <strong className="text-[#f2c12e] underline">
+                      Haz clic aquí para Crear Cuenta o Iniciar Sesión
+                    </strong>
+                    .
+                  </span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Vertical Skewed Arcade Menu */}
