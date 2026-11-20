@@ -26,6 +26,7 @@ export function HomeView() {
   const setShowAuthModal = useAppStore((s) => s.setShowAuthModal);
 
   const coll = getCollectionProgress(progression);
+  const campaignCleared = (progression.completedCampaignStages ?? []).length;
 
   const showcaseCards = SHOWCASE_IDS.map(getCardById).filter(
     (c): c is NonNullable<typeof c> => Boolean(c),
@@ -34,41 +35,48 @@ export function HomeView() {
   const menuEntries = [
     {
       index: '01',
+      title: `MODO CAMPAÑA · PARTE 1 (${campaignCleared}/10)`,
+      sub: 'Mapa de 10 niveles de Phantom Blood contra la IA con sobres en Nivel 5 y 10',
+      accent: 'bg-[#2952d9] text-white',
+      onClick: () => setScreen('CAMPAIGN'),
+    },
+    {
+      index: '02',
       title: 'MULTIJUGADOR ONLINE 1V1',
       sub: 'Busca partida automática o crea/únete a una sala privada con código',
       accent: 'bg-[#00b87c] text-[#0b090e]',
       onClick: () => openBattleSetup('ONLINE'),
     },
     {
-      index: '02',
+      index: '03',
       title: 'COMBATE VS IA',
       sub: 'Gana monedas derrotando a la IA (Fácil / Normal / Difícil)',
       accent: 'bg-[#f2c12e] text-[#0b090e]',
       onClick: () => openBattleSetup('VS_AI'),
     },
     {
-      index: '03',
+      index: '04',
       title: 'TIENDA DE SOBRES',
       sub: `Abre sobres por Parte o Correlación · ${progression.coins.toLocaleString()} monedas`,
       accent: 'bg-[#e6194b] text-white',
       onClick: () => setScreen('SHOP'),
     },
     {
-      index: '04',
+      index: '05',
       title: 'DUELO 1V1 LOCAL',
       sub: 'Dos jugadores en el mismo equipo con turno protegido',
       accent: 'bg-[#1d1727] text-[#f5efe0]',
       onClick: () => openBattleSetup('HOTSEAT'),
     },
     {
-      index: '05',
+      index: '06',
       title: `COLECCIÓN & FORJA (${coll.unlocked}/${coll.total})`,
       sub: 'Personajes, Stands, Evoluciones y Crafteo de repetidas',
       accent: 'bg-[#1d1727] text-[#f5efe0]',
       onClick: () => setScreen('COLLECTION'),
     },
     {
-      index: '06',
+      index: '07',
       title: 'CONSTRUCTOR DE MAZOS',
       sub: 'Edita tus barajas con las cartas que has desbloqueado',
       accent: 'bg-[#1d1727] text-[#f5efe0]',

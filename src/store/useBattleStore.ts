@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getCardById } from '../data/cardRegistry';
+import type { BoosterPackDef } from '../data/progressionData';
 import { chooseAiAction, type AiDifficulty } from '../engine/ai/tacticalAi';
 import { createGame, dispatchAction } from '../engine/gameEngine';
 import { createSystemRng, type CoinResult, type RngProvider } from '../engine/rng';
@@ -7,6 +8,7 @@ import type { GameAction } from '../engine/types/actions';
 import type { CombatEvent } from '../engine/types/events';
 import type { GameState, PlayerId } from '../engine/types/state';
 import { onlineService, type OnlineRoomSnapshot } from '../services/onlineService';
+import type { OpenPackOutcome } from '../services/progressionService';
 import {
   extractAttackingPlayerId,
   extractCardPopups,
@@ -44,6 +46,7 @@ export interface StartBattleConfig {
   p2DeckIds: string[];
   firstPlayerId: PlayerId;
   aiDifficulty?: AiDifficulty;
+  campaignStageId?: string;
 }
 
 interface BattleStoreState {
@@ -67,6 +70,8 @@ interface BattleStoreState {
   isAiThinking: boolean;
   battleRewardClaimed: boolean;
   lastBattleReward: { coins: number; label: string } | null;
+  activeCampaignStageId: string | null;
+  campaignPackReward: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null;
   onlineRoomCode: string | null;
   onlineRole: PlayerId | null;
   onlineVersion: number;
@@ -78,6 +83,9 @@ interface BattleStoreState {
   dispatch: (action: GameAction, usePrivacyCurtain?: boolean) => boolean;
   stepAiIfNeeded: () => void;
   claimBattleReward: (reward: { coins: number; label: string }) => void;
+  setCampaignPackReward: (
+    reward: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null,
+  ) => void;
   toggleAiPaused: () => void;
   dismissCoinShowcase: () => void;
   clearImpactBanner: () => void;
@@ -278,6 +286,8 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   isAiThinking: false,
   battleRewardClaimed: false,
   lastBattleReward: null,
+  activeCampaignStageId: null,
+  campaignPackReward: null,
   onlineRoomCode: null,
   onlineRole: null,
   onlineVersion: 0,
@@ -315,6 +325,8 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       isAiThinking: false,
       battleRewardClaimed: false,
       lastBattleReward: null,
+      activeCampaignStageId: config.campaignStageId ?? null,
+      campaignPackReward: null,
       onlineRoomCode: null,
       onlineRole: null,
       onlineVersion: 0,
@@ -539,6 +551,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
 
   toggleAiPaused: () => set((s) => ({ aiPaused: !s.aiPaused })),
   claimBattleReward: (lastBattleReward) => set({ battleRewardClaimed: true, lastBattleReward }),
+  setCampaignPackReward: (campaignPackReward) => set({ campaignPackReward }),
   dismissCoinShowcase: () => set({ coinShowcase: null }),
   clearImpactBanner: () => set({ impactBanner: null }),
   clearCardPopups: () => set({ cardPopups: [] }),
@@ -569,6 +582,8 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       isAiThinking: false,
       battleRewardClaimed: false,
       lastBattleReward: null,
+      activeCampaignStageId: null,
+      campaignPackReward: null,
       onlineRoomCode: null,
       onlineRole: null,
       onlineVersion: 0,

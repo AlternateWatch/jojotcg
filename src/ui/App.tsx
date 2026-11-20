@@ -9,6 +9,7 @@ import { MenuTransitionWipe } from './components/common/MenuTransitionWipe';
 import { RulesModal } from './components/common/RulesModal';
 import { BattleSetupView } from './views/BattleSetupView';
 import { BattleView } from './views/BattleView';
+import { CampaignView } from './views/CampaignView';
 import { CollectionView } from './views/CollectionView';
 import { DeckBuilderView } from './views/DeckBuilderView';
 import { HomeView } from './views/HomeView';
@@ -16,19 +17,21 @@ import { ShopView } from './views/ShopView';
 
 const NAV_ITEMS: { id: AppScreen; num: string; label: string }[] = [
   { id: 'HOME', num: '01', label: 'Portada' },
-  { id: 'BATTLE_SETUP', num: '02', label: 'Combate' },
-  { id: 'COLLECTION', num: '03', label: 'Colección' },
-  { id: 'DECK_BUILDER', num: '04', label: 'Mazos' },
-  { id: 'SHOP', num: '05', label: 'Tienda' },
+  { id: 'CAMPAIGN', num: '02', label: 'Campaña' },
+  { id: 'BATTLE_SETUP', num: '03', label: 'Combate' },
+  { id: 'COLLECTION', num: '04', label: 'Colección' },
+  { id: 'DECK_BUILDER', num: '05', label: 'Mazos' },
+  { id: 'SHOP', num: '06', label: 'Tienda' },
 ];
 
 const SCREEN_ORDER: Record<AppScreen, number> = {
   HOME: 0,
-  BATTLE_SETUP: 1,
-  COLLECTION: 2,
-  DECK_BUILDER: 3,
-  SHOP: 4,
-  BATTLE: 5,
+  CAMPAIGN: 1,
+  BATTLE_SETUP: 2,
+  COLLECTION: 3,
+  DECK_BUILDER: 4,
+  SHOP: 5,
+  BATTLE: 6,
 };
 
 const pageVariants = {
@@ -228,6 +231,7 @@ export function App() {
               exit="exit"
             >
               {screen === 'HOME' && <HomeView />}
+              {screen === 'CAMPAIGN' && <CampaignView />}
               {screen === 'BATTLE_SETUP' && <BattleSetupView />}
               {screen === 'BATTLE' && <BattleView />}
               {screen === 'COLLECTION' && <CollectionView />}

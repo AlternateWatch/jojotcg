@@ -140,6 +140,13 @@ export const storageService: StorageAdapter = {
           }
         }
       }
+      const completedCampaignStages = Array.isArray(parsed.completedCampaignStages)
+        ? Array.from(
+            new Set(
+              parsed.completedCampaignStages.filter((id): id is string => typeof id === 'string'),
+            ),
+          )
+        : [];
       return {
         coins:
           typeof parsed.coins === 'number' && Number.isFinite(parsed.coins) && parsed.coins >= 0
@@ -153,6 +160,7 @@ export const storageService: StorageAdapter = {
         wins: typeof parsed.wins === 'number' && parsed.wins >= 0 ? Math.floor(parsed.wins) : 0,
         losses:
           typeof parsed.losses === 'number' && parsed.losses >= 0 ? Math.floor(parsed.losses) : 0,
+        completedCampaignStages,
       };
     } catch {
       return baseline;

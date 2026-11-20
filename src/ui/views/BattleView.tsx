@@ -14,6 +14,7 @@ import {
   Sparkles,
   Swords,
 } from 'lucide-react';
+import { getCampaignStageById } from '../../data/campaignData';
 import { getCardById } from '../../data/cardRegistry';
 import { validateAction } from '../../engine/gameEngine';
 import {
@@ -47,6 +48,7 @@ import { PromptOverlay } from '../components/battlefield/PromptOverlay';
 import { TurnSplashOverlay } from '../components/battlefield/TurnSplashOverlay';
 import { CardView } from '../components/cards/CardView';
 import { RulesModal } from '../components/common/RulesModal';
+import { PackOpeningModal } from '../components/shop/PackOpeningModal';
 
 const ThreeCombatCanvas = lazy(() =>
   import('../vfx/ThreeCombatCanvas').then((m) => ({ default: m.ThreeCombatCanvas })),
@@ -105,12 +107,16 @@ export function BattleView() {
   const battleRewardClaimed = useBattleStore((s) => s.battleRewardClaimed);
   const lastBattleReward = useBattleStore((s) => s.lastBattleReward);
   const claimBattleReward = useBattleStore((s) => s.claimBattleReward);
+  const activeCampaignStageId = useBattleStore((s) => s.activeCampaignStageId);
+  const campaignPackReward = useBattleStore((s) => s.campaignPackReward);
+  const setCampaignPackReward = useBattleStore((s) => s.setCampaignPackReward);
   const onlineRoomCode = useBattleStore((s) => s.onlineRoomCode);
   const onlineRole = useBattleStore((s) => s.onlineRole);
   const applyRemoteOnlineRoom = useBattleStore((s) => s.applyRemoteOnlineRoom);
 
   const settings = useAppStore((s) => s.settings);
   const awardBattleReward = useAppStore((s) => s.awardBattleReward);
+  const completeCampaignStage = useAppStore((s) => s.completeCampaignStage);
   const setPlaymatTheme = useAppStore((s) => s.setPlaymatTheme);
   const setAnimationSpeed = useAppStore((s) => s.setAnimationSpeed);
   const setEnable3dVfx = useAppStore((s) => s.setEnable3dVfx);
@@ -118,6 +124,7 @@ export function BattleView() {
 
   const [showLog, setShowLog] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [showCampaignPacks, setShowCampaignPacks] = useState(false);
   const [pileModal, setPileModal] = useState<{ title: string; cardIds: string[] } | null>(null);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const tabletopControls = useAnimationControls();
@@ -167,23 +174,51 @@ export function BattleView() {
     return () => window.clearTimeout(timer);
   }, [gameState, mode, coinShowcase, aiPaused, settings.animationSpeed, extraAiDelayMs, stepAiIfNeeded]);
 
-  // Award coins exactly once when a battle finishes
+  // Award coins / campaign one-time pickup rewards exactly once when a battle finishes
   useEffect(() => {
     if (!gameState || gameState.phase !== 'GAME_OVER' || !gameState.winnerId || battleRewardClaimed) {
       return;
     }
     const localPlayerId = mode === 'ONLINE' && onlineRole ? onlineRole : 'P1';
     const didWin = gameState.winnerId === localPlayerId;
-    const reward = computeBattleReward(mode, aiDifficulty, didWin);
-    awardBattleReward(reward.coins, didWin);
-    claimBattleReward(reward);
+
+    if (activeCampaignStageId) {
+      const stage = getCampaignStageById(activeCampaignStageId);
+      if (didWin && stage) {
+        const res = completeCampaignStage(activeCampaignStageId);
+        if (res?.firstClear) {
+          claimBattleReward({
+            coins: res.coinsAwarded,
+            label: `Campaña Nivel ${stage.stageNumber} completado (1.ª vez)${
+              res.packOutcomes ? ` + ${res.packOutcomes.length} sobre(s)` : ''
+            }`,
+          });
+          if (res.pack && res.packOutcomes) {
+            setCampaignPackReward({ pack: res.pack, outcomes: res.packOutcomes });
+          }
+        } else {
+          claimBattleReward({
+            coins: 0,
+            label: `Nivel ${stage.stageNumber} completado · Recompensa única ya recogida`,
+          });
+        }
+      } else {
+        const lossReward = computeBattleReward('VS_AI', aiDifficulty, false);
+        awardBattleReward(lossReward.coins, false);
+        claimBattleReward(lossReward);
+      }
+    } else {
+      const reward = computeBattleReward(mode, aiDifficulty, didWin);
+      awardBattleReward(reward.coins, didWin);
+      claimBattleReward(reward);
+    }
 
     if (mode !== 'ONLINE') {
       void fetch('/api/matches/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mode,
+          mode: activeCampaignStageId ? `CAMPAIGN_${activeCampaignStageId}` : mode,
           p1Name: gameState.players.P1.name,
           p2Name: gameState.players.P2.name,
           winnerId: gameState.winnerId,
@@ -198,7 +233,18 @@ export function BattleView() {
         }),
       }).catch(() => undefined);
     }
-  }, [gameState, mode, onlineRole, aiDifficulty, battleRewardClaimed, awardBattleReward, claimBattleReward]);
+  }, [
+    gameState,
+    mode,
+    onlineRole,
+    aiDifficulty,
+    activeCampaignStageId,
+    battleRewardClaimed,
+    awardBattleReward,
+    completeCampaignStage,
+    claimBattleReward,
+    setCampaignPackReward,
+  ]);
 
   // Live polling synchronization for ONLINE 1v1 matches
   useEffect(() => {
@@ -1054,6 +1100,13 @@ export function BattleView() {
         myId={myId}
         hotseatHandoffTo={hotseatHandoffTo}
         battleReward={lastBattleReward}
+        isCampaign={Boolean(activeCampaignStageId)}
+        campaignPackReward={campaignPackReward}
+        onOpenCampaignPacks={() => setShowCampaignPacks(true)}
+        onReturnToCampaign={() => {
+          resetBattle();
+          setScreen('CAMPAIGN');
+        }}
         onDispatch={handleDispatch}
         onConfirmHandoff={confirmHotseatHandoff}
         onRematch={() => rematch(settings.hotseatPrivacyScreen)}
@@ -1064,6 +1117,18 @@ export function BattleView() {
         onExitToMenu={() => {
           resetBattle();
           setScreen('HOME');
+        }}
+      />
+
+      {/* CAMPAIGN REWARD PACK OPENING MODAL */}
+      <PackOpeningModal
+        pack={showCampaignPacks && campaignPackReward ? campaignPackReward.pack : null}
+        outcomes={showCampaignPacks && campaignPackReward ? campaignPackReward.outcomes : null}
+        canBuyAnother={false}
+        onBuyAnother={() => undefined}
+        onClose={() => {
+          setShowCampaignPacks(false);
+          setCampaignPackReward(null);
         }}
       />
 

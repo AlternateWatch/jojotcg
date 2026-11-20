@@ -61,6 +61,12 @@ export function normalizeProgression(
     }
   }
 
+  const completedCampaignStages = Array.isArray(raw.completedCampaignStages)
+    ? Array.from(
+        new Set(raw.completedCampaignStages.filter((id): id is string => typeof id === 'string')),
+      )
+    : [];
+
   return {
     coins:
       typeof raw.coins === 'number' && Number.isFinite(raw.coins) && raw.coins >= 0
@@ -71,6 +77,7 @@ export function normalizeProgression(
       typeof raw.packsOpened === 'number' && raw.packsOpened >= 0 ? Math.floor(raw.packsOpened) : 0,
     wins: typeof raw.wins === 'number' && raw.wins >= 0 ? Math.floor(raw.wins) : 0,
     losses: typeof raw.losses === 'number' && raw.losses >= 0 ? Math.floor(raw.losses) : 0,
+    completedCampaignStages,
   };
 }
 

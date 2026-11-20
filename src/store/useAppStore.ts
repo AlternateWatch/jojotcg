@@ -1,14 +1,17 @@
 import { create } from 'zustand';
+import { getCampaignStageById } from '../data/campaignData';
 import { PRESET_DECKS } from '../data/cardRegistry';
 import { getBoosterPackById } from '../data/progressionData';
 import type { AiDifficulty } from '../engine/ai/tacticalAi';
 import { authService, type AuthUser } from '../services/authService';
 import {
+  claimCampaignStageReward,
   craftRandomCard,
   createInitialProgression,
   normalizePlayerProgression,
   normalizeSavedDecks,
   openBoosterPack,
+  type CampaignClearResult,
   type CraftOutcome,
   type CraftRecipeId,
   type OpenPackOutcome,
@@ -23,6 +26,7 @@ import {
 
 export type AppScreen =
   | 'HOME'
+  | 'CAMPAIGN'
   | 'BATTLE_SETUP'
   | 'BATTLE'
   | 'COLLECTION'
@@ -78,6 +82,7 @@ interface AppStoreState {
     customSelection?: Record<string, number>,
   ) => CraftOutcome;
   awardBattleReward: (coins: number, won: boolean) => void;
+  completeCampaignStage: (stageId: string) => CampaignClearResult | null;
   grantTestCoins: (amount: number) => void;
   resetProgression: () => void;
 }
@@ -368,6 +373,18 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       if (state.authUser) void authService.syncAccountData({ progression: next });
       return { progression: next };
     }),
+
+  completeCampaignStage: (stageId) => {
+    const stage = getCampaignStageById(stageId);
+    if (!stage) return null;
+    const current = get().progression;
+    const result = claimCampaignStageReward(stage, current);
+    if (get().authUser) {
+      void authService.syncAccountData({ progression: result.nextProgression });
+    }
+    set({ progression: result.nextProgression });
+    return result;
+  },
 
   grantTestCoins: (amount) =>
     set((state) => {

@@ -1,4 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import {
+  CAMPAIGN_PARTS,
+  getCampaignStageById,
+  isCampaignStageUnlocked,
+} from '../../data/campaignData';
 import { ALL_CARDS, getCardById, PRESET_DECKS } from '../../data/cardRegistry';
 import {
   BOOSTER_PACKS,
@@ -12,6 +17,7 @@ import { createSeededRng } from '../../engine/rng';
 import { autoCompleteDeck } from '../../services/deckAutoComplete';
 import { validateDeck } from '../../services/deckValidator';
 import {
+  claimCampaignStageReward,
   COLLECTIBLE_CARDS,
   computeBattleReward,
   computeEffectivePackRates,
@@ -243,5 +249,78 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(resEmpty.cardIds).toHaveLength(40);
     expect(getMissingCardsForDeck(baseProg, resEmpty.cardIds)).toHaveLength(0);
     expect(validateDeck(resEmpty.cardIds).valid).toBe(true);
+  });
+
+  it('validates Part 1 Campaign (10 legal Part 1 decks, HARD bosses on 5 & 10 with 1 & 2 packs, strict one-time pickup)', () => {
+    const part1 = CAMPAIGN_PARTS.find((p) => p.part === 1)!;
+    expect(part1.available).toBe(true);
+    expect(part1.stages).toHaveLength(10);
+
+    for (const stage of part1.stages) {
+      const val = validateDeck(stage.opponentDeckIds);
+      expect(val.valid, `Stage ${stage.id} deck invalid: ${val.errors.map((e) => e.message).join(', ')}`).toBe(true);
+      // Every non-energy card in Part 1 campaign decks belongs to Part 1 (or Speedwagon utility)
+      for (const cid of stage.opponentDeckIds) {
+        const c = getCardById(cid)!;
+        expect(c).toBeDefined();
+        if (c.type === 'CHARACTER') expect(c.part).toBe(1);
+      }
+    }
+
+    const s1 = getCampaignStageById('p1-s1')!;
+    const s2 = getCampaignStageById('p1-s2')!;
+    const s5 = getCampaignStageById('p1-s5')!;
+    const s10 = getCampaignStageById('p1-s10')!;
+
+    expect(s5.isBoss).toBe(true);
+    expect(s5.difficulty).toBe('HARD');
+    expect(s5.rewardPackId).toBe('pack-part-1');
+    expect(s5.rewardPackCount).toBe(1);
+
+    expect(s10.isBoss).toBe(true);
+    expect(s10.difficulty).toBe('HARD');
+    expect(s10.rewardPackId).toBe('pack-part-1');
+    expect(s10.rewardPackCount).toBe(2);
+
+    // Sequential unlock
+    let prog = createInitialProgression();
+    expect(isCampaignStageUnlocked(s1, prog.completedCampaignStages)).toBe(true);
+    expect(isCampaignStageUnlocked(s2, prog.completedCampaignStages)).toBe(false);
+
+    // First clear of Stage 1 awards coins & unlocks Stage 2
+    const r1 = claimCampaignStageReward(s1, prog, createSeededRng(101));
+    expect(r1.firstClear).toBe(true);
+    expect(r1.coinsAwarded).toBe(s1.rewardCoins);
+    expect(r1.packOutcomes).toBeNull();
+    prog = r1.nextProgression;
+    expect(isCampaignStageUnlocked(s2, prog.completedCampaignStages)).toBe(true);
+
+    // Second clear of Stage 1 is strictly one-time pickup (0 coins!)
+    const r1Again = claimCampaignStageReward(s1, prog, createSeededRng(102));
+    expect(r1Again.firstClear).toBe(false);
+    expect(r1Again.coinsAwarded).toBe(0);
+    expect(r1Again.packOutcomes).toBeNull();
+    expect(r1Again.nextProgression.coins).toBe(prog.coins);
+
+    // First clear of Stage 5 grants coins + 1 free Part 1 pack (does not deduct coins!)
+    const coinsBefore5 = prog.coins;
+    const r5 = claimCampaignStageReward(s5, prog, createSeededRng(105));
+    expect(r5.firstClear).toBe(true);
+    expect(r5.packOutcomes).toHaveLength(1);
+    expect(r5.nextProgression.coins).toBe(coinsBefore5 + s5.rewardCoins);
+    prog = r5.nextProgression;
+
+    // First clear of Stage 10 grants coins + 2 free Part 1 packs
+    const coinsBefore10 = prog.coins;
+    const r10 = claimCampaignStageReward(s10, prog, createSeededRng(110));
+    expect(r10.firstClear).toBe(true);
+    expect(r10.packOutcomes).toHaveLength(2);
+    expect(r10.nextProgression.coins).toBe(coinsBefore10 + s10.rewardCoins);
+
+    // Repeating Stage 10 yields NO extra packs or coins
+    const r10Again = claimCampaignStageReward(s10, r10.nextProgression, createSeededRng(111));
+    expect(r10Again.firstClear).toBe(false);
+    expect(r10Again.coinsAwarded).toBe(0);
+    expect(r10Again.packOutcomes).toBeNull();
   });
 });

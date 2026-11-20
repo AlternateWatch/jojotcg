@@ -1,6 +1,8 @@
 import { ALL_CARDS, getCardById } from '../data/cardRegistry';
+import type { CampaignStageDef } from '../data/campaignData';
 import {
   BATTLE_REWARDS,
+  getBoosterPackById,
   getCardRarity,
   INITIAL_TEST_COINS,
   RARITY_META,
@@ -20,6 +22,8 @@ export interface PlayerProgression {
   packsOpened: number;
   wins: number;
   losses: number;
+  /** Campaign stage IDs already cleared (one-time pickup rewards claimed) */
+  completedCampaignStages: string[];
 }
 
 export interface PackPullResult {
@@ -108,6 +112,7 @@ export function createInitialProgression(): PlayerProgression {
     packsOpened: 0,
     wins: 0,
     losses: 0,
+    completedCampaignStages: [],
   };
 }
 
@@ -141,9 +146,18 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
     }
   }
 
+  const completedCampaignStages = Array.isArray(progression.completedCampaignStages)
+    ? Array.from(
+        new Set(
+          progression.completedCampaignStages.filter((id): id is string => typeof id === 'string'),
+        ),
+      )
+    : [];
+
   return {
     ...progression,
     ownedCards: nextOwned,
+    completedCampaignStages,
   };
 }
 
@@ -326,6 +340,7 @@ export function openBoosterPack(
   pack: BoosterPackDef,
   currentProgression: PlayerProgression,
   rng: RngProvider = createSystemRng(),
+  free = false,
 ): OpenPackOutcome {
   const byRarity: Record<CardRarity, string[]> = {
     COMMON: [],
@@ -381,7 +396,7 @@ export function openBoosterPack(
     totalRefundCoins,
     nextProgression: {
       ...currentProgression,
-      coins: Math.max(0, currentProgression.coins - pack.price),
+      coins: free ? currentProgression.coins : Math.max(0, currentProgression.coins - pack.price),
       ownedCards: nextOwned,
       packsOpened: currentProgression.packsOpened + 1,
     },
@@ -625,5 +640,69 @@ export function computeBattleReward(
   return {
     coins: BATTLE_REWARDS.VS_AI_NORMAL_WIN,
     label: 'Victoria vs IA Normal',
+  };
+}
+
+export interface CampaignClearResult {
+  firstClear: boolean;
+  coinsAwarded: number;
+  pack: BoosterPackDef | null;
+  packOutcomes: OpenPackOutcome[] | null;
+  nextProgression: PlayerProgression;
+}
+
+/**
+ * Strictly one-time pickup campaign reward processor.
+ * First clear awards stage coins + any free booster packs (Stage 5: 1 pack, Stage 10: 2 packs).
+ * Subsequent clears record the win without granting duplicate stage rewards.
+ */
+export function claimCampaignStageReward(
+  stage: CampaignStageDef,
+  progression: PlayerProgression,
+  rng: RngProvider = createSystemRng(),
+): CampaignClearResult {
+  const completed = progression.completedCampaignStages ?? [];
+  if (completed.includes(stage.id)) {
+    return {
+      firstClear: false,
+      coinsAwarded: 0,
+      pack: null,
+      packOutcomes: null,
+      nextProgression: {
+        ...progression,
+        wins: progression.wins + 1,
+      },
+    };
+  }
+
+  let current: PlayerProgression = {
+    ...progression,
+    coins: progression.coins + stage.rewardCoins,
+    wins: progression.wins + 1,
+    completedCampaignStages: [...completed, stage.id],
+  };
+
+  let rewardPack: BoosterPackDef | null = null;
+  let packOutcomes: OpenPackOutcome[] | null = null;
+
+  if (stage.rewardPackId && stage.rewardPackCount && stage.rewardPackCount > 0) {
+    const foundPack = getBoosterPackById(stage.rewardPackId);
+    if (foundPack) {
+      rewardPack = foundPack;
+      packOutcomes = [];
+      for (let i = 0; i < stage.rewardPackCount; i++) {
+        const out = openBoosterPack(foundPack, current, rng, true);
+        packOutcomes.push(out);
+        current = out.nextProgression;
+      }
+    }
+  }
+
+  return {
+    firstClear: true,
+    coinsAwarded: stage.rewardCoins,
+    pack: rewardPack,
+    packOutcomes,
+    nextProgression: current,
   };
 }

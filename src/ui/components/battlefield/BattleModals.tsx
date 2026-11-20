@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Coins, RefreshCw, ShoppingBag } from 'lucide-react';
+import { Coins, Gift, Map, RefreshCw, ShoppingBag } from 'lucide-react';
 import { getCardById, getStandCard } from '../../../data/cardRegistry';
+import type { BoosterPackDef } from '../../../data/progressionData';
 import {
   getCharacterUnlockTurn,
   hasAnyTurnOneEligibleCharacter,
@@ -8,6 +9,7 @@ import {
 } from '../../../engine/helpers/cardStats';
 import type { GameAction } from '../../../engine/types/actions';
 import type { GameState, PlayerId } from '../../../engine/types/state';
+import type { OpenPackOutcome } from '../../../services/progressionService';
 import type { BattleMode } from '../../../store/useBattleStore';
 import { CardView } from '../cards/CardView';
 
@@ -17,6 +19,10 @@ interface BattleModalsProps {
   myId: PlayerId;
   hotseatHandoffTo: PlayerId | null;
   battleReward?: { coins: number; label: string } | null;
+  isCampaign?: boolean;
+  campaignPackReward?: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null;
+  onOpenCampaignPacks?: () => void;
+  onReturnToCampaign?: () => void;
   onDispatch: (action: GameAction) => void;
   onConfirmHandoff: () => void;
   onRematch: () => void;
@@ -30,6 +36,10 @@ export function BattleModals({
   myId,
   hotseatHandoffTo,
   battleReward,
+  isCampaign = false,
+  campaignPackReward,
+  onOpenCampaignPacks,
+  onReturnToCampaign,
   onDispatch,
   onConfirmHandoff,
   onRematch,
@@ -308,7 +318,7 @@ export function BattleModals({
                 <Coins size={20} />
                 <div className="text-left">
                   <div className="font-jojo-display text-xl leading-none">
-                    +{battleReward.coins} MONEDAS
+                    {battleReward.coins > 0 ? `+${battleReward.coins} MONEDAS` : 'RECOMPENSA YA RECOGIDA'}
                   </div>
                   <div className="font-mono text-[10px] font-bold uppercase opacity-80">
                     {battleReward.label}
@@ -317,12 +327,40 @@ export function BattleModals({
               </motion.div>
             )}
 
+            {campaignPackReward && onOpenCampaignPacks && (
+              <motion.div
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.32, type: 'spring', stiffness: 360, damping: 22 }}
+              >
+                <button
+                  type="button"
+                  onClick={onOpenCampaignPacks}
+                  className="jojo-btn-crimson inline-flex items-center gap-2 px-6 py-3 font-jojo-heading text-lg tracking-[0.14em] uppercase"
+                >
+                  <Gift size={18} />
+                  Abrir ×{campaignPackReward.outcomes.length} {campaignPackReward.pack.name}
+                </button>
+              </motion.div>
+            )}
+
             <div className="flex flex-wrap justify-center gap-3 pt-2">
+              {isCampaign && onReturnToCampaign && (
+                <button
+                  type="button"
+                  onClick={onReturnToCampaign}
+                  className="jojo-btn-primary inline-flex items-center gap-2 px-6 py-3 font-jojo-heading text-base tracking-[0.14em] uppercase"
+                >
+                  <Map size={16} /> Mapa de Campaña
+                </button>
+              )}
               {mode !== 'ONLINE' && (
                 <button
                   type="button"
                   onClick={onRematch}
-                  className="jojo-btn-primary inline-flex items-center gap-2 px-6 py-3 font-jojo-heading text-base tracking-[0.14em] uppercase"
+                  className={`${
+                    isCampaign ? 'jojo-btn-ink' : 'jojo-btn-primary'
+                  } inline-flex items-center gap-2 px-6 py-3 font-jojo-heading text-base tracking-[0.14em] uppercase`}
                 >
                   <RefreshCw size={16} /> Revancha
                 </button>
