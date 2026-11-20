@@ -31,11 +31,11 @@ interface SavedMusicPrefs {
 
 function loadMusicPrefs(): SavedMusicPrefs {
   if (typeof window === 'undefined' || !window.localStorage) {
-    return { volume: 0.35, muted: false, repeatOne: true, shuffle: false };
+    return { volume: 0.35, muted: false, repeatOne: false, shuffle: false };
   }
   try {
     const raw = window.localStorage.getItem(MUSIC_PREFS_KEY);
-    if (!raw) return { volume: 0.35, muted: false, repeatOne: true, shuffle: false };
+    if (!raw) return { volume: 0.35, muted: false, repeatOne: false, shuffle: false };
     const parsed = JSON.parse(raw) as Partial<SavedMusicPrefs>;
     return {
       volume:
@@ -43,11 +43,11 @@ function loadMusicPrefs(): SavedMusicPrefs {
           ? parsed.volume
           : 0.35,
       muted: Boolean(parsed.muted),
-      repeatOne: parsed.repeatOne !== undefined ? Boolean(parsed.repeatOne) : true,
+      repeatOne: Boolean(parsed.repeatOne),
       shuffle: Boolean(parsed.shuffle),
     };
   } catch {
-    return { volume: 0.35, muted: false, repeatOne: true, shuffle: false };
+    return { volume: 0.35, muted: false, repeatOne: false, shuffle: false };
   }
 }
 
