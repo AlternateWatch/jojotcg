@@ -528,11 +528,11 @@ export function computeBattleReward(
   if (mode === 'ONLINE') {
     return didWin
       ? {
-          coins: 300,
+          coins: BATTLE_REWARDS.ONLINE_WIN,
           label: 'Victoria Online 1v1',
         }
       : {
-          coins: 80,
+          coins: BATTLE_REWARDS.ONLINE_LOSS,
           label: 'Combate Online 1v1 (Participación)',
         };
   }

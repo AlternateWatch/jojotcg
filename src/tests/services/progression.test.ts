@@ -206,8 +206,12 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     const normal = computeBattleReward('VS_AI', 'NORMAL', true);
     const hard = computeBattleReward('VS_AI', 'HARD', true);
     const loss = computeBattleReward('VS_AI', 'NORMAL', false);
+    const onlineWin = computeBattleReward('ONLINE', 'NORMAL', true);
+    const onlineLoss = computeBattleReward('ONLINE', 'NORMAL', false);
 
-    expect(loss.coins).toBeGreaterThan(0);
+    expect(loss.coins).toBe(75);
+    expect(onlineWin.coins).toBe(300);
+    expect(onlineLoss.coins).toBe(150);
     expect(easy.coins).toBeGreaterThan(loss.coins);
     expect(normal.coins).toBeGreaterThan(easy.coins);
     expect(hard.coins).toBeGreaterThan(normal.coins);
