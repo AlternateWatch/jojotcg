@@ -901,7 +901,11 @@ export function validatePromptResponse(
         const matches =
           prompt.filter === 'ENERGY'
             ? card.type === 'ENERGY'
-            : card.type === 'CHARACTER' || card.type === 'STAND';
+            : prompt.filter === 'STAND'
+              ? card.type === 'STAND'
+              : prompt.filter === 'STAND_EVOLUTION'
+                ? card.type === 'EVOLUTION' && card.evolutionTarget === 'STAND'
+                : card.type === 'CHARACTER' || card.type === 'STAND';
         if (!matches) {
           return {
             ok: false,

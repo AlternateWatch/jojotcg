@@ -1,9 +1,7 @@
 import type { ItemCard } from '../schemas/cardTypes';
 
 /**
- * Item cards required by the official rulebook evolutions & mechanics.
- * Artwork files do not exist yet, so they use assetFolder='items' and render a clean neutral placeholder
- * until the user provides custom PNG/JPG files.
+ * Official Item cards rendered with their exact artwork and effects from public/assets/cards/items/.
  */
 export const ITEM_CARDS: ItemCard[] = [
   {
@@ -14,12 +12,15 @@ export const ITEM_CARDS: ItemCard[] = [
     imageId: 'flecha-requiem',
     assetFolder: 'items',
     itemKind: 'CONSUMABLE',
-    targetScope: 'ACTIVE_ALLY',
+    targetScope: 'PLAYER',
     catalystTag: 'requiem-arrow',
     description:
-      'Catalizador requerido en mano para evolucionar a Silver Chariot en Silver Chariot Requiem.',
-    effects: [{ kind: 'EVOLUTION_CATALYST', catalystTag: 'requiem-arrow' }],
-    tags: ['placeholder-pending', 'catalyst'],
+      'Flecha que despierta el verdadero potencial de un stand. Al jugar por su cuenta: Busca una evolución de un Stand en tu mazo, y añádela a tu mano. Al jugarla junto a un stand: Actua como objeto de evolución.',
+    effects: [
+      { kind: 'SEARCH_DECK', filter: 'STAND_EVOLUTION', maxCount: 1 },
+      { kind: 'EVOLUTION_CATALYST', catalystTag: 'requiem-arrow' },
+    ],
+    tags: ['official', 'catalyst', 'search'],
   },
   {
     id: 'item-flecha-de-stand',
@@ -29,16 +30,19 @@ export const ITEM_CARDS: ItemCard[] = [
     imageId: 'flecha-de-stand',
     assetFolder: 'items',
     itemKind: 'CONSUMABLE',
-    targetScope: 'ACTIVE_ALLY',
+    targetScope: 'PLAYER',
     catalystTag: 'stand-arrow',
     description:
-      'Catalizador requerido en mano para evolucionar a Killer Queen en Killer Queen: Bites The Dust (con Stray Cat en banca).',
-    effects: [{ kind: 'EVOLUTION_CATALYST', catalystTag: 'stand-arrow' }],
-    tags: ['placeholder-pending', 'catalyst'],
+      'Flecha que despierta tu potencial interior. Al jugar por su cuenta: Busca un Stand en tu mazo, y añádelo a tu mano. Al jugarla junto a un stand: Actua como objeto de evolución.',
+    effects: [
+      { kind: 'SEARCH_DECK', filter: 'STAND', maxCount: 1 },
+      { kind: 'EVOLUTION_CATALYST', catalystTag: 'stand-arrow' },
+    ],
+    tags: ['official', 'catalyst', 'search', 'stand'],
   },
   {
     id: 'item-mascara-de-piedra',
-    name: 'La Máscara de Piedra',
+    name: 'Máscara de Piedra',
     type: 'ITEM',
     part: 1,
     imageId: 'mascara-de-piedra',
@@ -47,12 +51,12 @@ export const ITEM_CARDS: ItemCard[] = [
     targetScope: 'ANY_ALLY',
     catalystTag: 'stone-mask',
     description:
-      'Objeto equipable. Otorga +10 HP máximo al portador. Junto con la Piedra Roja de Aja permite evolucionar a Kars.',
+      'Máscara que te libera de las restricciones de la naturaleza. Al jugarla junto a un personaje: Actúa como objeto de evolución o otorga 10 puntos de daño extra permanentes.',
     effects: [
-      { kind: 'EQUIP_PASSIVE_MAX_HP', bonusHp: 10 },
+      { kind: 'EQUIP_PASSIVE_DAMAGE_BONUS', bonusDamage: 10 },
       { kind: 'EVOLUTION_CATALYST', catalystTag: 'stone-mask' },
     ],
-    tags: ['placeholder-pending', 'equippable'],
+    tags: ['official', 'equippable', 'catalyst'],
   },
   {
     id: 'item-piedra-roja-de-aja',
@@ -65,95 +69,53 @@ export const ITEM_CARDS: ItemCard[] = [
     targetScope: 'ANY_ALLY',
     catalystTag: 'red-stone-of-aja',
     description:
-      'Objeto equipable. +10 daño a ataques de Luz. Junto con La Máscara de Piedra permite evolucionar a Kars.',
+      'Una piedra capaz de absorber la luz solar y reflejarla. Al jugarla por su cuenta: Quema a un oponente. Al jugarla junto a un personaje: Actúa como objeto de evolución.',
     effects: [
-      { kind: 'EQUIP_PASSIVE_ELEMENT_BONUS', energy: 'LIGHT', bonusDamage: 10 },
+      { kind: 'BURN_ENEMY_ACTIVE' },
       { kind: 'EVOLUTION_CATALYST', catalystTag: 'red-stone-of-aja' },
     ],
-    tags: ['placeholder-pending', 'equippable'],
+    tags: ['official', 'equippable', 'catalyst', 'burn'],
   },
   {
     id: 'item-comida-de-tonio',
-    name: 'Comida de Tonio Trussardi',
+    name: 'Comida de Tonio',
     type: 'ITEM',
     part: 4,
     imageId: 'comida-de-tonio',
     assetFolder: 'items',
     itemKind: 'CONSUMABLE',
-    targetScope: 'ACTIVE_ALLY',
-    description: 'Cura 40 puntos de vida a tu personaje activo y elimina el estado de Quemado.',
+    targetScope: 'ANY_ALLY',
+    description:
+      'Comida capaz de curar heridas y regenerar el alma. Al jugarla por su cuenta: Cura 40 puntos de salud a un personaje.',
     effects: [{ kind: 'HEAL_TARGET', amount: 40, curesBurn: true }],
-    tags: ['placeholder-pending', 'healing'],
+    tags: ['official', 'healing'],
   },
   {
     id: 'item-suministros-speedwagon',
-    name: 'Suministros de la Fundación',
+    name: 'Suministros de la fundación Speedwagon',
     type: 'ITEM',
     part: 3,
     imageId: 'suministros-speedwagon',
     assetFolder: 'items',
     itemKind: 'CONSUMABLE',
     targetScope: 'PLAYER',
-    description: 'Roba 2 cartas de tu mazo.',
+    description:
+      'Ayuda proveída por la fundación Speedwagon. Al jugarla por su cuenta: Roba dos cartas de tu mazo.',
     effects: [{ kind: 'DRAW_CARDS', count: 2 }],
-    tags: ['placeholder-pending', 'draw'],
+    tags: ['official', 'draw'],
   },
   {
-    id: 'item-brujula-de-energia',
-    name: 'Brújula de Energía',
+    id: 'item-atraccion-usuarios-stand',
+    name: '¡Atracción entre usuarios de Stand!',
     type: 'ITEM',
-    part: 3,
-    imageId: 'brujula-de-energia',
+    part: 4,
+    imageId: 'atraccion-usuarios-stand',
     assetFolder: 'items',
     itemKind: 'CONSUMABLE',
     targetScope: 'PLAYER',
     description:
-      'Busca hasta 2 cartas de Energía Básica en tu mazo, añádelas a tu mano y baraja el mazo.',
+      'Propiedad de los usuarios de stand que hace que se atraigan entre sí. Al jugar por su cuenta: Busca hasta 2 cartas de Energía Básica en tu mazo, añádelas a tu mano y baraja el mazo.',
     effects: [{ kind: 'SEARCH_DECK', filter: 'ENERGY', maxCount: 2 }],
-    tags: ['placeholder-pending', 'search', 'energy'],
-  },
-  {
-    id: 'item-llamada-del-destino',
-    name: 'Llamada del Destino',
-    type: 'ITEM',
-    part: 3,
-    imageId: 'llamada-del-destino',
-    assetFolder: 'items',
-    itemKind: 'CONSUMABLE',
-    targetScope: 'PLAYER',
-    description:
-      'Busca 1 carta de Stand o Personaje en tu mazo, añádela a tu mano y baraja el mazo.',
-    effects: [{ kind: 'SEARCH_DECK', filter: 'CHARACTER_OR_STAND', maxCount: 1 }],
-    tags: ['placeholder-pending', 'search', 'stand'],
-  },
-  {
-    id: 'item-impulso-espiritual',
-    name: 'Impulso Espiritual',
-    type: 'ITEM',
-    part: 2,
-    imageId: 'impulso-espiritual',
-    assetFolder: 'items',
-    itemKind: 'CONSUMABLE',
-    targetScope: 'PLAYER',
-    description:
-      'Este turno puedes unir +1 carta de Energía adicional. Si tienes energías en tu pila de descartes, recupera 1 a tu mano.',
-    effects: [
-      { kind: 'EXTRA_ENERGY_ALLOWANCE', bonusAttachments: 1, recoverDiscardEnergy: true },
-    ],
-    tags: ['placeholder-pending', 'energy', 'acceleration'],
-  },
-  {
-    id: 'item-cambio-tactico',
-    name: 'Cambio Táctico',
-    type: 'ITEM',
-    part: 3,
-    imageId: 'cambio-tactico',
-    assetFolder: 'items',
-    itemKind: 'CONSUMABLE',
-    targetScope: 'PLAYER',
-    description:
-      'Intercambia tu Personaje Activo por uno de tu Banca sin finalizar tu turno (limpia Quemado).',
-    effects: [{ kind: 'FREE_BENCH_SWAP' }],
-    tags: ['placeholder-pending', 'tactical', 'switch'],
+    tags: ['official', 'search', 'energy'],
   },
 ];

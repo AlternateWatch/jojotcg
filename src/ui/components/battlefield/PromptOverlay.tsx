@@ -470,16 +470,19 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
           </div>
         )}
 
-        {/* 9. SEARCH DECK CARDS (Brújula de Energía / Llamada del Destino) */}
+        {/* 9. SEARCH DECK CARDS (¡Atracción entre usuarios de Stand! / Flecha de Stand / Flecha Réquiem) */}
         {prompt.kind === 'SEARCH_DECK_CARDS' && (() => {
           const eligible = player.deck
             .map((cardId, deckIdx) => ({ cardId, deckIdx, card: getCardById(cardId) }))
             .filter(
               (entry): entry is { cardId: string; deckIdx: number; card: NonNullable<typeof entry.card> } => {
                 if (!entry.card) return false;
-                return prompt.filter === 'ENERGY'
-                  ? entry.card.type === 'ENERGY'
-                  : entry.card.type === 'CHARACTER' || entry.card.type === 'STAND';
+                if (prompt.filter === 'ENERGY') return entry.card.type === 'ENERGY';
+                if (prompt.filter === 'STAND') return entry.card.type === 'STAND';
+                if (prompt.filter === 'STAND_EVOLUTION') {
+                  return entry.card.type === 'EVOLUTION' && entry.card.evolutionTarget === 'STAND';
+                }
+                return entry.card.type === 'CHARACTER' || entry.card.type === 'STAND';
               },
             )
             .sort((a, b) => {
@@ -502,7 +505,11 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
                     Elige hasta <strong>{maxSelectable}</strong>{' '}
                     {prompt.filter === 'ENERGY'
                       ? 'carta(s) de Energía Básica'
-                      : 'carta de Stand o Personaje'}
+                      : prompt.filter === 'STAND'
+                        ? 'carta de Stand'
+                        : prompt.filter === 'STAND_EVOLUTION'
+                          ? 'carta de Evolución de Stand'
+                          : 'carta de Stand o Personaje'}
                     . Tu mazo se barajará al terminar.
                   </p>
                 </div>

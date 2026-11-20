@@ -26,7 +26,7 @@ import {
   pushEvent,
 } from '../helpers/stateHelpers';
 import type { RngProvider } from '../rng';
-import { cleanseBurn } from '../statuses/statusSystem';
+import { cleanseBurn, tryApplyElementalStatus } from '../statuses/statusSystem';
 import { healCharacter } from '../effects/effectPipeline';
 import { finishTurnToEndPhase } from '../combat/combatResolver';
 import type { CombatEvent } from '../types/events';
@@ -219,7 +219,7 @@ export function validatePlayItem(
   const item = getItemCard(cardId);
   if (!item) return { ok: false, reason: 'La carta seleccionada no es un Objeto.' };
 
-  // Pure catalyst consumables (Flecha Réquiem / Flecha de Stand) are consumed automatically when evolving
+  // Pure catalyst consumables without standalone effects cannot be played by themselves
   if (
     item.itemKind === 'CONSUMABLE' &&
     item.effects.every((e) => e.kind === 'EVOLUTION_CATALYST')
@@ -228,6 +228,16 @@ export function validatePlayItem(
       ok: false,
       reason: `${item.name} se consume automáticamente al jugar la carta de Evolución correspondiente.`,
     };
+  }
+
+  // Dual-mode item (Piedra Roja de Aja): standalone (!targetInstanceId) burns enemy active; with targetInstanceId equips on ally
+  const hasStandaloneBurn = item.effects.some((e) => e.kind === 'BURN_ENEMY_ACTIVE');
+  if (hasStandaloneBurn && !targetInstanceId) {
+    const opponent = state.players[getOpponentId(playerId)];
+    if (!opponent.active) {
+      return { ok: false, reason: 'El oponente no tiene un personaje activo al que quemar.' };
+    }
+    return { ok: true };
   }
 
   if (item.targetScope === 'ACTIVE_ALLY') {
@@ -248,9 +258,12 @@ export function validatePlayItem(
       const hasMatch = player.deck.some((id) => {
         const c = getCardById(id);
         if (!c) return false;
-        return eff.filter === 'ENERGY'
-          ? c.type === 'ENERGY'
-          : c.type === 'CHARACTER' || c.type === 'STAND';
+        if (eff.filter === 'ENERGY') return c.type === 'ENERGY';
+        if (eff.filter === 'STAND') return c.type === 'STAND';
+        if (eff.filter === 'STAND_EVOLUTION') {
+          return c.type === 'EVOLUTION' && c.evolutionTarget === 'STAND';
+        }
+        return c.type === 'CHARACTER' || c.type === 'STAND';
       });
       if (!hasMatch) {
         return {
@@ -258,7 +271,11 @@ export function validatePlayItem(
           reason:
             eff.filter === 'ENERGY'
               ? 'No quedan cartas de Energía en tu mazo.'
-              : 'No quedan cartas de Personaje ni Stand en tu mazo.',
+              : eff.filter === 'STAND'
+                ? 'No quedan cartas de Stand en tu mazo.'
+                : eff.filter === 'STAND_EVOLUTION'
+                  ? 'No quedan cartas de evolución de Stand en tu mazo.'
+                  : 'No quedan cartas de Personaje ni Stand en tu mazo.',
         };
       }
     } else if (eff.kind === 'FREE_BENCH_SWAP') {
@@ -293,6 +310,24 @@ export function applyPlayItem(
     message: `${player.name} juega el objeto ${item.name}.`,
   });
 
+  // Piedra Roja de Aja played standalone (!targetInstanceId): burns opponent active and goes to discard
+  if (item.effects.some((e) => e.kind === 'BURN_ENEMY_ACTIVE') && !targetInstanceId) {
+    const opponentId = getOpponentId(playerId);
+    const opponent = state.players[opponentId];
+    if (opponent.active) {
+      tryApplyElementalStatus(
+        state,
+        eventsOut,
+        opponentId,
+        opponent.active.instanceId,
+        'BURN',
+        item.name,
+      );
+    }
+    player.discard.push(item.id);
+    return;
+  }
+
   if (item.itemKind === 'EQUIPPABLE') {
     const resolvedId = targetInstanceId ?? player.active!.instanceId;
     const target = findCharacterOnBoard(state, playerId, resolvedId)!;
@@ -310,8 +345,24 @@ export function applyPlayItem(
 
   // Consumable item
   for (const eff of item.effects) {
-    if (eff.kind === 'HEAL_TARGET' && player.active) {
-      healCharacter(state, eventsOut, playerId, player.active.instanceId, eff.amount, item.name);
+    if (eff.kind === 'HEAL_TARGET') {
+      const healTargetId = targetInstanceId ?? player.active?.instanceId;
+      if (healTargetId) {
+        healCharacter(state, eventsOut, playerId, healTargetId, eff.amount, item.name);
+      }
+    } else if (eff.kind === 'BURN_ENEMY_ACTIVE') {
+      const opponentId = getOpponentId(playerId);
+      const opponent = state.players[opponentId];
+      if (opponent.active) {
+        tryApplyElementalStatus(
+          state,
+          eventsOut,
+          opponentId,
+          opponent.active.instanceId,
+          'BURN',
+          item.name,
+        );
+      }
     } else if (eff.kind === 'DRAW_CARDS') {
       const drawnCount = Math.min(eff.count, player.deck.length);
       for (let i = 0; i < drawnCount; i++) {

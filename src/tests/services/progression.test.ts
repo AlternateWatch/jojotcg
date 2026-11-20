@@ -127,8 +127,8 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
       'COMMON_TO_RARE',
       {
         'char-jonathan-joestar': 1,
-        'item-brujula-de-energia': 1,
-        'item-llamada-del-destino': 1,
+        'item-atraccion-usuarios-stand': 1,
+        'char-will-a-zeppeli': 1,
         'item-comida-de-tonio': 1,
         'item-suministros-speedwagon': 1,
       },

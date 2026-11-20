@@ -5,17 +5,23 @@ import { ALL_CARDS, PRESET_DECKS } from '../../data/cardRegistry';
 import { chooseAiAction } from '../../engine/ai/tacticalAi';
 import { createGame, dispatchAction } from '../../engine/gameEngine';
 import { createSeededRng } from '../../engine/rng';
-import { OFFICIAL_CARD_IMAGE_IDS } from '../../services/assetResolver';
+import { OFFICIAL_CARD_IMAGE_IDS, OFFICIAL_ITEM_IMAGE_IDS } from '../../services/assetResolver';
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 57 official PNG cards and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 57 official PNG cards, all 7 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
     expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(57);
+    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(7);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
       const filePath = path.join(projectRoot, 'public', 'assets', 'cards', 'official', `${imageId}.png`);
       expect(fs.existsSync(filePath), `Missing official PNG: ${filePath}`).toBe(true);
+    }
+
+    for (const imageId of OFFICIAL_ITEM_IMAGE_IDS) {
+      const filePath = path.join(projectRoot, 'public', 'assets', 'cards', 'items', `${imageId}.png`);
+      expect(fs.existsSync(filePath), `Missing item PNG: ${filePath}`).toBe(true);
     }
 
     for (let i = 1; i <= 6; i++) {

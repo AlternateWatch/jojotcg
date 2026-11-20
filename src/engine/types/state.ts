@@ -171,7 +171,7 @@ export type PlayerPrompt =
   | {
       kind: 'SEARCH_DECK_CARDS';
       playerId: PlayerId;
-      filter: 'ENERGY' | 'CHARACTER_OR_STAND';
+      filter: 'ENERGY' | 'STAND' | 'STAND_EVOLUTION' | 'CHARACTER_OR_STAND';
       maxPickCount: number;
       sourceLabel: string;
     }

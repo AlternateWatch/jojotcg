@@ -414,8 +414,15 @@ function buildPromptResponse(
             score: needWeight * 30 + (energy.energyType !== 'COLORLESS' ? 5 : 1),
           });
         }
+      } else if (prompt.filter === 'STAND_EVOLUTION') {
+        for (let i = 0; i < player.deck.length; i++) {
+          const card = getCardById(player.deck[i]!);
+          if (!card || card.type !== 'EVOLUTION' || card.evolutionTarget !== 'STAND') continue;
+          const maxAtk = Math.max(0, ...card.attacks.map(getAttackNominalMaxDamage));
+          candidates.push({ idx: i, score: 100 + maxAtk });
+        }
       } else {
-        // CHARACTER_OR_STAND: prioritize a compatible Stand for an unequipped Stand User on board!
+        // STAND or CHARACTER_OR_STAND: prioritize a compatible Stand for an unequipped Stand User on board!
         const unequippedUsers = boardChars.filter((ch) => {
           const prof = getEffectiveCharacterProfile(ch);
           return prof.categories.includes('STAND_USER') && !ch.attachedStand && prof.dg !== null;
@@ -426,7 +433,9 @@ function buildPromptResponse(
 
         for (let i = 0; i < player.deck.length; i++) {
           const card = getCardById(player.deck[i]!);
-          if (!card || (card.type !== 'CHARACTER' && card.type !== 'STAND')) continue;
+          if (!card) continue;
+          if (prompt.filter === 'STAND' && card.type !== 'STAND') continue;
+          if (card.type !== 'CHARACTER' && card.type !== 'STAND') continue;
           let score = 20;
           if (card.type === 'STAND') {
             const fitsActive =
@@ -550,7 +559,31 @@ export function chooseAiAction(
       const item = getItemCard(player.hand[i]!);
       if (!item) continue;
 
-      if (item.itemKind === 'EQUIPPABLE' && player.active) {
+      if (item.effects.some((e) => e.kind === 'BURN_ENEMY_ACTIVE')) {
+        // Piedra Roja de Aja: equip onto Kars if on board; otherwise play standalone to Burn enemy active!
+        const boardChars = [...(player.active ? [player.active] : []), ...player.bench];
+        const karsOnBoard = boardChars.find(
+          (ch) =>
+            getEffectiveCharacterProfile(ch).currentCardId === 'char-kars' &&
+            !ch.attachedItems.some((it) => it.cardId === item.id),
+        );
+        if (karsOnBoard) {
+          const act: GameAction = {
+            type: 'PLAY_ITEM',
+            playerId: aiPlayerId,
+            handIndex: i,
+            targetInstanceId: karsOnBoard.instanceId,
+          };
+          if (validateAction(state, act).ok) return act;
+        } else if (opponent.active && !opponent.active.statuses.burn?.active) {
+          const act: GameAction = {
+            type: 'PLAY_ITEM',
+            playerId: aiPlayerId,
+            handIndex: i,
+          };
+          if (validateAction(state, act).ok) return act;
+        }
+      } else if (item.itemKind === 'EQUIPPABLE' && player.active) {
         const act: GameAction = {
           type: 'PLAY_ITEM',
           playerId: aiPlayerId,
@@ -559,6 +592,14 @@ export function chooseAiAction(
         };
         if (validateAction(state, act).ok) return act;
       } else if (item.effects.some((e) => e.kind === 'SEARCH_DECK')) {
+        // If this item is also an evolution catalyst and the matching evolution card is already in hand, keep it as catalyst!
+        const keepAsCatalyst =
+          (item.catalystTag === 'stand-arrow' &&
+            player.hand.includes('evo-killer-queen-bites-the-dust')) ||
+          (item.catalystTag === 'requiem-arrow' &&
+            player.hand.includes('evo-silver-chariot-requiem'));
+        if (keepAsCatalyst) continue;
+
         const searchEff = item.effects.find(
           (e): e is Extract<typeof e, { kind: 'SEARCH_DECK' }> => e.kind === 'SEARCH_DECK',
         )!;
@@ -570,11 +611,13 @@ export function chooseAiAction(
           ...(player.active ? [player.active] : []),
           ...player.bench,
         ].some((ch) => getEffectiveCharacterProfile(ch).categories.includes('STAND_USER') && !ch.attachedStand);
-        const wantCharOrStand =
-          searchEff.filter === 'CHARACTER_OR_STAND' &&
-          (hasUnequippedUser || player.bench.length === 0 || !activeCanAttackNow) &&
+        const wantStandOrEvo =
+          (searchEff.filter === 'STAND' ||
+            searchEff.filter === 'STAND_EVOLUTION' ||
+            searchEff.filter === 'CHARACTER_OR_STAND') &&
+          (hasUnequippedUser || searchEff.filter === 'STAND_EVOLUTION' || !activeCanAttackNow) &&
           player.deck.length > 7;
-        if ((wantEnergy || wantCharOrStand) && (difficulty !== 'EASY' || deterministicRoll(state, 17 + i) > 0.3)) {
+        if ((wantEnergy || wantStandOrEvo) && (difficulty !== 'EASY' || deterministicRoll(state, 17 + i) > 0.3)) {
           const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
           if (validateAction(state, act).ok) return act;
         }

@@ -103,11 +103,52 @@ export function HandActionRibbon({
     }
 
     if (card.type === 'ITEM') {
+      const hasStandaloneBurn = card.effects.some((e) => e.kind === 'BURN_ENEMY_ACTIVE');
+      if (hasStandaloneBurn) {
+        const burnAction: GameAction = {
+          type: 'PLAY_ITEM',
+          playerId,
+          handIndex,
+        };
+        const burnCheck = validateAction(gameState, burnAction);
+
+        const equipAction: GameAction = {
+          type: 'PLAY_ITEM',
+          playerId,
+          handIndex,
+          targetInstanceId: player.active?.instanceId,
+        };
+        const equipCheck = validateAction(gameState, equipAction);
+
+        return (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              disabled={!burnCheck.ok}
+              onClick={() => onDispatch(burnAction)}
+              className="jojo-btn-crimson px-3 py-1 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-40"
+            >
+              {burnCheck.ok ? 'Quemar Oponente (Por su cuenta)' : burnCheck.reason}
+            </button>
+            {player.active && (
+              <button
+                type="button"
+                disabled={!equipCheck.ok}
+                onClick={() => onDispatch(equipAction)}
+                className="jojo-btn-primary px-3 py-1 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-40"
+              >
+                Equipar al Activo (Catalizador o clic en banca)
+              </button>
+            )}
+          </div>
+        );
+      }
+
       const action: GameAction = {
         type: 'PLAY_ITEM',
         playerId,
         handIndex,
-        targetInstanceId: player.active?.instanceId,
+        targetInstanceId: card.targetScope === 'PLAYER' ? undefined : player.active?.instanceId,
       };
       const check = validateAction(gameState, action);
       return (
@@ -120,7 +161,9 @@ export function HandActionRibbon({
           {check.ok
             ? card.itemKind === 'EQUIPPABLE'
               ? 'Equipar al Activo (o clic en banca)'
-              : 'Usar Objeto'
+              : card.targetScope === 'ANY_ALLY'
+                ? 'Usar en Activo (o clic en banca)'
+                : 'Usar Objeto'
             : check.reason}
         </button>
       );

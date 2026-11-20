@@ -392,6 +392,7 @@ export function getLegalActions(state: GameState, playerId: PlayerId): GameActio
           targetInstanceId: ch.instanceId,
         });
       }
+      tryAdd({ type: 'PLAY_ITEM', playerId, handIndex: i });
       tryAdd({ type: 'EVOLVE_CARD', playerId, handIndex: i });
       tryAdd({ type: 'PLAY_TO_BENCH', playerId, handIndex: i });
     }

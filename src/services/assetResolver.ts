@@ -77,6 +77,16 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'yukako-yamagishi',
 ]);
 
+export const OFFICIAL_ITEM_IMAGE_IDS = new Set<string>([
+  'atraccion-usuarios-stand',
+  'comida-de-tonio',
+  'flecha-de-stand',
+  'flecha-requiem',
+  'mascara-de-piedra',
+  'piedra-roja-de-aja',
+  'suministros-speedwagon',
+]);
+
 export function resolveCardAsset(
   imageId: string,
   folder: AssetCardFolder = 'official',
@@ -90,8 +100,15 @@ export function resolveCardAsset(
       expectedPath,
     };
   }
+  if (folder === 'items' && OFFICIAL_ITEM_IMAGE_IDS.has(imageId)) {
+    return {
+      url: expectedPath,
+      isFullCardRender: true,
+      expectedPath,
+    };
+  }
 
-  // Items, Energies, and future cards without provided files cleanly use placeholder UI
+  // Energies and future cards without provided files cleanly use placeholder UI
   return {
     url: null,
     isFullCardRender: false,

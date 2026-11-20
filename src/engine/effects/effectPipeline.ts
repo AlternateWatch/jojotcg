@@ -146,12 +146,14 @@ export function computeAttackDamageBonus(
     bonus += player.permanentWaterAttackBonus;
   }
 
-  // 6. Equippable Item elemental bonuses (e.g., Piedra Roja de Aja +10 to LIGHT attacks)
+  // 6. Equippable Item bonuses (e.g., Máscara de Piedra +10 permanent damage)
   for (const item of attackerInst.attachedItems) {
     const itemCard = getItemCard(item.cardId);
     if (!itemCard) continue;
     for (const eff of itemCard.effects) {
-      if (
+      if (eff.kind === 'EQUIP_PASSIVE_DAMAGE_BONUS') {
+        bonus += eff.bonusDamage;
+      } else if (
         eff.kind === 'EQUIP_PASSIVE_ELEMENT_BONUS' &&
         attack.energyCost.includes(eff.energy)
       ) {

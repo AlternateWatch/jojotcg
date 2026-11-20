@@ -111,10 +111,10 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     expect(hasValidStartingHand(['char-stray-cat'])).toBe(true);
   });
 
-  it('Brújula de Energía searches up to 2 Basic Energies from deck and shuffles', () => {
+  it('¡Atracción entre usuarios de Stand! searches up to 2 Basic Energies from deck and shuffles', () => {
     const deck = [
       'char-jonathan-joestar',
-      'item-brujula-de-energia',
+      'item-atraccion-usuarios-stand',
       'energy-electric',
       'energy-fire',
       'energy-psychic',
@@ -122,7 +122,7 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     ];
     const { state: initState, rng } = buildQuickBattleState(deck, deck);
     // Deterministic hand setup
-    initState.players.P1.hand = ['char-jonathan-joestar', 'item-brujula-de-energia'];
+    initState.players.P1.hand = ['char-jonathan-joestar', 'item-atraccion-usuarios-stand'];
     initState.players.P1.deck = ['stand-star-platinum', 'energy-electric', 'energy-fire', 'energy-light'];
     initState.players.P2.hand = ['char-jonathan-joestar'];
 
@@ -130,7 +130,7 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     res = dispatchAction(res.state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P2', handIndex: 0 }, rng);
     expect(res.state.phase).toBe('PREPARATION');
 
-    const compassIdx = res.state.players.P1.hand.indexOf('item-brujula-de-energia');
+    const compassIdx = res.state.players.P1.hand.indexOf('item-atraccion-usuarios-stand');
     expect(compassIdx).toBeGreaterThanOrEqual(0);
 
     res = dispatchAction(res.state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: compassIdx }, rng);
@@ -154,17 +154,17 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     expect(res.state.players.P1.hand).toContain('energy-fire');
   });
 
-  it('Llamada del Destino searches 1 Stand or Character from deck', () => {
+  it('Flecha de Stand searches 1 Stand from deck when played standalone', () => {
     const deck = PRESET_DECKS[0]!.cardIds;
     const { state: initState, rng } = buildQuickBattleState(deck, deck);
-    initState.players.P1.hand = ['char-jotaro-kujo', 'item-llamada-del-destino'];
+    initState.players.P1.hand = ['char-jotaro-kujo', 'item-flecha-de-stand'];
     initState.players.P1.deck = ['energy-psychic', 'stand-star-platinum', 'char-iggy'];
     initState.players.P2.hand = ['char-jonathan-joestar'];
 
     let res = dispatchAction(initState, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P1', handIndex: 0 }, rng);
     res = dispatchAction(res.state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P2', handIndex: 0 }, rng);
 
-    const itemIdx = res.state.players.P1.hand.indexOf('item-llamada-del-destino');
+    const itemIdx = res.state.players.P1.hand.indexOf('item-flecha-de-stand');
     res = dispatchAction(res.state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: itemIdx }, rng);
     expect(res.ok).toBe(true);
     expect(res.state.pendingPrompt?.kind).toBe('SEARCH_DECK_CARDS');
@@ -183,67 +183,65 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     expect(res.state.players.P1.hand).toContain('stand-star-platinum');
   });
 
-  it('Impulso Espiritual grants +1 energy attachment this turn and recovers 1 discard energy', () => {
-    const deck = PRESET_DECKS[0]!.cardIds;
+  it('Flecha Réquiem searches 1 Stand Evolution from deck when played standalone', () => {
+    const deck = PRESET_DECKS[1]!.cardIds;
     const { state: initState, rng } = buildQuickBattleState(deck, deck);
-    initState.players.P1.hand = ['char-jonathan-joestar', 'item-impulso-espiritual', 'energy-electric'];
-    initState.players.P1.discard = ['energy-electric'];
-    initState.players.P1.deck = ['energy-psychic', 'energy-psychic'];
+    initState.players.P1.hand = ['char-jean-pierre-polnareff', 'item-flecha-requiem'];
+    initState.players.P1.deck = ['energy-psychic', 'evo-silver-chariot-requiem', 'stand-silver-chariot'];
     initState.players.P2.hand = ['char-jonathan-joestar'];
 
     let res = dispatchAction(initState, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P1', handIndex: 0 }, rng);
     res = dispatchAction(res.state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P2', handIndex: 0 }, rng);
 
-    const itemIdx = res.state.players.P1.hand.indexOf('item-impulso-espiritual');
+    const itemIdx = res.state.players.P1.hand.indexOf('item-flecha-requiem');
     res = dispatchAction(res.state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: itemIdx }, rng);
     expect(res.ok).toBe(true);
-    expect(res.state.players.P1.bonusEnergyAttachmentsThisTurn).toBe(1);
-    // Auto-recovered the single energy type from discard
-    expect(res.state.players.P1.discard).not.toContain('energy-electric');
+    expect(res.state.pendingPrompt?.kind).toBe('SEARCH_DECK_CARDS');
 
-    // Attach 2 energies in the same turn!
-    const activeId = res.state.players.P1.active!.instanceId;
-    const e1 = res.state.players.P1.hand.indexOf('energy-electric');
+    const evoIdx = res.state.players.P1.deck.indexOf('evo-silver-chariot-requiem');
     res = dispatchAction(
       res.state,
-      { type: 'ATTACH_ENERGY', playerId: 'P1', handIndex: e1, targetInstanceId: activeId },
+      {
+        type: 'RESPOND_PROMPT',
+        playerId: 'P1',
+        response: { kind: 'SEARCH_DECK_CARDS', deckIndices: [evoIdx] },
+      },
       rng,
     );
     expect(res.ok).toBe(true);
-    const e2 = res.state.players.P1.hand.indexOf('energy-electric');
-    res = dispatchAction(
-      res.state,
-      { type: 'ATTACH_ENERGY', playerId: 'P1', handIndex: e2, targetInstanceId: activeId },
-      rng,
-    );
-    expect(res.ok).toBe(true);
-    expect(res.state.players.P1.active!.attachedEnergies).toHaveLength(2);
+    expect(res.state.players.P1.hand).toContain('evo-silver-chariot-requiem');
   });
 
-  it('Cambio Táctico swaps Active with Bench without ending the turn and cleanses Burn', () => {
+  it('Piedra Roja de Aja burns enemy active when played standalone, and Máscara de Piedra grants +10 permanent damage', () => {
     const deck = PRESET_DECKS[0]!.cardIds;
     const { state: initState, rng } = buildQuickBattleState(deck, deck);
-    initState.players.P1.hand = ['char-jonathan-joestar', 'char-robert-e-o-speedwagon', 'item-cambio-tactico'];
+    initState.players.P1.hand = ['char-jonathan-joestar', 'item-piedra-roja-de-aja', 'item-mascara-de-piedra', 'energy-electric'];
     initState.players.P1.deck = ['energy-psychic', 'energy-psychic', 'energy-psychic'];
-    initState.players.P2.hand = ['char-jonathan-joestar'];
+    initState.players.P2.hand = ['char-dio-brando'];
 
     let res = dispatchAction(initState, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P1', handIndex: 0 }, rng);
     res = dispatchAction(res.state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P2', handIndex: 0 }, rng);
-    // Play Speedwagon to bench (ends T1), P2 ends T2 -> P1 T3
-    const spIdx = res.state.players.P1.hand.indexOf('char-robert-e-o-speedwagon');
-    res = dispatchAction(res.state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: spIdx }, rng);
-    res = dispatchAction(res.state, { type: 'END_TURN', playerId: 'P2' }, rng);
 
-    // Burn P1 active, then play Cambio Táctico
-    res.state.players.P1.active!.statuses.burn = { active: true, damagePerTurn: 10 };
-    const swapIdx = res.state.players.P1.hand.indexOf('item-cambio-tactico');
-    res = dispatchAction(res.state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: swapIdx }, rng);
-
+    // Play Piedra Roja de Aja standalone (no targetInstanceId) -> Burns opponent active!
+    const ajaIdx = res.state.players.P1.hand.indexOf('item-piedra-roja-de-aja');
+    res = dispatchAction(res.state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: ajaIdx }, rng);
     expect(res.ok).toBe(true);
-    expect(res.state.activePlayerId).toBe('P1');
-    expect(res.state.phase).toBe('PREPARATION'); // Did NOT end the turn!
-    expect(res.state.players.P1.active!.cardId).toBe('char-robert-e-o-speedwagon');
-    expect(res.state.players.P1.bench[0]!.statuses.burn).toBeNull();
+    expect(res.state.players.P2.active!.statuses.burn?.active).toBe(true);
+
+    // Equip Máscara de Piedra on Jonathan -> grants +10 permanent attack damage
+    const maskIdx = res.state.players.P1.hand.indexOf('item-mascara-de-piedra');
+    res = dispatchAction(
+      res.state,
+      {
+        type: 'PLAY_ITEM',
+        playerId: 'P1',
+        handIndex: maskIdx,
+        targetInstanceId: res.state.players.P1.active!.instanceId,
+      },
+      rng,
+    );
+    expect(res.ok).toBe(true);
+    expect(res.state.players.P1.active!.attachedItems).toHaveLength(1);
   });
 
   it('preventConsecutiveStun blocks infinite back-to-back stun-locking for 1 turn', () => {

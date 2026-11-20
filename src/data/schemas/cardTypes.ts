@@ -151,10 +151,16 @@ export interface StandCard extends BaseCard {
 export type ItemEffectDef =
   | { kind: 'HEAL_TARGET'; amount: number; curesBurn: boolean }
   | { kind: 'EQUIP_PASSIVE_MAX_HP'; bonusHp: number }
+  | { kind: 'EQUIP_PASSIVE_DAMAGE_BONUS'; bonusDamage: number }
   | { kind: 'EQUIP_PASSIVE_ELEMENT_BONUS'; energy: EnergyType; bonusDamage: number }
+  | { kind: 'BURN_ENEMY_ACTIVE' }
   | { kind: 'EVOLUTION_CATALYST'; catalystTag: string }
   | { kind: 'DRAW_CARDS'; count: number }
-  | { kind: 'SEARCH_DECK'; filter: 'ENERGY' | 'CHARACTER_OR_STAND'; maxCount: number }
+  | {
+      kind: 'SEARCH_DECK';
+      filter: 'ENERGY' | 'STAND' | 'STAND_EVOLUTION' | 'CHARACTER_OR_STAND';
+      maxCount: number;
+    }
   | { kind: 'EXTRA_ENERGY_ALLOWANCE'; bonusAttachments: number; recoverDiscardEnergy: boolean }
   | { kind: 'FREE_BENCH_SWAP' };
 
