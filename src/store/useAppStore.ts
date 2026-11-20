@@ -6,6 +6,7 @@ import { authService, type AuthUser } from '../services/authService';
 import {
   craftRandomCard,
   createInitialProgression,
+  normalizePlayerProgression,
   openBoosterPack,
   type CraftOutcome,
   type CraftRecipeId,
@@ -108,12 +109,18 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   hydrateAuthSession: async () => {
     const me = await authService.fetchMe();
     if (me) {
+      const normalizedProg = normalizePlayerProgression(me.progression);
       set({
         authUser: me.user,
         authReady: true,
-        progression: me.progression,
+        progression: normalizedProg,
         customDecks: me.customDecks,
         allDecks: [...PRESET_DECKS, ...me.customDecks],
+        settings: me.settings,
+      });
+      void authService.syncAccountData({
+        progression: normalizedProg,
+        customDecks: me.customDecks,
         settings: me.settings,
       });
     } else {
@@ -124,13 +131,19 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   loginAccount: async (username, password) => {
     const res = await authService.login(username, password);
     if (!res.ok) return res;
+    const normalizedProg = normalizePlayerProgression(res.data.progression);
     set({
       authUser: res.data.user,
-      progression: res.data.progression,
+      progression: normalizedProg,
       customDecks: res.data.customDecks,
       allDecks: [...PRESET_DECKS, ...res.data.customDecks],
       settings: res.data.settings,
       showAuthModal: false,
+    });
+    void authService.syncAccountData({
+      progression: normalizedProg,
+      customDecks: res.data.customDecks,
+      settings: res.data.settings,
     });
     return { ok: true };
   },
@@ -138,14 +151,15 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   registerAccount: async (username, password) => {
     const { progression, customDecks, settings } = get();
     const res = await authService.register(username, password, {
-      progression,
+      progression: normalizePlayerProgression(progression),
       customDecks,
       settings,
     });
     if (!res.ok) return res;
+    const normalizedProg = normalizePlayerProgression(res.data.progression);
     set({
       authUser: res.data.user,
-      progression: res.data.progression,
+      progression: normalizedProg,
       customDecks: res.data.customDecks,
       allDecks: [...PRESET_DECKS, ...res.data.customDecks],
       settings: res.data.settings,

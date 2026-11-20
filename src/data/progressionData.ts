@@ -184,13 +184,10 @@ export const STARTER_DECK: SavedDeck = {
     'stand-echoes-act-1',
     'stand-hermit-purple',
     ...repeat('item-atraccion-usuarios-stand', 3),
-    ...repeat('item-flecha-de-stand', 2),
-    'item-mascara-de-piedra',
-    'item-piedra-roja-de-aja',
     ...repeat('item-comida-de-tonio', 2),
     ...repeat('item-suministros-speedwagon', 2),
-    ...repeat('energy-electric', 9),
-    ...repeat('energy-psychic', 8),
+    ...repeat('energy-electric', 11),
+    ...repeat('energy-psychic', 10),
   ],
 };
 

@@ -110,6 +110,41 @@ export function createInitialProgression(): PlayerProgression {
   };
 }
 
+const LEGACY_ITEM_ID_MIGRATION: Record<string, string> = {
+  'item-brujula-de-energia': 'item-atraccion-usuarios-stand',
+  'item-llamada-del-destino': 'item-flecha-de-stand',
+  'item-impulso-espiritual': 'item-comida-de-tonio',
+  'item-cambio-tactico': 'item-suministros-speedwagon',
+};
+
+/**
+ * Ensures any loaded/saved player progression migrates old item IDs
+ * and always owns all cards required by STARTER_DECK so the starter deck is 100% playable.
+ */
+export function normalizePlayerProgression(progression: PlayerProgression): PlayerProgression {
+  const baseline = createInitialProgression();
+  const nextOwned: Record<string, number> = {};
+
+  for (const [rawId, count] of Object.entries(progression.ownedCards ?? {})) {
+    if (typeof count !== 'number' || !Number.isFinite(count) || count <= 0) continue;
+    const mappedId = LEGACY_ITEM_ID_MIGRATION[rawId] ?? rawId;
+    const card = getCardById(mappedId);
+    if (!card || card.type === 'ENERGY') continue;
+    nextOwned[mappedId] = (nextOwned[mappedId] ?? 0) + Math.floor(count);
+  }
+
+  for (const [starterId, minCopies] of Object.entries(baseline.ownedCards)) {
+    if ((nextOwned[starterId] ?? 0) < minCopies) {
+      nextOwned[starterId] = minCopies;
+    }
+  }
+
+  return {
+    ...progression,
+    ownedCards: nextOwned,
+  };
+}
+
 export function getMaxCollectibleCopies(cardId: string): number {
   const card = getCardById(cardId);
   if (!card) return 0;
