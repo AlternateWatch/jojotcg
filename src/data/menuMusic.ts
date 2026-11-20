@@ -24,4 +24,28 @@ export const MENU_PLAYLIST: MenuTrack[] = [
     artist: 'Tee Lopes',
     src: '/assets/music/studiopolis-zone-act-1.flac',
   },
+  {
+    id: 'jump-up',
+    title: 'Jump Up (Goddess of Victory: NIKKE)',
+    artist: 'Cosmograph',
+    src: '/assets/music/jump-up.flac',
+  },
+  {
+    id: 'spinozza',
+    title: 'SPINOZZA',
+    artist: 'Bonesaw',
+    src: '/assets/music/spinozza.flac',
+  },
+  {
+    id: 'cross-the-tracks',
+    title: 'Cross the Tracks (From Denshattack!)',
+    artist: 'Richard Jacques',
+    src: '/assets/music/cross-the-tracks.flac',
+  },
+  {
+    id: 'windmill-isle-day',
+    title: 'Windmill Isle - Day',
+    artist: 'Tomoya Ohtani',
+    src: '/assets/music/windmill-isle-day.flac',
+  },
 ];
