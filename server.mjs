@@ -693,26 +693,60 @@ const MIME_TYPES = {
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
+  '.flac': 'audio/flac',
+  '.mp3': 'audio/mpeg',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+  '.opus': 'audio/opus',
 };
 
-function serveFile(res, filePath, ext) {
+function serveFile(req, res, filePath, ext, fileSize) {
+  const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+  const isHashedAsset = filePath.includes(`${path.sep}assets${path.sep}`);
+  const cacheControl =
+    ext === '.html'
+      ? 'no-cache'
+      : isHashedAsset
+        ? 'public, max-age=604800'
+        : 'public, max-age=86400';
+
+  const rangeHeader = req.headers.range;
+  if (rangeHeader && typeof fileSize === 'number' && fileSize > 0) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+    if (match) {
+      const start = match[1] ? Number.parseInt(match[1], 10) : 0;
+      const end = match[2] ? Math.min(Number.parseInt(match[2], 10), fileSize - 1) : fileSize - 1;
+      if (start >= 0 && start <= end && start < fileSize) {
+        res.writeHead(206, {
+          'Content-Type': contentType,
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': end - start + 1,
+          'Cache-Control': cacheControl,
+        });
+        const stream = fs.createReadStream(filePath, { start, end });
+        stream.on('error', () => {
+          if (!res.headersSent) res.writeHead(500);
+          res.end();
+        });
+        stream.pipe(res);
+        return;
+      }
+    }
+  }
+
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Internal Server Error');
       return;
     }
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    const isHashedAsset = filePath.includes(`${path.sep}assets${path.sep}`);
-    const cacheControl =
-      ext === '.html'
-        ? 'no-cache'
-        : isHashedAsset
-          ? 'public, max-age=604800'
-          : 'public, max-age=86400';
 
     res.writeHead(200, {
       'Content-Type': contentType,
+      'Content-Length': data.length,
+      'Accept-Ranges': 'bytes',
       'Cache-Control': cacheControl,
     });
     res.end(data);
@@ -740,12 +774,12 @@ const server = http.createServer((req, res) => {
   fs.stat(candidatePath, (err, stats) => {
     if (!err && stats.isFile()) {
       const ext = path.extname(candidatePath).toLowerCase();
-      serveFile(res, candidatePath, ext);
+      serveFile(req, res, candidatePath, ext, stats.size);
       return;
     }
 
     const indexPath = path.join(DIST_DIR, 'index.html');
-    serveFile(res, indexPath, '.html');
+    serveFile(req, res, indexPath, '.html');
   });
 });
 

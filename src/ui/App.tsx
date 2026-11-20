@@ -4,6 +4,7 @@ import { BookOpen, Coins, User, UserCheck } from 'lucide-react';
 import { useAppStore, type AppScreen } from '../store/useAppStore';
 import { CardInspectorModal } from './components/cards/CardInspectorModal';
 import { AuthModal } from './components/common/AuthModal';
+import { MenuMusicPlayer } from './components/common/MenuMusicPlayer';
 import { MenuTransitionWipe } from './components/common/MenuTransitionWipe';
 import { RulesModal } from './components/common/RulesModal';
 import { BattleSetupView } from './views/BattleSetupView';
@@ -245,6 +246,7 @@ export function App() {
         <CardInspectorModal />
         <RulesModal open={showRules} onClose={() => setShowRules(false)} />
         <AuthModal />
+        <MenuMusicPlayer active={screen !== 'BATTLE'} />
       </div>
     </MotionConfig>
   );
