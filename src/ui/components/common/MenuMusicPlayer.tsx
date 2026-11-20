@@ -7,6 +7,7 @@ import {
   Play,
   Repeat,
   Repeat1,
+  Shuffle,
   SkipForward,
   Volume1,
   Volume2,
@@ -25,15 +26,16 @@ interface SavedMusicPrefs {
   volume: number;
   muted: boolean;
   repeatOne: boolean;
+  shuffle: boolean;
 }
 
 function loadMusicPrefs(): SavedMusicPrefs {
   if (typeof window === 'undefined' || !window.localStorage) {
-    return { volume: 0.35, muted: false, repeatOne: true };
+    return { volume: 0.35, muted: false, repeatOne: true, shuffle: false };
   }
   try {
     const raw = window.localStorage.getItem(MUSIC_PREFS_KEY);
-    if (!raw) return { volume: 0.35, muted: false, repeatOne: true };
+    if (!raw) return { volume: 0.35, muted: false, repeatOne: true, shuffle: false };
     const parsed = JSON.parse(raw) as Partial<SavedMusicPrefs>;
     return {
       volume:
@@ -42,9 +44,10 @@ function loadMusicPrefs(): SavedMusicPrefs {
           : 0.35,
       muted: Boolean(parsed.muted),
       repeatOne: parsed.repeatOne !== undefined ? Boolean(parsed.repeatOne) : true,
+      shuffle: Boolean(parsed.shuffle),
     };
   } catch {
-    return { volume: 0.35, muted: false, repeatOne: true };
+    return { volume: 0.35, muted: false, repeatOne: true, shuffle: false };
   }
 }
 
@@ -67,6 +70,7 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
   const [userPaused, setUserPaused] = useState(false);
   const [awaitingGesture, setAwaitingGesture] = useState(false);
   const [repeatOne, setRepeatOne] = useState(initialPrefs.repeatOne);
+  const [shuffle, setShuffle] = useState(initialPrefs.shuffle);
   const [volume, setVolume] = useState(initialPrefs.volume);
   const [muted, setMuted] = useState(initialPrefs.muted);
   const [collapsed, setCollapsed] = useState(false);
@@ -74,10 +78,10 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
 
   const track = MENU_PLAYLIST[trackIndex] ?? MENU_PLAYLIST[0];
 
-  // Persist volume / mute / repeat preferences
+  // Persist volume / mute / repeat / shuffle preferences
   useEffect(() => {
-    saveMusicPrefs({ volume, muted, repeatOne });
-  }, [volume, muted, repeatOne]);
+    saveMusicPrefs({ volume, muted, repeatOne, shuffle });
+  }, [volume, muted, repeatOne, shuffle]);
 
   // Sync audio element volume & mute
   useEffect(() => {
@@ -186,6 +190,22 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
     }
   };
 
+  const pickNextTrackIndex = useCallback(
+    (current: number): number => {
+      const len = MENU_PLAYLIST.length;
+      if (len <= 1) return 0;
+      if (shuffle) {
+        let next = Math.floor(Math.random() * len);
+        if (next === current) {
+          next = (current + 1 + Math.floor(Math.random() * (len - 1))) % len;
+        }
+        return next;
+      }
+      return (current + 1) % len;
+    },
+    [shuffle],
+  );
+
   const handleSkip = () => {
     const audio = audioRef.current;
     if (MENU_PLAYLIST.length <= 1) {
@@ -196,7 +216,7 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
       }
       return;
     }
-    setTrackIndex((prev) => (prev + 1) % MENU_PLAYLIST.length);
+    setTrackIndex((prev) => pickNextTrackIndex(prev));
     setProgress(0);
   };
 
@@ -208,7 +228,7 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
       void tryPlay();
       return;
     }
-    setTrackIndex((prev) => (prev + 1) % MENU_PLAYLIST.length);
+    setTrackIndex((prev) => pickNextTrackIndex(prev));
     setProgress(0);
   };
 
@@ -272,7 +292,7 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
                 />
               </motion.button>
             ) : (
-              <div className="relative w-[292px] overflow-hidden border-2 border-[#060508] bg-[#14101c] shadow-[5px_5px_0_#060508]">
+              <div className="relative w-[320px] overflow-hidden border-2 border-[#060508] bg-[#14101c] shadow-[5px_5px_0_#060508]">
                 {/* Slim top playback progress bar */}
                 <div className="h-[3px] w-full bg-[#060508]">
                   <div
@@ -360,6 +380,20 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
                         }`}
                       >
                         {repeatOne ? <Repeat1 size={13} /> : <Repeat size={13} />}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShuffle((v) => !v)}
+                        title={shuffle ? 'Aleatorio: Activado' : 'Aleatorio: Desactivado'}
+                        aria-label="Alternar modo aleatorio"
+                        className={`flex h-7 w-7 items-center justify-center border border-[#060508] shadow-[2px_2px_0_#060508] transition ${
+                          shuffle
+                            ? 'bg-[#00b87c] text-[#0b090e]'
+                            : 'bg-[#1c1626] text-zinc-400 hover:text-[#f5efe0]'
+                        }`}
+                      >
+                        <Shuffle size={13} />
                       </button>
                     </div>
 
