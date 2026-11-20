@@ -60,10 +60,12 @@ function saveMusicPrefs(prefs: SavedMusicPrefs): void {
 export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
   const initialPrefs = useRef<SavedMusicPrefs>(loadMusicPrefs()).current;
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const toggleBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const [trackIndex, setTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
+  const [awaitingGesture, setAwaitingGesture] = useState(false);
   const [repeatOne, setRepeatOne] = useState(initialPrefs.repeatOne);
   const [volume, setVolume] = useState(initialPrefs.volume);
   const [muted, setMuted] = useState(initialPrefs.muted);
@@ -91,6 +93,7 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
     try {
       await audio.play();
       setIsPlaying(true);
+      setAwaitingGesture(false);
       return true;
     } catch {
       setIsPlaying(false);
@@ -98,7 +101,7 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
     }
   }, []);
 
-  // Play/pause based on active (in-menu) and userPaused state, with autoplay unlock on first click/key
+  // Enabled by default in menus; if browser blocks autoplay, starts immediately on first gesture
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !track) return;
@@ -106,34 +109,66 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
     if (!active || userPaused) {
       audio.pause();
       setIsPlaying(false);
+      setAwaitingGesture(false);
       return;
     }
 
     let cleanedUp = false;
-    let listeningForUnlock = false;
+    let listening = false;
 
-    const handleUnlock = () => {
-      if (cleanedUp) return;
-      listeningForUnlock = false;
-      window.removeEventListener('pointerdown', handleUnlock);
-      window.removeEventListener('keydown', handleUnlock);
-      void tryPlay();
+    const detachUnlock = () => {
+      if (!listening) return;
+      listening = false;
+      window.removeEventListener('pointerdown', handleUnlock, true);
+      window.removeEventListener('keydown', handleUnlock, true);
+      window.removeEventListener('touchstart', handleUnlock, true);
     };
 
+    const handleUnlock = (e: Event) => {
+      if (cleanedUp) return;
+      // Don't fight an explicit click on the play/pause toggle button
+      if (toggleBtnRef.current && e.target instanceof Node && toggleBtnRef.current.contains(e.target)) {
+        return;
+      }
+      detachUnlock();
+      void tryPlay().then((started) => {
+        if (!started && !cleanedUp) {
+          setAwaitingGesture(true);
+          attachUnlock();
+        }
+      });
+    };
+
+    const attachUnlock = () => {
+      if (listening || cleanedUp) return;
+      listening = true;
+      window.addEventListener('pointerdown', handleUnlock, true);
+      window.addEventListener('keydown', handleUnlock, true);
+      window.addEventListener('touchstart', handleUnlock, true);
+    };
+
+    const handleCanPlay = () => {
+      if (cleanedUp || !audio.paused) return;
+      void tryPlay().then((started) => {
+        if (!started && !cleanedUp) {
+          setAwaitingGesture(true);
+          attachUnlock();
+        }
+      });
+    };
+
+    audio.addEventListener('canplay', handleCanPlay);
     void tryPlay().then((started) => {
       if (!started && !cleanedUp) {
-        listeningForUnlock = true;
-        window.addEventListener('pointerdown', handleUnlock, { once: true });
-        window.addEventListener('keydown', handleUnlock, { once: true });
+        setAwaitingGesture(true);
+        attachUnlock();
       }
     });
 
     return () => {
       cleanedUp = true;
-      if (listeningForUnlock) {
-        window.removeEventListener('pointerdown', handleUnlock);
-        window.removeEventListener('keydown', handleUnlock);
-      }
+      audio.removeEventListener('canplay', handleCanPlay);
+      detachUnlock();
     };
   }, [active, userPaused, trackIndex, track, tryPlay]);
 
@@ -144,6 +179,7 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
       audio.pause();
       setIsPlaying(false);
       setUserPaused(true);
+      setAwaitingGesture(false);
     } else {
       setUserPaused(false);
       void tryPlay();
@@ -155,6 +191,7 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
     if (MENU_PLAYLIST.length <= 1) {
       if (audio) {
         audio.currentTime = 0;
+        setProgress(0);
         if (!userPaused && active) void tryPlay();
       }
       return;
@@ -188,17 +225,23 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
 
   if (!track) return null;
 
-  const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+  const effectiveVolume = muted ? 0 : volume;
+  const volumePercent = Math.round(effectiveVolume * 100);
+  const VolumeIcon = effectiveVolume === 0 ? VolumeX : effectiveVolume < 0.5 ? Volume1 : Volume2;
 
   return (
     <>
       <audio
         ref={audioRef}
         src={track.src}
+        autoPlay
         preload="auto"
         onEnded={handleEnded}
         onTimeUpdate={handleTimeUpdate}
-        onPlay={() => setIsPlaying(true)}
+        onPlay={() => {
+          setIsPlaying(true);
+          setAwaitingGesture(false);
+        }}
         onPause={() => setIsPlaying(false)}
       />
 
@@ -222,11 +265,15 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
                 aria-label="Abrir reproductor de música"
                 className="flex h-11 w-11 items-center justify-center border-2 border-[#060508] bg-[#14101c] text-[#f2c12e] shadow-[4px_4px_0_#060508] transition hover:bg-[#1e1729]"
               >
-                <Disc3 size={20} className={isPlaying ? 'animate-spin' : ''} style={{ animationDuration: '4s' }} />
+                <Disc3
+                  size={20}
+                  className={isPlaying ? 'animate-spin' : ''}
+                  style={{ animationDuration: '4s' }}
+                />
               </motion.button>
             ) : (
-              <div className="relative w-[272px] overflow-hidden border-2 border-[#060508] bg-[#14101c] shadow-[5px_5px_0_#060508]">
-                {/* Slim top progress bar */}
+              <div className="relative w-[292px] overflow-hidden border-2 border-[#060508] bg-[#14101c] shadow-[5px_5px_0_#060508]">
+                {/* Slim top playback progress bar */}
                 <div className="h-[3px] w-full bg-[#060508]">
                   <div
                     className="h-full bg-[#f2c12e] transition-[width] duration-200"
@@ -234,7 +281,7 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
                   />
                 </div>
 
-                <div className="px-3 py-2">
+                <div className="px-3 py-2.5">
                   {/* Track info row */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2">
@@ -246,8 +293,15 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
                         />
                       </span>
                       <div className="min-w-0">
-                        <div className="truncate font-jojo-heading text-sm leading-tight tracking-wider text-[#f2c12e] uppercase">
-                          {track.title}
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate font-jojo-heading text-sm leading-tight tracking-wider text-[#f2c12e] uppercase">
+                            {track.title}
+                          </span>
+                          {awaitingGesture && !userPaused && (
+                            <span className="shrink-0 border border-[#060508] bg-[#f2c12e] px-1 font-mono text-[8px] font-black text-[#0b090e] uppercase">
+                              ON
+                            </span>
+                          )}
                         </div>
                         <div className="truncate text-[10px] font-medium text-zinc-400">
                           {track.artist}
@@ -266,10 +320,11 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
                     </button>
                   </div>
 
-                  {/* Playback & Volume Controls */}
-                  <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/10 pt-2">
+                  {/* Playback & Custom JoJo Volume Bar */}
+                  <div className="mt-2.5 flex items-center justify-between gap-2.5 border-t border-white/10 pt-2">
                     <div className="flex items-center gap-1">
                       <button
+                        ref={toggleBtnRef}
                         type="button"
                         onClick={handleTogglePlay}
                         title={isPlaying ? 'Pausar música' : 'Reproducir música'}
@@ -308,27 +363,54 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
                       </button>
                     </div>
 
-                    {/* Volume Slider */}
-                    <div className="flex flex-1 items-center justify-end gap-1.5">
+                    {/* Custom JoJo Manga Volume Slider */}
+                    <div className="flex flex-1 items-center gap-2">
                       <button
                         type="button"
                         onClick={() => setMuted((m) => !m)}
                         title={muted ? 'Activar sonido' : 'Silenciar'}
                         aria-label={muted ? 'Activar sonido' : 'Silenciar'}
-                        className="text-zinc-300 transition hover:text-[#f2c12e]"
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center border border-[#060508] transition ${
+                          effectiveVolume === 0
+                            ? 'bg-[#2a0c16] text-[#e6194b]'
+                            : 'bg-[#1c1626] text-[#f2c12e] hover:bg-[#292038]'
+                        }`}
                       >
-                        <VolumeIcon size={14} />
+                        <VolumeIcon size={13} />
                       </button>
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        value={muted ? 0 : volume}
-                        onChange={(e) => handleVolumeChange(Number.parseFloat(e.target.value))}
-                        aria-label="Volumen de la música"
-                        className="h-1.5 w-20 cursor-pointer accent-[#f2c12e]"
-                      />
+
+                      <div className="group relative flex h-5 flex-1 items-center">
+                        {/* Styled Track */}
+                        <div className="relative h-2.5 w-full overflow-hidden border-2 border-[#060508] bg-[#0b090e] shadow-[inset_0_1px_2px_rgba(0,0,0,0.85)]">
+                          <div
+                            className="h-full bg-gradient-to-r from-[#e6194b] via-[#f2c12e] to-[#ffe066] transition-[width] duration-75"
+                            style={{ width: `${volumePercent}%` }}
+                          />
+                        </div>
+
+                        {/* Sharp Arcade Thumb */}
+                        <div
+                          aria-hidden="true"
+                          className="pointer-events-none absolute top-1/2 h-4 w-2.5 -translate-x-1/2 -translate-y-1/2 border-2 border-[#060508] bg-[#f5efe0] shadow-[2px_2px_0_#060508] transition-transform group-hover:scale-110 group-hover:bg-[#f2c12e]"
+                          style={{ left: `${volumePercent}%` }}
+                        />
+
+                        {/* Native Accessible Input Overlay */}
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.02}
+                          value={effectiveVolume}
+                          onChange={(e) => handleVolumeChange(Number.parseFloat(e.target.value))}
+                          aria-label="Volumen de la música"
+                          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                        />
+                      </div>
+
+                      <span className="w-7 shrink-0 text-right font-mono text-[10px] font-bold text-zinc-300">
+                        {volumePercent}%
+                      </span>
                     </div>
                   </div>
                 </div>
