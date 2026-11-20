@@ -1,7 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Coins, RefreshCw, ShoppingBag } from 'lucide-react';
 import { getCardById, getStandCard } from '../../../data/cardRegistry';
-import { hasValidStartingHand } from '../../../engine/helpers/cardStats';
+import {
+  getCharacterUnlockTurn,
+  hasAnyTurnOneEligibleCharacter,
+  hasValidStartingHand,
+} from '../../../engine/helpers/cardStats';
 import type { GameAction } from '../../../engine/types/actions';
 import type { GameState, PlayerId } from '../../../engine/types/state';
 import type { BattleMode } from '../../../store/useBattleStore';
@@ -33,6 +37,10 @@ export function BattleModals({
   onExitToMenu,
 }: BattleModalsProps) {
   const myPlayer = gameState.players[myId];
+  const initialMaxDg = hasAnyTurnOneEligibleCharacter([...myPlayer.hand, ...myPlayer.deck])
+    ? 3
+    : null;
+  const startingHandValid = hasValidStartingHand(myPlayer.hand, initialMaxDg);
 
   return (
     <AnimatePresence>
@@ -65,14 +73,14 @@ export function BattleModals({
 
             <div
               className={`mx-auto max-w-xl border-2 border-[#060508] px-4 py-2 text-xs font-bold ${
-                hasValidStartingHand(myPlayer.hand)
+                startingHandValid
                   ? 'bg-[#00b87c] text-[#0b090e]'
                   : 'bg-[#e6194b] text-white'
               }`}
             >
-              {hasValidStartingHand(myPlayer.hand)
-                ? 'MANO VÁLIDA — Cumples la condición de personaje autosuficiente o Usuario + Stand compatible.'
-                : 'MANO INVÁLIDA — Necesitas un personaje autosuficiente o Usuario + Stand compatible. Debes hacer Mulligan.'}
+              {startingHandValid
+                ? 'MANO VÁLIDA — Tienes un personaje inicial válido (sin DG o DG ≤ 3) listo para empezar.'
+                : 'MANO INVÁLIDA — Necesitas un personaje inicial (sin DG o DG ≤ 3 autosuficiente, o Usuario DG ≤ 3 + Stand compatible). Debes hacer Mulligan.'}
             </div>
 
             <div className="flex flex-wrap justify-center gap-3">
@@ -83,7 +91,7 @@ export function BattleModals({
             </div>
 
             <div className="flex justify-center pt-1">
-              {hasValidStartingHand(myPlayer.hand) ? (
+              {startingHandValid ? (
                 <button
                   type="button"
                   onClick={() => onDispatch({ type: 'CONFIRM_STARTING_HAND', playerId: myId })}
@@ -155,8 +163,8 @@ export function BattleModals({
               Elige tu Personaje Activo
             </h2>
             <p className="text-xs text-zinc-400">
-              Consejo: prioriza un personaje <strong className="text-[#00e599]">LISTO</strong> (con
-              ataque propio o Stand compatible en mano) para atacar cuanto antes.
+              En el Turno 1 solo puedes empezar con personajes <strong className="text-[#f2c12e]">sin DG o DG ≤ 3</strong>{' '}
+              (DG 4 en T2 · DG 5 en T3 · DG 6 en T4). Prioriza uno <strong className="text-[#00e599]">LISTO</strong>.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               {(() => {
@@ -167,8 +175,10 @@ export function BattleModals({
                   const c = getCardById(cid);
                   if (!c) return null;
                   const isChar = c.type === 'CHARACTER';
+                  const dgAllowed =
+                    isChar && (initialMaxDg === null || c.dg === null || c.dg <= initialMaxDg);
                   const isReady =
-                    isChar &&
+                    dgAllowed &&
                     (c.attacks.length > 0 ||
                       (c.dg !== null &&
                         handStands.some(
@@ -176,16 +186,23 @@ export function BattleModals({
                             c.dg! >= st.requiredDg &&
                             (!st.compatibleCharacterIds || st.compatibleCharacterIds.includes(c.id)),
                         )));
+                  const badgeText = !isChar
+                    ? undefined
+                    : !dgAllowed
+                      ? `TURNO ${getCharacterUnlockTurn(c.dg)} (DG${c.dg})`
+                      : isReady
+                        ? 'LISTO'
+                        : 'SIN STAND';
                   return (
                     <CardView
                       key={`${cid}-${idx}`}
                       card={c}
                       size="sm"
                       highlighted={isReady}
-                      disabled={!isChar}
-                      badgeText={isChar ? (isReady ? 'LISTO' : 'SIN STAND') : undefined}
+                      disabled={!dgAllowed}
+                      badgeText={badgeText}
                       onClick={
-                        isChar
+                        dgAllowed
                           ? () =>
                               onDispatch({
                                 type: 'CHOOSE_STARTING_ACTIVE',

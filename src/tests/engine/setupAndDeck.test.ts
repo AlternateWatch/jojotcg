@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { PRESET_DECKS } from '../../data/cardRegistry';
 import { validateDeck } from '../../services/deckValidator';
 import { createGame, dispatchAction } from '../../engine/gameEngine';
-import { hasValidStartingHand } from '../../engine/helpers/cardStats';
+import {
+  getMaxPlayableCharacterDg,
+  hasValidStartingHand,
+} from '../../engine/helpers/cardStats';
 import { createSeededRng } from '../../engine/rng';
 
 describe('Deck Validation & Setup/Mulligan Rules', () => {
@@ -192,5 +195,87 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     expect(state.phase).toBe('GAME_OVER');
     expect(state.winnerId).toBe('P2');
     expect(state.winReason).toContain('Basildo se ha quedado sin cartas en el mazo');
+  });
+
+  it('enforces progressive character DG unlock by turn (T1: DG 3, T2: DG 4, T3: DG 5, T4+: DG 6)', () => {
+    expect(getMaxPlayableCharacterDg(0)).toBe(3);
+    expect(getMaxPlayableCharacterDg(1)).toBe(3);
+    expect(getMaxPlayableCharacterDg(2)).toBe(4);
+    expect(getMaxPlayableCharacterDg(3)).toBe(5);
+    expect(getMaxPlayableCharacterDg(4)).toBe(6);
+    expect(getMaxPlayableCharacterDg(8)).toBe(6);
+
+    const p1Deck = [
+      'char-jonathan-joestar', // dg: null (T1)
+      'char-muhammad-avdol',   // dg: 4 (T2)
+      'char-jotaro-kujo',      // dg: 5 (T3)
+      'char-dio',              // dg: 6 (T4)
+      'char-iggy',             // dg: 3 (T1)
+      ...Array.from({ length: 15 }, () => 'energy-psychic'),
+    ];
+    const p2Deck = [
+      'char-dio-brando',
+      ...Array.from({ length: 19 }, () => 'energy-psychic'),
+    ];
+    const noShuffle = {
+      nextFloat: () => 0.5,
+      flipCoin: () => 'HEADS' as const,
+      shuffle: <T,>(a: readonly T[]) => [...a],
+    };
+
+    let state = createGame({ p1Name: 'P1', p2Name: 'P2', p1Deck, p2Deck, rng: noShuffle });
+    state = dispatchAction(state, { type: 'CONFIRM_STARTING_HAND', playerId: 'P1' }, noShuffle).state;
+    state = dispatchAction(state, { type: 'CONFIRM_STARTING_HAND', playerId: 'P2' }, noShuffle).state;
+
+    // Cannot pick DG 4/5/6 as starting Active on Turn 1 setup
+    expect(
+      dispatchAction(state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P1', handIndex: 1 }, noShuffle).ok,
+    ).toBe(false); // Avdol (DG 4)
+    expect(
+      dispatchAction(state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P1', handIndex: 3 }, noShuffle).ok,
+    ).toBe(false); // DIO (DG 6)
+
+    // Pick Jonathan (dg: null) & Dio Brando (dg: null) -> enters Turn 1
+    state = dispatchAction(state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P1', handIndex: 0 }, noShuffle).state;
+    state = dispatchAction(state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P2', handIndex: 0 }, noShuffle).state;
+    expect(state.turnNumber).toBe(1);
+
+    const avdolIdx = state.players.P1.hand.indexOf('char-muhammad-avdol');
+    const jotaroIdx = state.players.P1.hand.indexOf('char-jotaro-kujo');
+    const dioIdx = state.players.P1.hand.indexOf('char-dio');
+    const iggyIdx = state.players.P1.hand.indexOf('char-iggy');
+
+    // Turn 1: DG 4, 5, 6 blocked; DG 3 allowed
+    expect(dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: avdolIdx }, noShuffle).ok).toBe(false);
+    expect(dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: jotaroIdx }, noShuffle).ok).toBe(false);
+    expect(dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: dioIdx }, noShuffle).ok).toBe(false);
+    expect(dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: iggyIdx }, noShuffle).ok).toBe(true);
+
+    // Advance to Turn 2 (P1 ends T1 -> P2 ends T1 -> Turn 2 P1)
+    state = dispatchAction(state, { type: 'END_TURN', playerId: 'P1' }, noShuffle).state;
+    state = dispatchAction(state, { type: 'END_TURN', playerId: 'P2' }, noShuffle).state;
+    expect(state.turnNumber).toBe(2);
+
+    // Turn 2: DG 4 unlocked, DG 5 & 6 still blocked
+    expect(dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: state.players.P1.hand.indexOf('char-muhammad-avdol') }, noShuffle).ok).toBe(true);
+    expect(dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: state.players.P1.hand.indexOf('char-jotaro-kujo') }, noShuffle).ok).toBe(false);
+    expect(dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: state.players.P1.hand.indexOf('char-dio') }, noShuffle).ok).toBe(false);
+
+    // Advance to Turn 3
+    state = dispatchAction(state, { type: 'END_TURN', playerId: 'P1' }, noShuffle).state;
+    state = dispatchAction(state, { type: 'END_TURN', playerId: 'P2' }, noShuffle).state;
+    expect(state.turnNumber).toBe(3);
+
+    // Turn 3: DG 5 unlocked, DG 6 still blocked
+    expect(dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: state.players.P1.hand.indexOf('char-jotaro-kujo') }, noShuffle).ok).toBe(true);
+    expect(dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: state.players.P1.hand.indexOf('char-dio') }, noShuffle).ok).toBe(false);
+
+    // Advance to Turn 4
+    state = dispatchAction(state, { type: 'END_TURN', playerId: 'P1' }, noShuffle).state;
+    state = dispatchAction(state, { type: 'END_TURN', playerId: 'P2' }, noShuffle).state;
+    expect(state.turnNumber).toBe(4);
+
+    // Turn 4: DG 6 unlocked!
+    expect(dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: state.players.P1.hand.indexOf('char-dio') }, noShuffle).ok).toBe(true);
   });
 });

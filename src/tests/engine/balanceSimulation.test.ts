@@ -104,8 +104,12 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     // DIO and Old Joseph have 0 own attacks -> invalid without a compatible Stand!
     expect(hasValidStartingHand(['char-dio', 'energy-psychic', 'energy-light'])).toBe(false);
     expect(hasValidStartingHand(['char-joseph-joestar-viejo', 'energy-psychic'])).toBe(false);
-    // With a compatible Stand -> valid
-    expect(hasValidStartingHand(['char-dio', 'stand-the-world'])).toBe(true);
+    // DG 6 (DIO) cannot start Turn 1 under progressive DG rule (max DG 3 on T1)
+    expect(hasValidStartingHand(['char-dio', 'stand-the-world'])).toBe(false);
+    // DG 3 Stand User + compatible Stand -> valid Turn 1 starter!
+    expect(hasValidStartingHand(['char-hol-horse', 'stand-emperor'])).toBe(true);
+    // Without Turn 1 DG cap (fallback for all-high-DG custom decks), DIO + The World is valid
+    expect(hasValidStartingHand(['char-dio', 'stand-the-world'], null)).toBe(true);
     // Characters with own attacks (Jonathan, Stray Cat) -> valid
     expect(hasValidStartingHand(['char-jonathan-joestar'])).toBe(true);
     expect(hasValidStartingHand(['char-stray-cat'])).toBe(true);
@@ -157,8 +161,8 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
   it('Flecha de Stand searches 1 Stand from deck when played standalone', () => {
     const deck = PRESET_DECKS[0]!.cardIds;
     const { state: initState, rng } = buildQuickBattleState(deck, deck);
-    initState.players.P1.hand = ['char-jotaro-kujo', 'item-flecha-de-stand'];
-    initState.players.P1.deck = ['energy-psychic', 'stand-star-platinum', 'char-iggy'];
+    initState.players.P1.hand = ['char-iggy', 'item-flecha-de-stand'];
+    initState.players.P1.deck = ['energy-psychic', 'stand-star-platinum', 'char-jonathan-joestar'];
     initState.players.P2.hand = ['char-jonathan-joestar'];
 
     let res = dispatchAction(initState, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P1', handIndex: 0 }, rng);

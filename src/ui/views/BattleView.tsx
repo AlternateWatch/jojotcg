@@ -19,6 +19,7 @@ import { validateAction } from '../../engine/gameEngine';
 import {
   getEffectiveCharacterProfile,
   getMaxEnergyAttachmentsThisTurn,
+  getMaxPlayableCharacterDg,
 } from '../../engine/helpers/cardStats';
 import { getOpponentId } from '../../engine/helpers/stateHelpers';
 import type { GamePhase } from '../../engine/types/state';
@@ -747,6 +748,16 @@ export function BattleView() {
                         <strong className="text-[#f2c12e]">
                           {myPlayer.evolutionsPlayedThisTurn}/
                           {gameState.rules.maxEvolutionsPerTurn}
+                        </strong>
+                      </span>
+                      <span className="text-zinc-600">|</span>
+                      <span
+                        title="Límite de DG de personajes que puedes bajar este turno (T1: DG 3 · T2: DG 4 · T3: DG 5 · T4+: DG 6)"
+                        className="text-zinc-400"
+                      >
+                        DG máx:{' '}
+                        <strong className="text-[#e6194b]">
+                          {getMaxPlayableCharacterDg(gameState.turnNumber)}
                         </strong>
                       </span>
                     </div>

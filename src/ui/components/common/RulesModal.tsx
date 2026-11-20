@@ -66,7 +66,8 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
             <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
               <li>• Mazo de <strong>40 cartas</strong> (máx. 1 Personaje/Stand/Evo, 3 Objeto, Energías libres).</li>
               <li>• Mano inicial de 5 cartas; banca de hasta <strong>3 personajes</strong>.</li>
-              <li>• <strong>Mulligan</strong> si no tienes personaje autosuficiente o pareja Usuario + Stand compatible (rival roba +1).</li>
+              <li>• <strong>Mulligan</strong> si no tienes personaje inicial válido (sin DG o DG ≤ 3 autosuficiente, o Usuario DG ≤ 3 + Stand compatible); rival roba +1.</li>
+              <li>• <strong>Desbloqueo progresivo de DG</strong>: Turno 1 máx. <strong>DG 3</strong> (o sin DG), Turno 2 <strong>DG 4</strong>, Turno 3 <strong>DG 5</strong>, Turno 4+ <strong>DG 6</strong>.</li>
               <li>• El primer jugador <strong>no puede atacar en el Turno 1</strong>.</li>
             </ul>
           </div>

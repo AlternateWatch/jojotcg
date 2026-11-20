@@ -11,8 +11,11 @@ import {
   checkEvolutionRequirements,
   computeEffectiveMaxHp,
   getAvailableAttacks,
+  getCharacterUnlockTurn,
   getEffectiveCharacterProfile,
   getMaxEnergyAttachmentsThisTurn,
+  getMaxPlayableCharacterDg,
+  isCharacterDgAllowedOnTurn,
   isOpponentBenchLockedByKakyoin,
   isStandCompatibleWithCharacter,
 } from '../helpers/cardStats';
@@ -697,6 +700,14 @@ export function validatePlayToBench(
     return {
       ok: false,
       reason: 'Solo se pueden colocar cartas de Personaje en la banca (nunca Stands independientes).',
+    };
+  }
+  if (!isCharacterDgAllowedOnTurn(card.dg, state.turnNumber)) {
+    const unlockTurn = getCharacterUnlockTurn(card.dg);
+    const maxNow = getMaxPlayableCharacterDg(state.turnNumber);
+    return {
+      ok: false,
+      reason: `${card.name} (DG ${card.dg}) se desbloquea en el Turno ${unlockTurn} (límite en Turno ${state.turnNumber}: DG ${maxNow}).`,
     };
   }
   return { ok: true };

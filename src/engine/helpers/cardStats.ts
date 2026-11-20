@@ -252,12 +252,49 @@ export function getMaxEnergyAttachmentsThisTurn(state: GameState, playerId: Play
 }
 
 /**
+ * Progressive DG unlock rule for placing characters on the field:
+ * - Setup & Turn 1: max DG 3 (non-Stand characters with dg === null are always allowed)
+ * - Turn 2: max DG 4
+ * - Turn 3: max DG 5
+ * - Turn 4+: max DG 6 (all unlocked)
+ */
+export function getMaxPlayableCharacterDg(turnNumber: number): number {
+  if (turnNumber <= 1) return 3;
+  if (turnNumber === 2) return 4;
+  if (turnNumber === 3) return 5;
+  return 6;
+}
+
+export function getCharacterUnlockTurn(dg: number | null): number {
+  if (dg === null || dg <= 3) return 1;
+  return Math.min(4, dg - 2);
+}
+
+export function isCharacterDgAllowedOnTurn(dg: number | null, turnNumber: number): boolean {
+  if (dg === null) return true;
+  return dg <= getMaxPlayableCharacterDg(turnNumber);
+}
+
+export function hasAnyTurnOneEligibleCharacter(cardIds: readonly string[]): boolean {
+  for (const id of cardIds) {
+    const card = getCardById(id);
+    if (card?.type === 'CHARACTER' && (card.dg === null || card.dg <= 3)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Confirmed Starting Hand / Mulligan rule:
- * Valid if hand contains:
+ * Valid if hand contains a Turn-1-eligible character (dg === null or dg <= maxInitialDg):
  *  - A self-sufficient character with own attacks (VAMPIRE, PILLAR_MAN, HAMON_USER, or CONVENTIONAL_FIGHTER), OR
  *  - A STAND_USER character + a compatible STAND card in hand (user DG >= stand requiredDg).
  */
-export function hasValidStartingHand(handCardIds: readonly string[]): boolean {
+export function hasValidStartingHand(
+  handCardIds: readonly string[],
+  maxInitialDg: number | null = 3,
+): boolean {
   const standUsers: { id: string; dg: number }[] = [];
   const stands: StandCard[] = [];
 
@@ -265,6 +302,9 @@ export function hasValidStartingHand(handCardIds: readonly string[]): boolean {
     const card = getCardById(id);
     if (!card) continue;
     if (card.type === 'CHARACTER') {
+      const dgAllowed =
+        maxInitialDg === null || card.dg === null || card.dg <= maxInitialDg;
+      if (!dgAllowed) continue;
       const selfSufficient = card.attacks.length > 0;
       if (selfSufficient) return true;
       if (card.categories.includes('STAND_USER') && card.dg !== null) {

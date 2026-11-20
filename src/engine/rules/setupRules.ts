@@ -1,5 +1,9 @@
 import { getCharacterCard } from '../../data/cardRegistry';
-import { hasValidStartingHand } from '../helpers/cardStats';
+import {
+  getCharacterUnlockTurn,
+  hasAnyTurnOneEligibleCharacter,
+  hasValidStartingHand,
+} from '../helpers/cardStats';
 import {
   checkImmediateDeckOut,
   createCharacterInstance,
@@ -24,7 +28,10 @@ export function validateMulliganAction(
     return { ok: false, reason: 'Ya confirmaste tu mano inicial.' };
   }
 
-  const validHand = hasValidStartingHand(player.hand);
+  const effectiveMaxDg = hasAnyTurnOneEligibleCharacter([...player.hand, ...player.deck])
+    ? 3
+    : null;
+  const validHand = hasValidStartingHand(player.hand, effectiveMaxDg);
   if (actionType === 'PERFORM_MULLIGAN') {
     if (validHand) {
       return {
@@ -40,7 +47,7 @@ export function validateMulliganAction(
     return {
       ok: false,
       reason:
-        'Tu mano no contiene un personaje autosuficiente ni una pareja Usuario de Stand + Stand compatible. Debes hacer mulligan.',
+        'Tu mano no contiene un personaje inicial válido (sin DG o DG ≤ 3 autosuficiente, o Usuario DG ≤ 3 + Stand compatible). Debes hacer mulligan.',
     };
   }
   return { ok: true };
@@ -123,6 +130,13 @@ export function validateChooseStartingActive(
   const charCard = getCharacterCard(cardId);
   if (!charCard) {
     return { ok: false, reason: 'Solo puedes colocar una carta de Personaje en el Puesto Activo.' };
+  }
+  const enforceInitialDgCap = hasAnyTurnOneEligibleCharacter([...player.hand, ...player.deck]);
+  if (enforceInitialDgCap && charCard.dg !== null && charCard.dg > 3) {
+    return {
+      ok: false,
+      reason: `No puedes colocar a ${charCard.name} (DG ${charCard.dg}) en el Turno 1. Se desbloquea en el Turno ${getCharacterUnlockTurn(charCard.dg)} (límite inicial: DG 3).`,
+    };
   }
   return { ok: true };
 }
