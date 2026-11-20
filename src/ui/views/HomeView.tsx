@@ -1,0 +1,247 @@
+import { motion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
+import { getCardById } from '../../data/cardRegistry';
+import { PLAYMAT_THEMES } from '../../services/assetResolver';
+import { getCollectionProgress } from '../../services/progressionService';
+import type { PlaymatThemeId } from '../../services/storageService';
+import { useAppStore } from '../../store/useAppStore';
+import { CardView } from '../components/cards/CardView';
+
+const SHOWCASE_IDS = [
+  'char-jotaro-kujo',
+  'stand-star-platinum',
+  'evo-kars-ultimate',
+  'stand-the-world',
+  'char-dio',
+];
+
+export function HomeView() {
+  const setScreen = useAppStore((s) => s.setScreen);
+  const openBattleSetup = useAppStore((s) => s.openBattleSetup);
+  const playmatTheme = useAppStore((s) => s.settings.playmatTheme);
+  const setPlaymatTheme = useAppStore((s) => s.setPlaymatTheme);
+  const openInspector = useAppStore((s) => s.openInspector);
+  const progression = useAppStore((s) => s.progression);
+
+  const coll = getCollectionProgress(progression);
+
+  const showcaseCards = SHOWCASE_IDS.map(getCardById).filter(
+    (c): c is NonNullable<typeof c> => Boolean(c),
+  );
+
+  const menuEntries = [
+    {
+      index: '01',
+      title: 'COMBATE VS IA',
+      sub: 'Gana monedas derrotando a la IA (Fácil / Normal / Difícil)',
+      accent: 'bg-[#f2c12e] text-[#0b090e]',
+      onClick: () => openBattleSetup('VS_AI'),
+    },
+    {
+      index: '02',
+      title: 'TIENDA DE SOBRES',
+      sub: `Abre sobres por Parte o Correlación · ${progression.coins.toLocaleString()} monedas`,
+      accent: 'bg-[#e6194b] text-white',
+      onClick: () => setScreen('SHOP'),
+    },
+    {
+      index: '03',
+      title: 'DUELO 1V1 LOCAL',
+      sub: 'Dos jugadores en el mismo equipo con turno protegido',
+      accent: 'bg-[#1d1727] text-[#f5efe0]',
+      onClick: () => openBattleSetup('HOTSEAT'),
+    },
+    {
+      index: '04',
+      title: `COLECCIÓN (${coll.unlocked}/${coll.total})`,
+      sub: 'Personajes, Stands, Evoluciones, rarezas y dónde conseguirlas',
+      accent: 'bg-[#1d1727] text-[#f5efe0]',
+      onClick: () => setScreen('COLLECTION'),
+    },
+    {
+      index: '05',
+      title: 'CONSTRUCTOR DE MAZOS',
+      sub: 'Edita tus barajas con las cartas que has desbloqueado',
+      accent: 'bg-[#1d1727] text-[#f5efe0]',
+      onClick: () => setScreen('DECK_BUILDER'),
+    },
+  ];
+
+  return (
+    <div
+      className="relative flex min-h-[calc(100vh-56px)] flex-col justify-between overflow-hidden bg-[#0b090e]"
+      style={{
+        backgroundImage: 'url(/assets/patterns/pattern2.png)',
+        backgroundSize: '380px',
+      }}
+    >
+      {/* Dramatic diagonal obsidian ink slash covering the left editorial zone */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(108deg, rgba(11,9,14,0.97) 0%, rgba(11,9,14,0.94) 52%, rgba(28,11,42,0.72) 52.2%, rgba(11,9,14,0.88) 100%)',
+        }}
+      />
+
+      {/* Subtle manga halftone band */}
+      <div className="manga-halftone pointer-events-none absolute inset-0 opacity-60" />
+
+      {/* Katakana SFX graphic watermark — pure Araki typography */}
+      <motion.div
+        aria-hidden="true"
+        animate={{ y: [0, -10, 0] }}
+        transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
+        className="pointer-events-none absolute -right-4 top-8 select-none font-jojo-display text-[130px] leading-none text-[#e6194b]/15 lg:text-[210px]"
+        style={{ writingMode: 'vertical-rl' }}
+      >
+        ゴゴゴゴ
+      </motion.div>
+
+      {/* MAIN POSTER GRID */}
+      <div className="relative z-10 mx-auto grid w-full max-w-[1440px] flex-1 grid-cols-1 items-center gap-12 px-5 py-10 sm:px-8 lg:grid-cols-[1.05fr_0.95fr]">
+        {/* Left: Title Lockup + Arcade Main Menu */}
+        <motion.div
+          initial={{ opacity: 0, x: -24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.35 }}
+          className="space-y-8"
+        >
+          {/* Editorial Issue Masthead */}
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 border-l-4 border-[#e6194b] pl-3 text-xs font-bold tracking-[0.26em] text-[#f2c12e] uppercase">
+              <span>PHANTOM BLOOD — GOLDEN WIND</span>
+              <span className="text-zinc-500">/</span>
+              <span className="text-[#f5efe0]/80">REGLAMENTO OFICIAL</span>
+            </div>
+
+            <h1 className="font-jojo-display text-5xl leading-[0.94] uppercase sm:text-6xl lg:text-7xl">
+              <span className="block text-[#f2c12e] drop-shadow-[4px_4px_0_#060508]">
+                JOJO&apos;S BIZARRE
+              </span>
+              <span className="block text-[#f5efe0] drop-shadow-[4px_4px_0_#060508]">
+                ADVENTURE <span className="text-[#e6194b]">TCG</span>
+              </span>
+            </h1>
+          </div>
+
+          {/* Vertical Skewed Arcade Menu */}
+          <div className="max-w-lg space-y-3">
+            {menuEntries.map((item, idx) => (
+              <motion.button
+                key={item.index}
+                type="button"
+                initial={{ opacity: 0, x: -32 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  delay: 0.06 + idx * 0.055,
+                  type: 'spring',
+                  stiffness: 380,
+                  damping: 26,
+                }}
+                whileTap={{ scale: 0.97 }}
+                onClick={item.onClick}
+                className={`group flex w-full -skew-x-6 items-center justify-between border-2 border-[#060508] px-5 py-3.5 text-left shadow-[5px_5px_0_#060508] transition-all duration-150 hover:-translate-x-1 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_#060508] active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_#060508] ${item.accent}`}
+              >
+                <div className="flex skew-x-6 items-baseline gap-4">
+                  <span className="font-mono text-xs font-bold opacity-65">{item.index}</span>
+                  <div>
+                    <div className="font-jojo-heading text-2xl leading-none tracking-[0.09em]">
+                      {item.title}
+                    </div>
+                    <div className="mt-1 text-xs font-medium opacity-80">{item.sub}</div>
+                  </div>
+                </div>
+                <ArrowRight
+                  size={20}
+                  className="shrink-0 skew-x-6 transition-transform group-hover:translate-x-1.5"
+                />
+              </motion.button>
+            ))}
+          </div>
+
+          {/* Compact Playmat Swatch Selector */}
+          <div className="max-w-lg pt-2">
+            <div className="mb-2 flex items-center justify-between text-[11px] font-bold tracking-[0.18em] text-zinc-400 uppercase">
+              <span>Tapete de Arena activo</span>
+              <span className="text-[#f2c12e]">{PLAYMAT_THEMES[playmatTheme].label}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {(Object.keys(PLAYMAT_THEMES) as PlaymatThemeId[]).map((tid) => {
+                const theme = PLAYMAT_THEMES[tid];
+                const isSelected = playmatTheme === tid;
+                return (
+                  <button
+                    key={tid}
+                    type="button"
+                    title={theme.label}
+                    onClick={() => setPlaymatTheme(tid)}
+                    className={`h-10 w-14 border-2 bg-cover bg-center transition ${
+                      isSelected
+                        ? 'scale-105 border-[#f2c12e] shadow-[3px_3px_0_#060508]'
+                        : 'border-[#060508] opacity-65 hover:opacity-100'
+                    }`}
+                    style={{ backgroundImage: `url(${theme.patternUrl})` }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Right: Dramatic Physical Card Spread */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.08 }}
+          className="relative flex min-h-[380px] flex-col items-center justify-center"
+        >
+          {/* Diagonal gold accent plate behind cards */}
+          <div className="pointer-events-none absolute h-64 w-80 -rotate-6 border-2 border-[#060508] bg-[#e6194b]/25 shadow-[8px_8px_0_#060508] sm:h-72 sm:w-[440px]" />
+
+          <div className="relative flex items-center justify-center py-6">
+            {showcaseCards.map((card, i) => {
+              const offset = i - 2;
+              return (
+                <motion.div
+                  key={card.id}
+                  initial={{ opacity: 0, rotate: 0, y: 36, scale: 0.88 }}
+                  animate={{
+                    opacity: 1,
+                    rotate: offset * 7,
+                    y: Math.abs(offset) * 14,
+                    scale: 1,
+                  }}
+                  transition={{
+                    delay: 0.1 + i * 0.055,
+                    type: 'spring',
+                    stiffness: 300,
+                    damping: 22,
+                  }}
+                  whileHover={{ y: -26, scale: 1.09, rotate: 0, zIndex: 45 }}
+                  style={{
+                    marginLeft: i === 0 ? 0 : -68,
+                    zIndex: 10 + (3 - Math.abs(offset)),
+                  }}
+                  className="transition-shadow"
+                >
+                  <CardView
+                    card={card}
+                    size="md"
+                    onClick={() => openInspector(card.id)}
+                  />
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <div className="relative z-20 mt-4 -skew-x-10 border-2 border-[#060508] bg-[#f5efe0] px-4 py-1 text-[11px] font-bold tracking-widest text-[#0b090e] uppercase shadow-[3px_3px_0_#060508]">
+            <span className="inline-block skew-x-10">
+              Haz clic en cualquier carta para abrir su ficha
+            </span>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,114 @@
+import { useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { X } from 'lucide-react';
+
+interface RulesModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function RulesModal({ open, onClose }: RulesModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Guía rápida del reglamento"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.16 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#060508]/88 p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 12 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+            className="jojo-panel max-h-[88vh] w-full max-w-3xl space-y-4 overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+        <div className="flex items-center justify-between border-b-2 border-[#f2c12e]/30 pb-3">
+          <div>
+            <div className="font-jojo-heading text-xs tracking-[0.22em] text-[#e6194b] uppercase">
+              REFERENCIA RÁPIDA
+            </div>
+            <h2 className="font-jojo-display text-3xl text-[#f5efe0] uppercase">
+              REGLAMENTO OFICIAL
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar reglamento"
+            className="jojo-btn-ink flex h-8 w-8 items-center justify-center"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="border-2 border-[#060508] bg-[#0e0b14] p-3.5">
+            <h3 className="font-jojo-heading text-sm tracking-widest text-[#f2c12e] uppercase">
+              Mazo y Setup Inicial
+            </h3>
+            <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
+              <li>• Mazo de <strong>40 cartas</strong> (máx. 1 Personaje/Stand/Evo, 3 Objeto, Energías libres).</li>
+              <li>• Mano inicial de 5 cartas; banca de hasta <strong>3 personajes</strong>.</li>
+              <li>• <strong>Mulligan</strong> si no tienes personaje autosuficiente o pareja Usuario + Stand compatible (rival roba +1).</li>
+              <li>• El primer jugador <strong>no puede atacar en el Turno 1</strong>.</li>
+            </ul>
+          </div>
+
+          <div className="border-2 border-[#060508] bg-[#0e0b14] p-3.5">
+            <h3 className="font-jojo-heading text-sm tracking-widest text-[#f2c12e] uppercase">
+              Fases y Gestión de Banca
+            </h3>
+            <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
+              <li>• Orden: <strong>Robo → Preparación → Combate → Fin de Turno</strong>.</li>
+              <li>• Equipar Stand compatible (Activo o Banca): <strong>Gratis</strong> (no sustituible salvo al revivir; nunca solo en banca).</li>
+              <li>• Energías: <strong>1 por turno</strong>. Objetos: <strong>ilimitados</strong>. Evoluciones: <strong>1 por turno</strong>.</li>
+              <li>• Cualquier acción de banca (bajar / cambiar / retirar) <strong>finaliza el turno inmediatamente</strong> (salvo promoción tras KO o <em>Nigerundayo</em>).</li>
+            </ul>
+          </div>
+
+          <div className="jojo-panel-cream p-3.5">
+            <h3 className="font-jojo-heading text-sm tracking-widest text-[#b3123a] uppercase">
+              Estados Elementales
+            </h3>
+            <ul className="mt-1.5 space-y-1 text-xs font-medium text-[#0b090e]">
+              <li>• <strong>Aturdido</strong>: impide atacar y usar habilidades el siguiente turno, pero permite retirar a banca (tras recuperarse otorga 1 turno de resistencia para evitar bloqueos infinitos).</li>
+              <li>• <strong>Sangrado</strong>: acumulativo; cada stack inflige 10 de daño al final del turno afectado durante 3 turnos independientes.</li>
+              <li>• <strong>Quemado</strong>: 10 de daño fijo al final del turno afectado; se elimina al curar, retirar o promover al Puesto Activo.</li>
+            </ul>
+          </div>
+
+          <div className="border-2 border-[#060508] bg-[#0e0b14] p-3.5">
+            <h3 className="font-jojo-heading text-sm tracking-widest text-[#00b87c] uppercase">
+              Defensas y Evoluciones Clave
+            </h3>
+            <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
+              <li>• <strong>Yare Yare Daze</strong>: descarta 1 carta para anular un estado elemental.</li>
+              <li>• <strong>Intelecto Superior (Kars)</strong>: sobrevive a 1 HP ante cualquier KO (1 vez).</li>
+              <li>• <strong>Sentido del Viento (Wamuu)</strong>: esquiva el primer ataque una vez por vida.</li>
+              <li>• <strong>Tecnología Alemana (Stroheim)</strong>: reduce -10 solo a ataques.</li>
+            </ul>
+          </div>
+        </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

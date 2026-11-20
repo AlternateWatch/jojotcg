@@ -1,0 +1,423 @@
+import { DEFAULT_RULES_CONFIG, type GameRulesConfig } from '../data/rulesConfig';
+import { getAvailableAttacks } from './helpers/cardStats';
+import {
+  cloneState,
+  createCharacterInstance,
+  getOpponentId,
+  pushEvent,
+  setGameOver,
+} from './helpers/stateHelpers';
+import { createSystemRng, type RngProvider } from './rng';
+import {
+  executeAttack,
+  finishTurnToEndPhase,
+  resolvePendingPrompt,
+  validatePromptResponse,
+} from './combat/combatResolver';
+import {
+  applyChooseStartingActive,
+  applyConfirmStartingHand,
+  applyPerformMulligan,
+  validateChooseStartingActive,
+  validateMulliganAction,
+} from './rules/setupRules';
+import {
+  applyAttachEnergy,
+  applyEquipStand,
+  applyEvolveCard,
+  applyPlayItem,
+  applyPlayToBench,
+  applySwapOrRetreat,
+  applyUsePrepAbility,
+  validateAttachEnergy,
+  validateEnterCombatPhase,
+  validateEquipStand,
+  validateEvolveCard,
+  validatePlayItem,
+  validatePlayToBench,
+  validateSwapOrRetreat,
+  validateUseAttack,
+  validateUsePrepAbility,
+} from './rules/turnRules';
+import type { ActionResult, GameAction, ValidationResult } from './types/actions';
+import type { CombatEvent } from './types/events';
+import type { GameState, PlayerId, PlayerState } from './types/state';
+
+export interface CreateGameOptions {
+  p1Name: string;
+  p2Name: string;
+  p1Deck: readonly string[];
+  p2Deck: readonly string[];
+  p1IsAi?: boolean;
+  p2IsAi?: boolean;
+  firstPlayerId?: PlayerId;
+  rules?: Partial<GameRulesConfig>;
+  rng?: RngProvider;
+}
+
+function createPlayerState(
+  id: PlayerId,
+  name: string,
+  deckIds: readonly string[],
+  isAi: boolean,
+  initialHandSize: number,
+  rng: RngProvider,
+): PlayerState {
+  const shuffled = rng.shuffle(deckIds);
+  const hand = shuffled.splice(0, Math.min(initialHandSize, shuffled.length));
+  return {
+    id,
+    name,
+    isAi,
+    deck: shuffled,
+    hand,
+    discard: [],
+    active: null,
+    bench: [],
+    mulliganConfirmed: false,
+    mulliganCount: 0,
+    setupActiveChosen: false,
+    energyAttachedThisTurn: 0,
+    bonusEnergyAttachmentsThisTurn: 0,
+    evolutionsPlayedThisTurn: 0,
+    extraCombatActionsRemaining: 0,
+    usedOncePerTurnKeys: [],
+    pendingNextAttackBonus: 0,
+    permanentWaterAttackBonus: 0,
+    handRevealedToOpponent: false,
+  };
+}
+
+export function createGame(options: CreateGameOptions): GameState {
+  const rng = options.rng ?? createSystemRng();
+  const rules: GameRulesConfig = { ...DEFAULT_RULES_CONFIG, ...options.rules };
+  const firstPlayerId = options.firstPlayerId ?? 'P1';
+
+  const p1 = createPlayerState(
+    'P1',
+    options.p1Name,
+    options.p1Deck,
+    options.p1IsAi ?? false,
+    rules.initialHandSize,
+    rng,
+  );
+  const p2 = createPlayerState(
+    'P2',
+    options.p2Name,
+    options.p2Deck,
+    options.p2IsAi ?? false,
+    rules.initialHandSize,
+    rng,
+  );
+
+  const state: GameState = {
+    rules,
+    phase: 'SETUP_MULLIGAN',
+    turnNumber: 0,
+    activePlayerId: firstPlayerId,
+    firstPlayerId,
+    winnerId: null,
+    winReason: null,
+    players: { P1: p1, P2: p2 },
+    pendingPrompt: null,
+    queuedPrompts: [],
+    promptContinuation: 'NONE',
+    nextEntitySeq: 0,
+    eventLog: [],
+  };
+
+  const initialEvents: CombatEvent[] = [];
+  pushEvent(state, initialEvents, {
+    type: 'PHASE_CHANGED',
+    playerId: firstPlayerId,
+    phase: 'SETUP_MULLIGAN',
+    message: '¡Comienza el duelo! Revisad vuestras manos iniciales (Mulligan si no cumple requisitos).',
+  });
+
+  return state;
+}
+
+export function validateAction(state: GameState, action: GameAction): ValidationResult {
+  if (state.phase === 'GAME_OVER') {
+    return { ok: false, reason: 'La partida ya ha finalizado.' };
+  }
+
+  if (action.type === 'CONCEDE') {
+    return { ok: true };
+  }
+
+  // While a pendingPrompt is active, ONLY RESPOND_PROMPT is permitted!
+  if (state.pendingPrompt) {
+    if (action.type !== 'RESPOND_PROMPT') {
+      return {
+        ok: false,
+        reason: `Debes resolver primero la decisión pendiente (${state.pendingPrompt.kind}).`,
+      };
+    }
+    return validatePromptResponse(state, action.playerId, action.response);
+  }
+
+  if (action.type === 'RESPOND_PROMPT') {
+    return { ok: false, reason: 'No hay ninguna decisión pendiente que responder.' };
+  }
+
+  switch (action.type) {
+    case 'PERFORM_MULLIGAN':
+    case 'CONFIRM_STARTING_HAND':
+      return validateMulliganAction(state, action.playerId, action.type);
+
+    case 'CHOOSE_STARTING_ACTIVE':
+      return validateChooseStartingActive(state, action.playerId, action.handIndex);
+
+    case 'EQUIP_STAND':
+      return validateEquipStand(state, action.playerId, action.handIndex, action.targetInstanceId);
+
+    case 'ATTACH_ENERGY':
+      return validateAttachEnergy(state, action.playerId, action.handIndex, action.targetInstanceId);
+
+    case 'PLAY_ITEM':
+      return validatePlayItem(state, action.playerId, action.handIndex, action.targetInstanceId);
+
+    case 'EVOLVE_CARD':
+      return validateEvolveCard(state, action.playerId, action.handIndex);
+
+    case 'USE_PREP_ABILITY':
+      return validateUsePrepAbility(state, action.playerId, action.sourceInstanceId);
+
+    case 'PLAY_TO_BENCH':
+      return validatePlayToBench(state, action.playerId, action.handIndex);
+
+    case 'SWAP_ACTIVE_WITH_BENCH':
+    case 'RETREAT_ACTIVE':
+      return validateSwapOrRetreat(state, action.playerId, action.benchInstanceId);
+
+    case 'ENTER_COMBAT_PHASE':
+      return validateEnterCombatPhase(state, action.playerId);
+
+    case 'USE_ATTACK':
+      return validateUseAttack(state, action.playerId, action.attackId);
+
+    case 'END_TURN':
+      if (state.activePlayerId !== action.playerId) {
+        return { ok: false, reason: 'No es tu turno.' };
+      }
+      if (state.phase !== 'PREPARATION' && state.phase !== 'COMBAT') {
+        return { ok: false, reason: 'No puedes finalizar el turno en esta fase.' };
+      }
+      return { ok: true };
+  }
+}
+
+export function dispatchAction(
+  currentState: GameState,
+  action: GameAction,
+  rng: RngProvider = createSystemRng(),
+): ActionResult {
+  const validation = validateAction(currentState, action);
+  if (!validation.ok) {
+    return {
+      ok: false,
+      state: currentState,
+      events: [],
+      error: validation.reason ?? 'Acción inválida.',
+    };
+  }
+
+  const state = cloneState(currentState);
+  const events: CombatEvent[] = [];
+
+  switch (action.type) {
+    case 'CONCEDE':
+      setGameOver(
+        state,
+        events,
+        getOpponentId(action.playerId),
+        `${state.players[action.playerId].name} se ha rendido.`,
+      );
+      break;
+
+    case 'PERFORM_MULLIGAN':
+      applyPerformMulligan(state, events, action.playerId, rng);
+      break;
+
+    case 'CONFIRM_STARTING_HAND':
+      applyConfirmStartingHand(state, events, action.playerId);
+      break;
+
+    case 'CHOOSE_STARTING_ACTIVE':
+      applyChooseStartingActive(state, events, action.playerId, action.handIndex);
+      break;
+
+    case 'EQUIP_STAND':
+      applyEquipStand(state, events, action.playerId, action.handIndex, action.targetInstanceId);
+      break;
+
+    case 'ATTACH_ENERGY':
+      applyAttachEnergy(state, events, action.playerId, action.handIndex, action.targetInstanceId);
+      break;
+
+    case 'PLAY_ITEM':
+      applyPlayItem(state, events, action.playerId, action.handIndex, action.targetInstanceId, rng);
+      break;
+
+    case 'EVOLVE_CARD':
+      applyEvolveCard(state, events, action.playerId, action.handIndex);
+      break;
+
+    case 'USE_PREP_ABILITY':
+      applyUsePrepAbility(state, events, action.playerId, action.sourceInstanceId);
+      break;
+
+    case 'PLAY_TO_BENCH':
+      applyPlayToBench(state, events, action.playerId, action.handIndex, rng);
+      break;
+
+    case 'SWAP_ACTIVE_WITH_BENCH':
+    case 'RETREAT_ACTIVE':
+      applySwapOrRetreat(state, events, action.playerId, action.benchInstanceId, rng);
+      break;
+
+    case 'ENTER_COMBAT_PHASE':
+      state.phase = 'COMBAT';
+      pushEvent(state, events, {
+        type: 'PHASE_CHANGED',
+        playerId: action.playerId,
+        phase: 'COMBAT',
+        message: `Fase de Combate de ${state.players[action.playerId].name}.`,
+      });
+      break;
+
+    case 'USE_ATTACK':
+      executeAttack(state, events, action.playerId, action.attackId, rng);
+      break;
+
+    case 'END_TURN':
+      finishTurnToEndPhase(state, events, rng);
+      break;
+
+    case 'RESPOND_PROMPT':
+      resolvePendingPrompt(state, events, action.playerId, action.response, rng);
+      break;
+  }
+
+  return { ok: true, state, events };
+}
+
+/**
+ * Revives a character card from a player's discard pile onto their bench.
+ * Per confirmed rules (C6 & D12-C): returns WITHOUT any previous Stand attached
+ * and with fresh life-scoped flags (e.g. Wamuu's Wind Sense resets!).
+ */
+export function reviveCharacterFromDiscard(
+  currentState: GameState,
+  playerId: PlayerId,
+  discardIndex: number,
+): ActionResult {
+  const player = currentState.players[playerId];
+  const cardId = player.discard[discardIndex];
+  if (!cardId) {
+    return { ok: false, state: currentState, events: [], error: 'Carta no encontrada en descartes.' };
+  }
+  if (player.bench.length >= currentState.rules.maxBenchSize) {
+    return { ok: false, state: currentState, events: [], error: 'La banca está llena.' };
+  }
+
+  const state = cloneState(currentState);
+  const events: CombatEvent[] = [];
+  const nextPlayer = state.players[playerId];
+  const removedId = nextPlayer.discard.splice(discardIndex, 1)[0]!;
+  const freshInst = createCharacterInstance(state, removedId);
+  nextPlayer.bench.push(freshInst);
+
+  pushEvent(state, events, {
+    type: 'CHARACTER_PLAYED',
+    playerId,
+    cardId: removedId,
+    zone: 'BENCH',
+    message: `${nextPlayer.name} revive a ${removedId} desde descartes a la banca (sin Stand previo).`,
+  });
+
+  return { ok: true, state, events };
+}
+
+/**
+ * Enumerates legal non-prompt actions for a given player (used by UI highlights and AI).
+ */
+export function getLegalActions(state: GameState, playerId: PlayerId): GameAction[] {
+  if (state.phase === 'GAME_OVER' || state.pendingPrompt) return [];
+
+  const actions: GameAction[] = [];
+  const player = state.players[playerId];
+
+  const tryAdd = (action: GameAction) => {
+    if (validateAction(state, action).ok) actions.push(action);
+  };
+
+  if (state.phase === 'SETUP_MULLIGAN') {
+    tryAdd({ type: 'PERFORM_MULLIGAN', playerId });
+    tryAdd({ type: 'CONFIRM_STARTING_HAND', playerId });
+    return actions;
+  }
+
+  if (state.phase === 'SETUP_ACTIVE') {
+    for (let i = 0; i < player.hand.length; i++) {
+      tryAdd({ type: 'CHOOSE_STARTING_ACTIVE', playerId, handIndex: i });
+    }
+    return actions;
+  }
+
+  if (state.activePlayerId !== playerId) return [];
+
+  if (state.phase === 'PREPARATION') {
+    const boardChars = [...(player.active ? [player.active] : []), ...player.bench];
+
+    for (let i = 0; i < player.hand.length; i++) {
+      for (const ch of boardChars) {
+        tryAdd({
+          type: 'EQUIP_STAND',
+          playerId,
+          handIndex: i,
+          targetInstanceId: ch.instanceId,
+        });
+        tryAdd({
+          type: 'ATTACH_ENERGY',
+          playerId,
+          handIndex: i,
+          targetInstanceId: ch.instanceId,
+        });
+        tryAdd({
+          type: 'PLAY_ITEM',
+          playerId,
+          handIndex: i,
+          targetInstanceId: ch.instanceId,
+        });
+      }
+      tryAdd({ type: 'EVOLVE_CARD', playerId, handIndex: i });
+      tryAdd({ type: 'PLAY_TO_BENCH', playerId, handIndex: i });
+    }
+
+    for (const ch of boardChars) {
+      tryAdd({ type: 'USE_PREP_ABILITY', playerId, sourceInstanceId: ch.instanceId });
+    }
+
+    for (const b of player.bench) {
+      tryAdd({ type: 'SWAP_ACTIVE_WITH_BENCH', playerId, benchInstanceId: b.instanceId });
+    }
+
+    tryAdd({ type: 'ENTER_COMBAT_PHASE', playerId });
+    tryAdd({ type: 'END_TURN', playerId });
+    return actions;
+  }
+
+  if (state.phase === 'COMBAT' && player.active) {
+    for (const entry of getAvailableAttacks(player.active)) {
+      tryAdd({ type: 'USE_ATTACK', playerId, attackId: entry.attack.id });
+    }
+    tryAdd({ type: 'END_TURN', playerId });
+    return actions;
+  }
+
+  return actions;
+}
+
+export { getOpponentId };

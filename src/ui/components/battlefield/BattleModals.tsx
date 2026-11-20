@@ -1,0 +1,310 @@
+import { AnimatePresence, motion } from 'framer-motion';
+import { Coins, RefreshCw, ShoppingBag } from 'lucide-react';
+import { getCardById, getStandCard } from '../../../data/cardRegistry';
+import { hasValidStartingHand } from '../../../engine/helpers/cardStats';
+import type { GameAction } from '../../../engine/types/actions';
+import type { GameState, PlayerId } from '../../../engine/types/state';
+import type { BattleMode } from '../../../store/useBattleStore';
+import { CardView } from '../cards/CardView';
+
+interface BattleModalsProps {
+  gameState: GameState;
+  mode: BattleMode;
+  myId: PlayerId;
+  hotseatHandoffTo: PlayerId | null;
+  battleReward?: { coins: number; label: string } | null;
+  onDispatch: (action: GameAction) => void;
+  onConfirmHandoff: () => void;
+  onRematch: () => void;
+  onOpenShop?: () => void;
+  onExitToMenu: () => void;
+}
+
+export function BattleModals({
+  gameState,
+  mode,
+  myId,
+  hotseatHandoffTo,
+  battleReward,
+  onDispatch,
+  onConfirmHandoff,
+  onRematch,
+  onOpenShop,
+  onExitToMenu,
+}: BattleModalsProps) {
+  const myPlayer = gameState.players[myId];
+
+  return (
+    <AnimatePresence>
+      {/* SETUP MULLIGAN */}
+      {gameState.phase === 'SETUP_MULLIGAN' && !myPlayer.isAi && !myPlayer.mulliganConfirmed && (
+        <motion.div
+          key="modal-mulligan"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Revisión de mano inicial"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          className="fixed inset-0 z-40 flex items-center justify-center bg-[#060508]/88 p-4"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 12 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            className="jojo-panel w-full max-w-3xl space-y-5 p-6 text-center"
+          >
+            <div className="inline-block -skew-x-10 border-2 border-[#060508] bg-[#f2c12e] px-3 py-0.5 font-jojo-heading text-xs tracking-[0.2em] text-[#0b090e] uppercase">
+              <span className="inline-block skew-x-10">Revisión Inicial — {myPlayer.name}</span>
+            </div>
+            <h2 className="font-jojo-display text-3xl text-[#f5efe0] uppercase">
+              Mano Inicial ({myPlayer.hand.length} cartas)
+            </h2>
+
+            <div
+              className={`mx-auto max-w-xl border-2 border-[#060508] px-4 py-2 text-xs font-bold ${
+                hasValidStartingHand(myPlayer.hand)
+                  ? 'bg-[#00b87c] text-[#0b090e]'
+                  : 'bg-[#e6194b] text-white'
+              }`}
+            >
+              {hasValidStartingHand(myPlayer.hand)
+                ? 'MANO VÁLIDA — Cumples la condición de personaje autosuficiente o Usuario + Stand compatible.'
+                : 'MANO INVÁLIDA — Necesitas un personaje autosuficiente o Usuario + Stand compatible. Debes hacer Mulligan.'}
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-3">
+              {myPlayer.hand.map((cid, idx) => {
+                const c = getCardById(cid);
+                return c ? <CardView key={`${cid}-${idx}`} card={c} size="sm" /> : null;
+              })}
+            </div>
+
+            <div className="flex justify-center pt-1">
+              {hasValidStartingHand(myPlayer.hand) ? (
+                <button
+                  type="button"
+                  onClick={() => onDispatch({ type: 'CONFIRM_STARTING_HAND', playerId: myId })}
+                  className="jojo-btn-primary px-8 py-3 font-jojo-heading text-lg tracking-[0.15em] uppercase"
+                >
+                  Confirmar Mano
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onDispatch({ type: 'PERFORM_MULLIGAN', playerId: myId })}
+                  className="jojo-btn-crimson inline-flex items-center gap-2 px-8 py-3 font-jojo-heading text-lg tracking-[0.14em] uppercase"
+                >
+                  <RefreshCw size={17} /> Hacer Mulligan (Rival roba +1)
+                </button>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* SETUP STARTING ACTIVE */}
+      {gameState.phase === 'SETUP_ACTIVE' && !myPlayer.isAi && !myPlayer.setupActiveChosen && (
+        <motion.div
+          key="modal-setup-active"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Elección de personaje activo inicial"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          className="fixed inset-0 z-40 flex items-center justify-center bg-[#060508]/88 p-4"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 12 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            className="jojo-panel w-full max-w-3xl space-y-5 p-6 text-center"
+          >
+            <div className="inline-block -skew-x-10 border-2 border-[#060508] bg-[#e6194b] px-3 py-0.5 font-jojo-heading text-xs tracking-[0.2em] text-white uppercase">
+              <span className="inline-block skew-x-10">Colocación Inicial — {myPlayer.name}</span>
+            </div>
+            <h2 className="font-jojo-display text-3xl text-[#f5efe0] uppercase">
+              Elige tu Personaje Activo
+            </h2>
+            <p className="text-xs text-zinc-400">
+              Consejo: prioriza un personaje <strong className="text-[#00e599]">LISTO</strong> (con
+              ataque propio o Stand compatible en mano) para atacar cuanto antes.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {(() => {
+                const handStands = myPlayer.hand
+                  .map(getStandCard)
+                  .filter((s): s is NonNullable<typeof s> => Boolean(s));
+                return myPlayer.hand.map((cid, idx) => {
+                  const c = getCardById(cid);
+                  if (!c) return null;
+                  const isChar = c.type === 'CHARACTER';
+                  const isReady =
+                    isChar &&
+                    (c.attacks.length > 0 ||
+                      (c.dg !== null &&
+                        handStands.some(
+                          (st) =>
+                            c.dg! >= st.requiredDg &&
+                            (!st.compatibleCharacterIds || st.compatibleCharacterIds.includes(c.id)),
+                        )));
+                  return (
+                    <CardView
+                      key={`${cid}-${idx}`}
+                      card={c}
+                      size="sm"
+                      highlighted={isReady}
+                      disabled={!isChar}
+                      badgeText={isChar ? (isReady ? 'LISTO' : 'SIN STAND') : undefined}
+                      onClick={
+                        isChar
+                          ? () =>
+                              onDispatch({
+                                type: 'CHOOSE_STARTING_ACTIVE',
+                                playerId: myId,
+                                handIndex: idx,
+                              })
+                          : undefined
+                      }
+                    />
+                  );
+                });
+              })()}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* HOTSEAT PRIVACY CURTAIN */}
+      {hotseatHandoffTo && mode === 'HOTSEAT' && (
+        <motion.div
+          key="modal-hotseat"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cambio de jugador"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#0b090e] p-6"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            className="jojo-panel max-w-md space-y-5 p-8 text-center"
+          >
+            <div className="font-jojo-display text-4xl text-[#f2c12e] uppercase">
+              TURNO DE {gameState.players[hotseatHandoffTo].name}
+            </div>
+            <p className="text-sm text-zinc-300">
+              Pasa el control al siguiente jugador antes de revelar su mano.
+            </p>
+            <button
+              type="button"
+              onClick={onConfirmHandoff}
+              className="jojo-btn-primary w-full py-3 font-jojo-heading text-lg tracking-widest uppercase"
+            >
+              Continuar
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* TO BE CONTINUED GAME OVER */}
+      {gameState.phase === 'GAME_OVER' && gameState.winnerId && (
+        <motion.div
+          key="modal-gameover"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Resultado de la partida"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.28 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#18120a]/92 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.94, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+            className="jojo-panel max-w-xl space-y-6 p-8 text-center"
+          >
+            <div className="mx-auto flex items-center justify-center overflow-hidden">
+              <motion.div
+                initial={{ x: 110, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.14, type: 'spring', stiffness: 280, damping: 22 }}
+                className="tbc-arrow bg-[#f5efe0] py-3 pr-14 pl-6 font-jojo-serif text-lg font-black tracking-wider text-[#0b090e] italic shadow-lg"
+              >
+                To Be Continued
+              </motion.div>
+            </div>
+
+            <div>
+              <div className="font-jojo-heading text-xs tracking-[0.28em] text-[#e6194b] uppercase">
+                FIN DEL COMBATE · TURNO {gameState.turnNumber}
+              </div>
+              <h2 className="mt-1 font-jojo-display text-4xl text-[#f2c12e] uppercase">
+                ¡VICTORIA DE {gameState.players[gameState.winnerId].name}!
+              </h2>
+              <p className="mt-2 text-sm text-zinc-300">{gameState.winReason}</p>
+            </div>
+
+            {battleReward && (
+              <motion.div
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.25, type: 'spring', stiffness: 360, damping: 22 }}
+                className="mx-auto inline-flex items-center gap-2.5 border-2 border-[#060508] bg-[#f2c12e] px-5 py-2 text-[#0b090e] shadow-[4px_4px_0_#060508]"
+              >
+                <Coins size={20} />
+                <div className="text-left">
+                  <div className="font-jojo-display text-xl leading-none">
+                    +{battleReward.coins} MONEDAS
+                  </div>
+                  <div className="font-mono text-[10px] font-bold uppercase opacity-80">
+                    {battleReward.label}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            <div className="flex flex-wrap justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onRematch}
+                className="jojo-btn-primary inline-flex items-center gap-2 px-6 py-3 font-jojo-heading text-base tracking-[0.14em] uppercase"
+              >
+                <RefreshCw size={16} /> Revancha
+              </button>
+              {onOpenShop && (
+                <button
+                  type="button"
+                  onClick={onOpenShop}
+                  className="jojo-btn-crimson inline-flex items-center gap-2 px-5 py-3 font-jojo-heading text-base tracking-[0.14em] uppercase"
+                >
+                  <ShoppingBag size={16} /> Tienda
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onExitToMenu}
+                className="jojo-btn-ink px-5 py-3 font-jojo-heading text-base tracking-[0.14em] uppercase"
+              >
+                Menú Principal
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

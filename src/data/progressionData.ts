@@ -1,0 +1,613 @@
+import type { SavedDeck } from '../services/storageService';
+
+export type CardRarity = 'COMMON' | 'RARE' | 'SUPER_RARE' | 'BIZARRE_RARE';
+
+export interface RarityMeta {
+  id: CardRarity;
+  label: string;
+  short: string;
+  /** Exact drop rate per normal slot (sums to 100%) */
+  normalSlotRate: number;
+  /** Exact drop rate on the 5th featured slot (sums to 100%) */
+  featuredSlotRate: number;
+  duplicateRefund: number;
+  badgeClass: string;
+  glowColor: string;
+  borderClass: string;
+}
+
+export const RARITY_META: Record<CardRarity, RarityMeta> = {
+  COMMON: {
+    id: 'COMMON',
+    label: 'Común',
+    short: 'C',
+    normalSlotRate: 0.645,
+    featuredSlotRate: 0,
+    duplicateRefund: 15,
+    badgeClass: 'bg-zinc-700 text-zinc-100',
+    glowColor: '#a1a1aa',
+    borderClass: 'border-zinc-500',
+  },
+  RARE: {
+    id: 'RARE',
+    label: 'Rara',
+    short: 'R',
+    normalSlotRate: 0.27,
+    featuredSlotRate: 0.745,
+    duplicateRefund: 40,
+    badgeClass: 'bg-[#2952d9] text-white',
+    glowColor: '#38bdf8',
+    borderClass: 'border-sky-400',
+  },
+  SUPER_RARE: {
+    id: 'SUPER_RARE',
+    label: 'Súper Rara',
+    short: 'SR',
+    normalSlotRate: 0.08,
+    featuredSlotRate: 0.25,
+    duplicateRefund: 110,
+    badgeClass: 'bg-[#e6194b] text-white',
+    glowColor: '#e6194b',
+    borderClass: 'border-[#e6194b]',
+  },
+  BIZARRE_RARE: {
+    id: 'BIZARRE_RARE',
+    label: 'Bizarre Rare',
+    short: 'UR',
+    normalSlotRate: 0.005, // 0.5% chase rate!
+    featuredSlotRate: 0.005, // 0.5% chase rate!
+    duplicateRefund: 400,
+    badgeClass: 'bg-[#f2c12e] text-[#0b090e]',
+    glowColor: '#f2c12e',
+    borderClass: 'border-[#f2c12e]',
+  },
+};
+
+export const RARITY_ORDER: Record<CardRarity, number> = {
+  COMMON: 0,
+  RARE: 1,
+  SUPER_RARE: 2,
+  BIZARRE_RARE: 3,
+};
+
+/**
+ * Explicit rarity classification for all 68 collectible cards
+ * (Basic Energies are always unlocked in unlimited quantity).
+ */
+export const CARD_RARITY_MAP: Record<string, CardRarity> = {
+  // === BIZARRE RARE (UR — 0.5%!) ===
+  'char-dio': 'BIZARRE_RARE',
+  'char-kars': 'BIZARRE_RARE',
+  'char-jotaro-kujo': 'BIZARRE_RARE',
+  'char-yoshikage-kira': 'BIZARRE_RARE',
+  'stand-the-world': 'BIZARRE_RARE',
+  'stand-star-platinum': 'BIZARRE_RARE',
+  'stand-crazy-diamond': 'BIZARRE_RARE',
+  'stand-killer-queen': 'BIZARRE_RARE',
+  'evo-kars-ultimate': 'BIZARRE_RARE',
+  'evo-star-platinum-the-world': 'BIZARRE_RARE',
+  'evo-killer-queen-bites-the-dust': 'BIZARRE_RARE',
+  'evo-silver-chariot-requiem': 'BIZARRE_RARE',
+  'char-dio-brando': 'BIZARRE_RARE', // Part 1 chase boss!
+
+  // === SUPER RARE (SR) ===
+  'char-wamuu': 'SUPER_RARE',
+  'char-esidisi': 'SUPER_RARE',
+  'char-santana': 'SUPER_RARE',
+  'char-jean-pierre-polnareff': 'SUPER_RARE',
+  'char-noriaki-kakyoin': 'SUPER_RARE',
+  'char-vanilla-ice': 'SUPER_RARE',
+  'char-josuke-higashikata': 'SUPER_RARE',
+  'char-joseph-joestar': 'SUPER_RARE',
+  'char-lisa-lisa': 'SUPER_RARE',
+  'stand-silver-chariot': 'SUPER_RARE',
+  'stand-hierophant-green': 'SUPER_RARE',
+  'stand-magicians-red': 'SUPER_RARE',
+  'stand-cream': 'SUPER_RARE',
+  'stand-the-hand': 'SUPER_RARE',
+  'stand-heavens-door': 'SUPER_RARE',
+  'evo-kosaku-kawajiri': 'SUPER_RARE',
+  'item-flecha-requiem': 'SUPER_RARE',
+
+  // === RARE (R) ===
+  'char-caesar-zeppeli': 'RARE',
+  'char-muhammad-avdol': 'RARE',
+  'char-joseph-joestar-viejo': 'RARE',
+  'char-n-doul': 'RARE',
+  'char-pet-shop': 'RARE',
+  'char-okuyasu-nijimura': 'RARE',
+  'char-rohan-kishibe': 'RARE',
+  'char-yukako-yamagishi': 'RARE',
+  'char-akira-otoishi': 'RARE',
+  'char-rudol-von-stroheim': 'RARE',
+  'stand-geb': 'RARE',
+  'stand-horus': 'RARE',
+  'stand-red-hot-chilli-pepper': 'RARE',
+  'stand-love-deluxe': 'RARE',
+  'stand-the-fool': 'RARE',
+  'stand-hermit-purple': 'RARE',
+  'item-flecha-de-stand': 'RARE',
+  'item-mascara-de-piedra': 'RARE',
+  'item-piedra-roja-de-aja': 'RARE',
+  'item-impulso-espiritual': 'RARE',
+  'item-cambio-tactico': 'RARE',
+
+  // === COMMON (C) ===
+  'char-jonathan-joestar': 'COMMON',
+  'char-will-a-zeppeli': 'COMMON',
+  'char-robert-e-o-speedwagon': 'COMMON',
+  'char-iggy': 'COMMON',
+  'char-hol-horse': 'COMMON',
+  'char-mariah': 'COMMON',
+  'char-koichi-hirose': 'COMMON',
+  'char-shigekiyo-yangu': 'COMMON',
+  'char-stray-cat': 'COMMON',
+  'stand-emperor': 'COMMON',
+  'stand-bastet': 'COMMON',
+  'stand-echoes-act-1': 'COMMON',
+  'stand-harvest': 'COMMON',
+  'item-comida-de-tonio': 'COMMON',
+  'item-suministros-speedwagon': 'COMMON',
+  'item-brujula-de-energia': 'COMMON',
+  'item-llamada-del-destino': 'COMMON',
+};
+
+export function getCardRarity(cardId: string): CardRarity {
+  return CARD_RARITY_MAP[cardId] ?? 'COMMON';
+}
+
+function repeat(id: string, count: number): string[] {
+  return Array.from({ length: count }, () => id);
+}
+
+/**
+ * Starter Deck granted to every new player (40 cards, 100% legal, 2 colors: Electric + Psychic, 0 warnings).
+ * Contains only Common & basic Rare cards so opening packs provides real excitement & progression!
+ */
+export const STARTER_DECK_ID = 'preset-starter-deck';
+
+export const STARTER_DECK: SavedDeck = {
+  id: STARTER_DECK_ID,
+  name: 'Mazo Inicial — Destino Joestar',
+  description:
+    'Mazo base gratuito desbloqueado al inicio (Hamon/Rayo + Psíquica): Jonathan, Zeppeli, Speedwagon, Koichi, Iggy, Hol Horse y Shigekiyo.',
+  isPreset: true,
+  updatedAt: '2026-01-01T00:00:00.000Z',
+  cardIds: [
+    'char-jonathan-joestar',
+    'char-will-a-zeppeli',
+    'char-robert-e-o-speedwagon',
+    'char-iggy',
+    'char-hol-horse',
+    'char-shigekiyo-yangu',
+    'char-koichi-hirose',
+    'stand-emperor',
+    'stand-bastet',
+    'stand-harvest',
+    'stand-echoes-act-1',
+    'stand-hermit-purple',
+    ...repeat('item-brujula-de-energia', 2),
+    ...repeat('item-llamada-del-destino', 2),
+    ...repeat('item-impulso-espiritual', 2),
+    'item-cambio-tactico',
+    ...repeat('item-comida-de-tonio', 2),
+    ...repeat('item-suministros-speedwagon', 2),
+    ...repeat('energy-electric', 9),
+    ...repeat('energy-psychic', 8),
+  ],
+};
+
+/** Generous starting balance so the user can test pack openings and 0.5% pulls immediately */
+export const INITIAL_TEST_COINS = 25_000;
+
+export const BATTLE_REWARDS = {
+  VS_AI_EASY_WIN: 140,
+  VS_AI_NORMAL_WIN: 220,
+  VS_AI_HARD_WIN: 350,
+  HOTSEAT_WIN: 120,
+  LOSS_CONSOLATION: 50,
+} as const;
+
+export type PackSeries = 'PART' | 'CORRELATION';
+
+export interface BoosterPackDef {
+  id: string;
+  name: string;
+  subtitle: string;
+  series: PackSeries;
+  badge: string;
+  price: number;
+  cardsPerPack: number;
+  accentHex: string;
+  patternUrl: string;
+  coverCardId: string;
+  chaseCardIds: string[];
+  poolCardIds: string[];
+}
+
+const CORE_UTILITY_ITEMS = [
+  'item-comida-de-tonio',
+  'item-suministros-speedwagon',
+  'item-brujula-de-energia',
+  'item-llamada-del-destino',
+  'item-impulso-espiritual',
+  'item-cambio-tactico',
+];
+
+export const BOOSTER_PACKS: BoosterPackDef[] = [
+  // ===================== SERIE 1: SOBRES POR PARTE =====================
+  {
+    id: 'pack-part-1',
+    name: 'Parte 1: Phantom Blood',
+    subtitle: 'El origen del Hamon y la Máscara de Piedra. Chase UR: Dio Brando (0.5%).',
+    series: 'PART',
+    badge: 'PARTE 1',
+    price: 150,
+    cardsPerPack: 5,
+    accentHex: '#2952d9',
+    patternUrl: '/assets/patterns/pattern1.png',
+    coverCardId: 'char-dio-brando',
+    chaseCardIds: ['char-dio-brando'],
+    poolCardIds: [
+      'char-jonathan-joestar',
+      'char-will-a-zeppeli',
+      'char-robert-e-o-speedwagon',
+      'char-dio-brando',
+      'item-mascara-de-piedra',
+      ...CORE_UTILITY_ITEMS,
+    ],
+  },
+  {
+    id: 'pack-part-2',
+    name: 'Parte 2: Battle Tendency',
+    subtitle: 'Hombres del Pilar y Maestros del Hamon. Chase UR: Kars y Kars Definitivo (0.5%).',
+    series: 'PART',
+    badge: 'PARTE 2',
+    price: 200,
+    cardsPerPack: 5,
+    accentHex: '#00b87c',
+    patternUrl: '/assets/patterns/pattern5.png',
+    coverCardId: 'evo-kars-ultimate',
+    chaseCardIds: ['char-kars', 'evo-kars-ultimate'],
+    poolCardIds: [
+      'char-joseph-joestar',
+      'char-caesar-zeppeli',
+      'char-lisa-lisa',
+      'char-rudol-von-stroheim',
+      'char-santana',
+      'char-wamuu',
+      'char-esidisi',
+      'char-kars',
+      'evo-kars-ultimate',
+      'item-mascara-de-piedra',
+      'item-piedra-roja-de-aja',
+      ...CORE_UTILITY_ITEMS,
+    ],
+  },
+  {
+    id: 'pack-part-3',
+    name: 'Parte 3: Stardust Crusaders',
+    subtitle: 'El viaje a Egipto y el poder del tiempo. Chase UR: Jotaro, DIO, Star Platinum y The World (0.5%).',
+    series: 'PART',
+    badge: 'PARTE 3',
+    price: 260,
+    cardsPerPack: 5,
+    accentHex: '#f2c12e',
+    patternUrl: '/assets/patterns/pattern3.png',
+    coverCardId: 'stand-the-world',
+    chaseCardIds: [
+      'char-jotaro-kujo',
+      'char-dio',
+      'stand-star-platinum',
+      'stand-the-world',
+      'evo-star-platinum-the-world',
+    ],
+    poolCardIds: [
+      'char-jotaro-kujo',
+      'char-joseph-joestar-viejo',
+      'char-muhammad-avdol',
+      'char-noriaki-kakyoin',
+      'char-jean-pierre-polnareff',
+      'char-iggy',
+      'char-hol-horse',
+      'char-n-doul',
+      'char-mariah',
+      'char-pet-shop',
+      'char-vanilla-ice',
+      'char-dio',
+      'stand-star-platinum',
+      'stand-hermit-purple',
+      'stand-magicians-red',
+      'stand-hierophant-green',
+      'stand-silver-chariot',
+      'stand-the-fool',
+      'stand-emperor',
+      'stand-geb',
+      'stand-bastet',
+      'stand-horus',
+      'stand-cream',
+      'stand-the-world',
+      'evo-star-platinum-the-world',
+      ...CORE_UTILITY_ITEMS,
+    ],
+  },
+  {
+    id: 'pack-part-4',
+    name: 'Parte 4: Diamond is Unbreakable',
+    subtitle: 'Morioh-cho, sinergias de banca y bombas. Chase UR: Crazy Diamond, Kira, Killer Queen y Bites The Dust (0.5%).',
+    series: 'PART',
+    badge: 'PARTE 4',
+    price: 260,
+    cardsPerPack: 5,
+    accentHex: '#d81b60',
+    patternUrl: '/assets/patterns/pattern4.png',
+    coverCardId: 'stand-killer-queen',
+    chaseCardIds: [
+      'stand-crazy-diamond',
+      'char-yoshikage-kira',
+      'stand-killer-queen',
+      'evo-killer-queen-bites-the-dust',
+    ],
+    poolCardIds: [
+      'char-josuke-higashikata',
+      'char-okuyasu-nijimura',
+      'char-koichi-hirose',
+      'char-rohan-kishibe',
+      'char-yukako-yamagishi',
+      'char-shigekiyo-yangu',
+      'char-akira-otoishi',
+      'char-yoshikage-kira',
+      'char-stray-cat',
+      'stand-crazy-diamond',
+      'stand-the-hand',
+      'stand-echoes-act-1',
+      'stand-heavens-door',
+      'stand-love-deluxe',
+      'stand-harvest',
+      'stand-red-hot-chilli-pepper',
+      'stand-killer-queen',
+      'evo-kosaku-kawajiri',
+      'evo-killer-queen-bites-the-dust',
+      'item-flecha-de-stand',
+      ...CORE_UTILITY_ITEMS,
+    ],
+  },
+  {
+    id: 'pack-part-5',
+    name: 'Parte 5: Vento Aureo · Réquiem',
+    subtitle: 'La Flecha Réquiem y el despertar en Italia. Chase UR: Silver Chariot Requiem (0.5%).',
+    series: 'PART',
+    badge: 'PARTE 5 · EVO',
+    price: 280,
+    cardsPerPack: 5,
+    accentHex: '#f59e0b',
+    patternUrl: '/assets/patterns/pattern6.png',
+    coverCardId: 'evo-silver-chariot-requiem',
+    chaseCardIds: [
+      'evo-silver-chariot-requiem',
+    ],
+    poolCardIds: [
+      'evo-silver-chariot-requiem',
+      'item-flecha-requiem',
+      'char-jean-pierre-polnareff',
+      'stand-silver-chariot',
+      'item-flecha-de-stand',
+      'char-koichi-hirose',
+      ...CORE_UTILITY_ITEMS,
+    ],
+  },
+
+  // ===================== SERIE 2: SOBRES DE CORRELACIONES =====================
+  {
+    id: 'pack-corr-jojos',
+    name: 'Linaje Joestar (Solo JoJos)',
+    subtitle: 'Exclusivo de protagonistas JoJo y sus Stands icónicos. Chase UR: Jotaro, Star Platinum, SP:TW y Crazy Diamond (0.5%).',
+    series: 'CORRELATION',
+    badge: 'SOLO JOJOS',
+    price: 320,
+    cardsPerPack: 5,
+    accentHex: '#f2c12e',
+    patternUrl: '/assets/patterns/pattern1.png',
+    coverCardId: 'char-jotaro-kujo',
+    chaseCardIds: [
+      'char-jotaro-kujo',
+      'stand-star-platinum',
+      'evo-star-platinum-the-world',
+      'stand-crazy-diamond',
+    ],
+    poolCardIds: [
+      'char-jonathan-joestar',
+      'char-joseph-joestar',
+      'char-joseph-joestar-viejo',
+      'char-jotaro-kujo',
+      'char-josuke-higashikata',
+      'stand-hermit-purple',
+      'stand-star-platinum',
+      'evo-star-platinum-the-world',
+      'stand-crazy-diamond',
+      'item-brujula-de-energia',
+      'item-llamada-del-destino',
+      'item-impulso-espiritual',
+      'item-cambio-tactico',
+      'item-suministros-speedwagon',
+    ],
+  },
+  {
+    id: 'pack-corr-jobros',
+    name: 'JoBros & Aliados',
+    subtitle: 'Los compañeros más leales y sus sinergias de banca. Chase UR: Silver Chariot Requiem (0.5%).',
+    series: 'CORRELATION',
+    badge: 'JOBROS',
+    price: 220,
+    cardsPerPack: 5,
+    accentHex: '#00b87c',
+    patternUrl: '/assets/patterns/pattern2.png',
+    coverCardId: 'char-jean-pierre-polnareff',
+    chaseCardIds: ['evo-silver-chariot-requiem'],
+    poolCardIds: [
+      'char-robert-e-o-speedwagon',
+      'char-will-a-zeppeli',
+      'char-caesar-zeppeli',
+      'char-lisa-lisa',
+      'char-rudol-von-stroheim',
+      'char-jean-pierre-polnareff',
+      'char-noriaki-kakyoin',
+      'char-muhammad-avdol',
+      'char-iggy',
+      'char-okuyasu-nijimura',
+      'char-koichi-hirose',
+      'char-rohan-kishibe',
+      'char-yukako-yamagishi',
+      'char-shigekiyo-yangu',
+      'stand-silver-chariot',
+      'stand-hierophant-green',
+      'stand-magicians-red',
+      'stand-the-fool',
+      'stand-the-hand',
+      'stand-echoes-act-1',
+      'stand-heavens-door',
+      'stand-love-deluxe',
+      'stand-harvest',
+      'evo-silver-chariot-requiem',
+      'item-flecha-requiem',
+      'item-comida-de-tonio',
+      'item-suministros-speedwagon',
+    ],
+  },
+  {
+    id: 'pack-corr-villains',
+    name: 'Villanos & Amenazas',
+    subtitle: 'Vampiros, Hombres del Pilar y asesinos de Stand. Chase UR: DIO, The World, Kars, Kira y Bites The Dust (0.5%).',
+    series: 'CORRELATION',
+    badge: 'VILLANOS',
+    price: 320,
+    cardsPerPack: 5,
+    accentHex: '#e6194b',
+    patternUrl: '/assets/patterns/pattern4.png',
+    coverCardId: 'char-dio',
+    chaseCardIds: [
+      'char-dio-brando',
+      'char-dio',
+      'stand-the-world',
+      'char-kars',
+      'evo-kars-ultimate',
+      'char-yoshikage-kira',
+      'stand-killer-queen',
+      'evo-killer-queen-bites-the-dust',
+    ],
+    poolCardIds: [
+      'char-dio-brando',
+      'char-santana',
+      'char-wamuu',
+      'char-esidisi',
+      'char-kars',
+      'evo-kars-ultimate',
+      'char-hol-horse',
+      'char-n-doul',
+      'char-mariah',
+      'char-pet-shop',
+      'char-vanilla-ice',
+      'char-dio',
+      'char-akira-otoishi',
+      'char-yoshikage-kira',
+      'char-stray-cat',
+      'evo-kosaku-kawajiri',
+      'stand-emperor',
+      'stand-geb',
+      'stand-bastet',
+      'stand-horus',
+      'stand-cream',
+      'stand-the-world',
+      'stand-red-hot-chilli-pepper',
+      'stand-killer-queen',
+      'evo-killer-queen-bites-the-dust',
+      'item-mascara-de-piedra',
+      'item-piedra-roja-de-aja',
+      'item-flecha-de-stand',
+    ],
+  },
+  {
+    id: 'pack-corr-stands',
+    name: 'Despertar de Stand',
+    subtitle: 'Solo cartas de Stand, Evoluciones de Stand y buscadores. Ideal para potenciar a tus Usuarios.',
+    series: 'CORRELATION',
+    badge: 'SOLO STANDS',
+    price: 270,
+    cardsPerPack: 5,
+    accentHex: '#9333ea',
+    patternUrl: '/assets/patterns/pattern3.png',
+    coverCardId: 'stand-star-platinum',
+    chaseCardIds: [
+      'stand-star-platinum',
+      'stand-the-world',
+      'stand-crazy-diamond',
+      'stand-killer-queen',
+      'evo-star-platinum-the-world',
+      'evo-killer-queen-bites-the-dust',
+      'evo-silver-chariot-requiem',
+    ],
+    poolCardIds: [
+      'stand-star-platinum',
+      'stand-hermit-purple',
+      'stand-magicians-red',
+      'stand-hierophant-green',
+      'stand-silver-chariot',
+      'stand-the-fool',
+      'stand-emperor',
+      'stand-geb',
+      'stand-bastet',
+      'stand-horus',
+      'stand-cream',
+      'stand-the-world',
+      'stand-crazy-diamond',
+      'stand-the-hand',
+      'stand-echoes-act-1',
+      'stand-heavens-door',
+      'stand-love-deluxe',
+      'stand-harvest',
+      'stand-red-hot-chilli-pepper',
+      'stand-killer-queen',
+      'evo-star-platinum-the-world',
+      'evo-killer-queen-bites-the-dust',
+      'evo-silver-chariot-requiem',
+      'item-llamada-del-destino',
+      'item-flecha-de-stand',
+      'item-flecha-requiem',
+    ],
+  },
+  {
+    id: 'pack-corr-tactics',
+    name: 'Fundación Speedwagon (Objetos)',
+    subtitle: 'Sobre económico para completar tus 3 copias de Brújula, Impulso Espiritual, Cambio Táctico y catalizadores.',
+    series: 'CORRELATION',
+    badge: 'OBJETOS',
+    price: 110,
+    cardsPerPack: 5,
+    accentHex: '#38bdf8',
+    patternUrl: '/assets/patterns/pattern5.png',
+    coverCardId: 'item-brujula-de-energia',
+    chaseCardIds: [],
+    poolCardIds: [
+      'item-comida-de-tonio',
+      'item-suministros-speedwagon',
+      'item-brujula-de-energia',
+      'item-llamada-del-destino',
+      'item-impulso-espiritual',
+      'item-cambio-tactico',
+      'item-mascara-de-piedra',
+      'item-piedra-roja-de-aja',
+      'item-flecha-de-stand',
+      'item-flecha-requiem',
+      'char-robert-e-o-speedwagon',
+      'char-shigekiyo-yangu',
+    ],
+  },
+];
+
+export function getBoosterPackById(packId: string): BoosterPackDef | undefined {
+  return BOOSTER_PACKS.find((p) => p.id === packId);
+}
+
+export function getPacksContainingCard(cardId: string): BoosterPackDef[] {
+  return BOOSTER_PACKS.filter((p) => p.poolCardIds.includes(cardId));
+}
