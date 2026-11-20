@@ -19,6 +19,9 @@ export interface IThreeVfxCue {
   /** Direction of projectile/impact relative to viewer: UP = player->enemy, DOWN = enemy->player, CENTER = arena-wide */
   direction: 'UP' | 'DOWN' | 'CENTER';
   intensity: number;
+  sourcePlayerId?: PlayerId;
+  targetPlayerId?: PlayerId;
+  targetInstanceId?: string;
 }
 
 export interface ICardFloatingPopup {
@@ -136,9 +139,18 @@ export function extractThreeVfxCue(
 ): IThreeVfxCue | null {
   if (events.length === 0) return null;
 
+  const otherPlayer = (pid: PlayerId): PlayerId => (pid === 'P1' ? 'P2' : 'P1');
+
   const evo = events.find((e) => e.type === 'CARD_EVOLVED');
-  if (evo) {
-    return { id: evo.id, vfxType: 'EVOLUTION', direction: 'CENTER', intensity: 1.3 };
+  if (evo && evo.type === 'CARD_EVOLVED') {
+    return {
+      id: evo.id,
+      vfxType: 'EVOLUTION',
+      direction: 'CENTER',
+      intensity: 1.3,
+      sourcePlayerId: evo.playerId,
+      targetPlayerId: evo.playerId,
+    };
   }
 
   const zaWarudo = events.find(
@@ -153,17 +165,44 @@ export function extractThreeVfxCue(
   const ko = events.find((e) => e.type === 'CHARACTER_KO');
   if (ko && ko.type === 'CHARACTER_KO') {
     const dir = ko.ownerPlayerId === viewerPlayerId ? 'DOWN' : 'UP';
-    return { id: ko.id, vfxType: 'KO_SHATTER', direction: dir, intensity: 1.3 };
+    const koDmg = events.find(
+      (e) => e.type === 'DAMAGE_DEALT' && e.targetPlayerId === ko.ownerPlayerId,
+    );
+    return {
+      id: ko.id,
+      vfxType: 'KO_SHATTER',
+      direction: dir,
+      intensity: 1.35,
+      sourcePlayerId: otherPlayer(ko.ownerPlayerId),
+      targetPlayerId: ko.ownerPlayerId,
+      targetInstanceId: koDmg && koDmg.type === 'DAMAGE_DEALT' ? koDmg.targetInstanceId : undefined,
+    };
   }
 
   const atk = events.find((e) => e.type === 'ATTACK_DECLARED');
   if (atk && atk.type === 'ATTACK_DECLARED') {
     const dir = atk.playerId === viewerPlayerId ? 'UP' : 'DOWN';
+    const primaryTargetPlayer = otherPlayer(atk.playerId);
+    const primaryDmg = events.find(
+      (e) =>
+        e.type === 'DAMAGE_DEALT' &&
+        e.targetPlayerId === primaryTargetPlayer &&
+        e.source === 'ATTACK',
+    );
+    const anyEnemyDmg =
+      primaryDmg ??
+      events.find((e) => e.type === 'DAMAGE_DEALT' && e.targetPlayerId === primaryTargetPlayer);
     return {
       id: atk.id,
       vfxType: classifyAttackVfx(atk.attackName),
       direction: dir,
       intensity: 1.0,
+      sourcePlayerId: atk.playerId,
+      targetPlayerId: primaryTargetPlayer,
+      targetInstanceId:
+        anyEnemyDmg && anyEnemyDmg.type === 'DAMAGE_DEALT'
+          ? anyEnemyDmg.targetInstanceId
+          : undefined,
     };
   }
 
@@ -176,13 +215,29 @@ export function extractThreeVfxCue(
         : dmg.source === 'BLEED'
           ? 'VOID_PSYCHIC'
           : 'STAND_RUSH';
-    return { id: dmg.id, vfxType, direction: dir, intensity: 0.75 };
+    return {
+      id: dmg.id,
+      vfxType,
+      direction: dir,
+      intensity: 0.78,
+      sourcePlayerId: dmg.targetPlayerId,
+      targetPlayerId: dmg.targetPlayerId,
+      targetInstanceId: dmg.targetInstanceId,
+    };
   }
 
   const heal = events.find((e) => e.type === 'HEALED' && e.amount > 0);
   if (heal && heal.type === 'HEALED') {
     const dir = heal.targetPlayerId === viewerPlayerId ? 'DOWN' : 'UP';
-    return { id: heal.id, vfxType: 'HEAL_RESTORE', direction: dir, intensity: 0.85 };
+    return {
+      id: heal.id,
+      vfxType: 'HEAL_RESTORE',
+      direction: dir,
+      intensity: 0.9,
+      sourcePlayerId: heal.targetPlayerId,
+      targetPlayerId: heal.targetPlayerId,
+      targetInstanceId: heal.targetInstanceId,
+    };
   }
 
   return null;

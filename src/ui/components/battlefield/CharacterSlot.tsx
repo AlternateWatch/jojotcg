@@ -70,22 +70,38 @@ export function CharacterSlot({
   const tookHitNow = popups.some(
     (p) => p.kind === 'DAMAGE' || p.kind === 'BLEED' || p.kind === 'BURN',
   );
+  const hitKind = popups.find(
+    (p) => p.kind === 'DAMAGE' || p.kind === 'BLEED' || p.kind === 'BURN',
+  )?.kind;
   const healedNow = popups.some((p) => p.kind === 'HEAL');
+  const hitPopupKey = popups.map((p) => p.id).join('|');
 
   if (!charCard) return null;
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 12, scale: 0.94 }}
       animate={
         isLunging
-          ? { opacity: 1, y: lungeDirection === 'UP' ? [0, -24, 0] : [0, 24, 0], x: 0 }
+          ? {
+              opacity: 1,
+              y: lungeDirection === 'UP' ? [0, 10, -34, 0] : [0, -10, 34, 0],
+              x: lungeDirection === 'UP' ? [0, -4, 14, 0] : [0, 4, -14, 0],
+              scale: [1, 0.96, 1.09, 1],
+              rotate: lungeDirection === 'UP' ? [0, -3, 3.5, 0] : [0, 3, -3.5, 0],
+            }
           : tookHitNow
-            ? { opacity: 1, x: [0, -10, 10, -7, 6, 0], y: 0 }
-            : { opacity: 1, x: 0, y: 0 }
+            ? {
+                opacity: 1,
+                x: [0, -13, 12, -9, 7, -3, 0],
+                y: [0, 5, -4, 3, 0],
+                rotate: [0, -5.5, 5, -3.5, 2, 0],
+                scale: [1, 0.92, 1.04, 1],
+              }
+            : { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 }
       }
-      transition={{ duration: 0.42 }}
+      transition={{ duration: isLunging ? 0.46 : 0.44, ease: [0.22, 1, 0.36, 1] }}
       className={`relative flex flex-col items-center ${isTargetable ? 'cursor-pointer' : ''}`}
       onClick={isTargetable ? onClick : undefined}
     >
@@ -124,7 +140,12 @@ export function CharacterSlot({
       )}
 
       {/* Physical cards on playmat: User in front, Stand manifesting beside/behind */}
-      <div className="relative flex items-end justify-center">
+      <div
+        data-vfx-instance={character.instanceId}
+        data-vfx-owner={ownerId}
+        data-vfx-zone={zone}
+        className="relative flex items-end justify-center"
+      >
         <div className="relative z-10">
           <CardView
             card={charCard}
@@ -132,23 +153,73 @@ export function CharacterSlot({
             highlighted={isTargetable}
           />
 
-          {/* Hit or Heal flash overlay */}
-          {tookHitNow && (
-            <motion.div
-              initial={{ opacity: 0.7 }}
-              animate={{ opacity: 0 }}
-              transition={{ duration: 0.45 }}
-              className="pointer-events-none absolute inset-0 z-25 rounded-[7px] bg-[#e6194b]/60"
-            />
-          )}
-          {healedNow && (
-            <motion.div
-              initial={{ opacity: 0.65 }}
-              animate={{ opacity: 0 }}
-              transition={{ duration: 0.55 }}
-              className="pointer-events-none absolute inset-0 z-25 rounded-[7px] bg-[#00e599]/50"
-            />
-          )}
+          {/* Anime Impact Slash + Shockwave Ring + Hit Flash directly on target card */}
+          <AnimatePresence>
+            {tookHitNow && (
+              <motion.div
+                key={`hit-fx-${hitPopupKey}`}
+                aria-hidden="true"
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.52 }}
+                className="pointer-events-none absolute inset-0 z-25 overflow-visible rounded-[7px]"
+              >
+                {/* Initial white->crimson/orange impact flash */}
+                <motion.div
+                  initial={{ opacity: 0.92 }}
+                  animate={{ opacity: 0 }}
+                  transition={{ duration: 0.36 }}
+                  className={`absolute inset-0 rounded-[7px] ${
+                    hitKind === 'BURN'
+                      ? 'bg-[#ff6b1a]/75'
+                      : hitKind === 'BLEED'
+                        ? 'bg-[#991b1b]/80'
+                        : 'bg-[#e6194b]/75'
+                  }`}
+                />
+                {/* Crisp diagonal manga slash across the card */}
+                <motion.div
+                  initial={{ scaleX: 0, opacity: 1 }}
+                  animate={{ scaleX: [0, 1.35, 1.5], opacity: [1, 1, 0] }}
+                  transition={{ duration: 0.34, ease: 'easeOut' }}
+                  className="absolute top-1/2 left-1/2 h-2.5 w-[150%] -translate-x-1/2 -translate-y-1/2 -rotate-35 bg-gradient-to-r from-transparent via-[#fff8cc] to-transparent shadow-[0_0_18px_#f2c12e]"
+                />
+                {/* Expanding impact shockwave ring around the card */}
+                <motion.div
+                  initial={{ scale: 0.55, opacity: 0.95 }}
+                  animate={{ scale: 1.55, opacity: 0 }}
+                  transition={{ duration: 0.45, ease: 'easeOut' }}
+                  className={`absolute -inset-2 rounded-[12px] border-[4px] ${
+                    hitKind === 'BURN' ? 'border-[#ff6b1a]' : 'border-[#f2c12e]'
+                  }`}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Healing Aura Ring + Emerald Glow */}
+          <AnimatePresence>
+            {healedNow && (
+              <motion.div
+                key={`heal-fx-${hitPopupKey}`}
+                aria-hidden="true"
+                initial={{ opacity: 0.85 }}
+                animate={{ opacity: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.65 }}
+                className="pointer-events-none absolute inset-0 z-25 overflow-visible rounded-[7px]"
+              >
+                <div className="absolute inset-0 rounded-[7px] bg-[#00e599]/45" />
+                <motion.div
+                  initial={{ scale: 0.75, opacity: 0.95 }}
+                  animate={{ scale: 1.45, opacity: 0 }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                  className="absolute -inset-2 rounded-[12px] border-[3px] border-[#00e599]"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Diagonal manga STUNNED stamp */}
           {character.statuses.stunned && (
@@ -186,11 +257,22 @@ export function CharacterSlot({
           </div>
         </div>
 
-        {/* Stand manifesting right beside its User */}
+        {/* Stand manifesting right beside its User (leaps forward when lunging!) */}
         {standCard && (
           <motion.div
+            animate={
+              isLunging
+                ? {
+                    y: lungeDirection === 'UP' ? [0, -28, 0] : [0, 28, 0],
+                    x: lungeDirection === 'UP' ? [0, 14, 0] : [0, -14, 0],
+                    scale: [1, 1.24, 1],
+                    rotate: lungeDirection === 'UP' ? [3, -6, 3] : [3, 12, 3],
+                  }
+                : { y: 0, x: 0, scale: 1, rotate: 3 }
+            }
+            transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
             whileHover={{ scale: 1.16, x: 6, zIndex: 30 }}
-            className={`relative z-0 -ml-5 rotate-3 transition-transform ${
+            className={`relative z-0 -ml-5 transition-transform ${
               zone === 'ACTIVE' ? 'mb-2' : 'mb-1'
             }`}
           >
@@ -234,12 +316,19 @@ export function CharacterSlot({
               {character.currentHp}/{maxHp}
             </span>
           </div>
-          <div className="h-2.5 w-full overflow-hidden border border-[#060508] bg-[#1f192b]">
+          <div className="relative h-2.5 w-full overflow-hidden border border-[#060508] bg-[#1f192b]">
+            {/* Arcade fighting-game delayed damage trail */}
             <motion.div
               initial={false}
               animate={{ width: `${hpPercent}%` }}
-              transition={{ type: 'spring', stiffness: 180, damping: 22 }}
-              className={`h-full ${hpBarColor}`}
+              transition={{ duration: 0.72, delay: 0.16, ease: 'easeOut' }}
+              className="absolute inset-y-0 left-0 bg-[#f2c12e]/80"
+            />
+            <motion.div
+              initial={false}
+              animate={{ width: `${hpPercent}%` }}
+              transition={{ type: 'spring', stiffness: 220, damping: 24 }}
+              className={`relative z-10 h-full ${hpBarColor}`}
             />
           </div>
         </div>

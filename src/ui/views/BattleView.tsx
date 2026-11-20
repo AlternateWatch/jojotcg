@@ -679,7 +679,11 @@ export function BattleView() {
                     lungeDirection="DOWN"
                   />
                 ) : (
-                  <div className="flex h-[207px] w-[148px] items-center justify-center rounded-[7px] border-2 border-dashed border-[#e6194b]/35 bg-[#0b090e]/40 font-jojo-heading text-xs tracking-widest text-zinc-500 uppercase">
+                  <div
+                    data-vfx-owner={enemyId}
+                    data-vfx-zone="ACTIVE"
+                    className="flex h-[207px] w-[148px] items-center justify-center rounded-[7px] border-2 border-dashed border-[#e6194b]/35 bg-[#0b090e]/40 font-jojo-heading text-xs tracking-widest text-zinc-500 uppercase"
+                  >
                     ACTIVO
                   </div>
                 )}
@@ -860,7 +864,11 @@ export function BattleView() {
                     onClick={() => handleTargetBoardCharacter(myPlayer.active!.instanceId)}
                   />
                 ) : (
-                  <div className="flex h-[207px] w-[148px] items-center justify-center rounded-[7px] border-2 border-dashed border-[#f2c12e]/35 bg-[#0b090e]/40 font-jojo-heading text-xs tracking-widest text-zinc-500 uppercase">
+                  <div
+                    data-vfx-owner={myId}
+                    data-vfx-zone="ACTIVE"
+                    className="flex h-[207px] w-[148px] items-center justify-center rounded-[7px] border-2 border-dashed border-[#f2c12e]/35 bg-[#0b090e]/40 font-jojo-heading text-xs tracking-widest text-zinc-500 uppercase"
+                  >
                     ACTIVO
                   </div>
                 )}
