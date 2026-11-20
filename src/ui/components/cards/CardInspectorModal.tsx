@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Lock, RotateCcw, ShoppingBag, Upload, X, ZoomIn } from 'lucide-react';
+import { ArrowRight, Lock, ShoppingBag, X, ZoomIn } from 'lucide-react';
 import {
   CARD_SYNERGIES,
   getCardById,
@@ -25,10 +25,6 @@ export function CardInspectorModal() {
   const openInspector = useAppStore((s) => s.openInspector);
   const setScreen = useAppStore((s) => s.setScreen);
   const progression = useAppStore((s) => s.progression);
-  const overrides = useAppStore((s) => s.settings.customImageOverrides);
-  const setCustomImageOverride = useAppStore((s) => s.setCustomImageOverride);
-  const clearCustomImageOverride = useAppStore((s) => s.clearCustomImageOverride);
-  const [urlInput, setUrlInput] = useState('');
   const [isHoveringCard, setIsHoveringCard] = useState(false);
 
   useEffect(() => {
@@ -45,7 +41,7 @@ export function CardInspectorModal() {
   }, [inspectedCardId, closeInspector]);
 
   const card = inspectedCardId ? getCardById(inspectedCardId) : undefined;
-  const asset = card ? resolveCardAsset(card.imageId, card.assetFolder, overrides) : null;
+  const asset = card ? resolveCardAsset(card.imageId, card.assetFolder) : null;
   const evolutions = card ? getEvolutionsForBase(card.id) : [];
   const synergy = card ? CARD_SYNERGIES[card.id] : undefined;
   const baseCard = card?.type === 'EVOLUTION' ? getCardById(card.baseCardId) : undefined;
@@ -53,17 +49,6 @@ export function CardInspectorModal() {
   const ownedCopies = card ? getOwnedCount(progression, card.id) : 0;
   const maxCopies = card ? getMaxCollectibleCopies(card.id) : 0;
   const sourcePacks = card && card.type !== 'ENERGY' ? getPacksContainingCard(card.id) : [];
-
-  const handleLocalFileUpload = (file: File | undefined) => {
-    if (!file || !card) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setCustomImageOverride(card.imageId, reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
 
   return (
     <AnimatePresence>
@@ -99,7 +84,7 @@ export function CardInspectorModal() {
                 <X size={16} />
               </button>
 
-              {/* Left: Full-Res Card (hover to enlarge at the side) + Asset Resource Box */}
+              {/* Left: Full-Res Card (hover to enlarge at the side) */}
               <div className="flex flex-col items-center gap-3">
                 <div
                   onMouseEnter={() => setIsHoveringCard(true)}
@@ -111,72 +96,7 @@ export function CardInspectorModal() {
                     <ZoomIn size={11} /> Pasa el ratón para ampliar
                   </div>
                 </div>
-
-          <div className="w-full border-2 border-[#060508] bg-[#0e0b14] p-2.5 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="font-jojo-heading text-xs tracking-wider text-[#f2c12e] uppercase">
-                Recurso Gráfico
-              </span>
-              <span
-                className={`px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase ${
-                  asset.url
-                    ? 'bg-[#00b87c] text-[#0b090e]'
-                    : 'bg-[#f2c12e] text-[#0b090e]'
-                }`}
-              >
-                {asset.url ? 'ACTIVA' : 'PENDIENTE'}
-              </span>
-            </div>
-            <p className="mt-1 truncate font-mono text-[10px] text-zinc-400">
-              ID: {card.imageId}
-            </p>
-            <p className="truncate font-mono text-[10px] text-zinc-500">
-              public{asset.expectedPath}
-            </p>
-
-            <div className="mt-2.5 flex flex-col gap-1.5">
-              <label className="jojo-btn-ink flex cursor-pointer items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold">
-                <Upload size={12} /> Asociar .png / .jpg local
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  onChange={(e) => handleLocalFileUpload(e.target.files?.[0])}
-                />
-              </label>
-              <div className="flex gap-1">
-                <input
-                  type="text"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  placeholder="Ruta o URL de imagen..."
-                  className="w-full border border-zinc-700 bg-[#0b090e] px-2 py-1 text-[10px] text-[#f5efe0] focus:border-[#f2c12e] focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (urlInput.trim()) {
-                      setCustomImageOverride(card.imageId, urlInput.trim());
-                      setUrlInput('');
-                    }
-                  }}
-                  className="border border-[#060508] bg-[#f2c12e] px-2.5 text-[10px] font-bold text-[#0b090e]"
-                >
-                  OK
-                </button>
               </div>
-              {overrides[card.imageId] && (
-                <button
-                  type="button"
-                  onClick={() => clearCustomImageOverride(card.imageId)}
-                  className="flex items-center justify-center gap-1 border border-[#e6194b]/50 bg-[#e6194b]/15 py-1 text-[10px] font-bold text-rose-300 hover:bg-[#e6194b] hover:text-white"
-                >
-                  <RotateCcw size={11} /> Restaurar recurso base
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
 
         {/* Right: Editorial JoJo Dossier */}
         <div className="space-y-4 pr-6">

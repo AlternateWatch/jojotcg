@@ -80,17 +80,8 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
 export function resolveCardAsset(
   imageId: string,
   folder: AssetCardFolder = 'official',
-  customOverrides?: Record<string, string>,
+  _customOverrides?: Record<string, string>,
 ): { url: string | null; isFullCardRender: boolean; expectedPath: string } {
-  const override = customOverrides?.[imageId];
-  if (override && override.trim().length > 0) {
-    return {
-      url: override.trim(),
-      isFullCardRender: folder === 'official',
-      expectedPath: override.trim(),
-    };
-  }
-
   const expectedPath = `/assets/cards/${folder}/${imageId}.png`;
   if (folder === 'official' && OFFICIAL_CARD_IMAGE_IDS.has(imageId)) {
     return {
