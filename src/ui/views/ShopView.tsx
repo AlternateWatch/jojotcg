@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Coins, Eye, Lock, Plus, RotateCcw, Sparkles, X } from 'lucide-react';
+import { Coins, Eye, Lock, RotateCcw, Sparkles, X } from 'lucide-react';
 import { getCardById } from '../../data/cardRegistry';
 import {
   BOOSTER_PACKS,
@@ -25,7 +25,6 @@ import { PackOpeningModal } from '../components/shop/PackOpeningModal';
 export function ShopView() {
   const progression = useAppStore((s) => s.progression);
   const buyAndOpenPack = useAppStore((s) => s.buyAndOpenPack);
-  const grantTestCoins = useAppStore((s) => s.grantTestCoins);
   const resetProgression = useAppStore((s) => s.resetProgression);
   const openInspector = useAppStore((s) => s.openInspector);
 
@@ -102,16 +101,8 @@ export function ShopView() {
               </div>
             </div>
 
-            {/* Test Coins + Reset Controls */}
+            {/* Reset Control */}
             <div className="flex flex-col gap-1.5">
-              <button
-                type="button"
-                onClick={() => grantTestCoins(10_000)}
-                title="Añadir monedas de prueba para testear la tienda y el 0.5%"
-                className="jojo-btn-ink inline-flex items-center justify-center gap-1 px-2.5 py-1 font-mono text-[10px] font-bold text-[#f2c12e] uppercase"
-              >
-                <Plus size={11} /> +10.000 (Test)
-              </button>
               {!confirmReset ? (
                 <button
                   type="button"

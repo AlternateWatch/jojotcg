@@ -79,7 +79,7 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
 
   it('opens packs, unlocks cards, stores duplicate copies in collection without coin refunds, and matches ~0.5% UR rate', () => {
     const part3 = BOOSTER_PACKS.find((p) => p.id === 'pack-part-3')!;
-    let prog = createInitialProgression();
+    let prog = { ...createInitialProgression(), coins: 1_000 };
     const rng = createSeededRng(20261120);
 
     const firstOpen = openBoosterPack(part3, prog, rng);

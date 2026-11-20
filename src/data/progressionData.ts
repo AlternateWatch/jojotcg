@@ -197,8 +197,8 @@ export const STARTER_DECK: SavedDeck = {
   ],
 };
 
-/** Generous starting balance so the user can test pack openings and 0.5% pulls immediately */
-export const INITIAL_TEST_COINS = 25_000;
+/** Initial coin balance granted to every new player */
+export const INITIAL_TEST_COINS = 100;
 
 export const BATTLE_REWARDS = {
   VS_AI_EASY_WIN: 140,
