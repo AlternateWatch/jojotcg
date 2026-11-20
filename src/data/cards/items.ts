@@ -2,43 +2,27 @@ import type { ItemCard } from '../schemas/cardTypes';
 
 /**
  * Official Item cards rendered with their exact artwork and effects from public/assets/cards/items/.
+ * Frame color -> Part mapping:
+ *  - Blue: Part 1
+ *  - Purple: Part 2
+ *  - Gray: Part 3
+ *  - White: Part 4
+ *  - Orange: Part 5
  */
 export const ITEM_CARDS: ItemCard[] = [
   {
-    id: 'item-flecha-requiem',
-    name: 'Flecha Réquiem',
+    id: 'item-pluck',
+    name: '(P)luck',
     type: 'ITEM',
-    part: 5,
-    imageId: 'flecha-requiem',
+    part: 1,
+    imageId: 'pluck',
     assetFolder: 'items',
-    itemKind: 'CONSUMABLE',
-    targetScope: 'PLAYER',
-    catalystTag: 'requiem-arrow',
+    itemKind: 'EQUIPPABLE',
+    targetScope: 'ANY_ALLY',
     description:
-      'Flecha que despierta el verdadero potencial de un stand. Al jugar por su cuenta: Busca una evolución de un Stand en tu mazo, y añádela a tu mano. Al jugarla junto a un stand: Actua como objeto de evolución.',
-    effects: [
-      { kind: 'SEARCH_DECK', filter: 'STAND_EVOLUTION', maxCount: 1 },
-      { kind: 'EVOLUTION_CATALYST', catalystTag: 'requiem-arrow' },
-    ],
-    tags: ['official', 'catalyst', 'search'],
-  },
-  {
-    id: 'item-flecha-de-stand',
-    name: 'Flecha de Stand',
-    type: 'ITEM',
-    part: 4,
-    imageId: 'flecha-de-stand',
-    assetFolder: 'items',
-    itemKind: 'CONSUMABLE',
-    targetScope: 'PLAYER',
-    catalystTag: 'stand-arrow',
-    description:
-      'Flecha que despierta tu potencial interior. Al jugar por su cuenta: Busca un Stand en tu mazo, y añádelo a tu mano. Al jugarla junto a un stand: Actua como objeto de evolución.',
-    effects: [
-      { kind: 'SEARCH_DECK', filter: 'STAND', maxCount: 1 },
-      { kind: 'EVOLUTION_CATALYST', catalystTag: 'stand-arrow' },
-    ],
-    tags: ['official', 'catalyst', 'search', 'stand'],
+      'Espada del legendario caballero Bruford, otorgada a Jonathan Joestar antes de la muerte de Bruford. Al jugarla junto a un personaje: Aumenta en 10 puntos el daño de ataque del personaje o stand asociado al personaje.',
+    effects: [{ kind: 'EQUIP_PASSIVE_DAMAGE_BONUS', bonusDamage: 10 }],
+    tags: ['official', 'equippable', 'damage'],
   },
   {
     id: 'item-mascara-de-piedra',
@@ -77,6 +61,50 @@ export const ITEM_CARDS: ItemCard[] = [
     tags: ['official', 'equippable', 'catalyst', 'burn'],
   },
   {
+    id: 'item-cinta-de-caesar',
+    name: 'Cinta de Caesar',
+    type: 'ITEM',
+    part: 2,
+    imageId: 'cinta-de-caesar',
+    assetFolder: 'items',
+    itemKind: 'EQUIPPABLE',
+    targetScope: 'ANY_ALLY',
+    description:
+      'La cinta de pelo de Caesar. Otorgada por Caesar a Joseph Joestar momentos antes de su muerte. Al jugarla junto a un personaje: Aumenta en 20 puntos la vida máxima del personaje, y cura 20 puntos a su vida actual.',
+    effects: [{ kind: 'EQUIP_PASSIVE_MAX_HP', bonusHp: 20 }],
+    tags: ['official', 'equippable', 'healing'],
+  },
+  {
+    id: 'item-clackers',
+    name: 'Clackers',
+    type: 'ITEM',
+    part: 2,
+    imageId: 'clackers',
+    assetFolder: 'items',
+    itemKind: 'EQUIPPABLE',
+    targetScope: 'ANY_ALLY',
+    description:
+      'Arma estrella de Joseph Joestar. Al jugarla junto a un personaje: Aumenta en 20 puntos el daño de ataque del personaje o stand asociado al personaje si es usuario de hamon.',
+    effects: [
+      { kind: 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS', category: 'HAMON_USER', bonusDamage: 20 },
+    ],
+    tags: ['official', 'equippable', 'hamon'],
+  },
+  {
+    id: 'item-suministros-speedwagon',
+    name: 'Suministros de la fundación Speedwagon',
+    type: 'ITEM',
+    part: 2,
+    imageId: 'suministros-speedwagon',
+    assetFolder: 'items',
+    itemKind: 'CONSUMABLE',
+    targetScope: 'PLAYER',
+    description:
+      'Ayuda proveída por la fundación Speedwagon. Al jugarla por su cuenta: Roba dos cartas de tu mazo.',
+    effects: [{ kind: 'DRAW_CARDS', count: 2 }],
+    tags: ['official', 'draw'],
+  },
+  {
     id: 'item-comida-de-tonio',
     name: 'Comida de Tonio',
     type: 'ITEM',
@@ -91,20 +119,6 @@ export const ITEM_CARDS: ItemCard[] = [
     tags: ['official', 'healing'],
   },
   {
-    id: 'item-suministros-speedwagon',
-    name: 'Suministros de la fundación Speedwagon',
-    type: 'ITEM',
-    part: 3,
-    imageId: 'suministros-speedwagon',
-    assetFolder: 'items',
-    itemKind: 'CONSUMABLE',
-    targetScope: 'PLAYER',
-    description:
-      'Ayuda proveída por la fundación Speedwagon. Al jugarla por su cuenta: Roba dos cartas de tu mazo.',
-    effects: [{ kind: 'DRAW_CARDS', count: 2 }],
-    tags: ['official', 'draw'],
-  },
-  {
     id: 'item-atraccion-usuarios-stand',
     name: '¡Atracción entre usuarios de Stand!',
     type: 'ITEM',
@@ -117,5 +131,41 @@ export const ITEM_CARDS: ItemCard[] = [
       'Propiedad de los usuarios de stand que hace que se atraigan entre sí. Al jugar por su cuenta: Busca hasta 2 cartas de Energía Básica en tu mazo, añádelas a tu mano y baraja el mazo.',
     effects: [{ kind: 'SEARCH_DECK', filter: 'ENERGY', maxCount: 2 }],
     tags: ['official', 'search', 'energy'],
+  },
+  {
+    id: 'item-flecha-de-stand',
+    name: 'Flecha de Stand',
+    type: 'ITEM',
+    part: 5,
+    imageId: 'flecha-de-stand',
+    assetFolder: 'items',
+    itemKind: 'CONSUMABLE',
+    targetScope: 'PLAYER',
+    catalystTag: 'stand-arrow',
+    description:
+      'Flecha que despierta tu potencial interior. Al jugar por su cuenta: Busca un Stand en tu mazo, y añádelo a tu mano. Al jugarla junto a un stand: Actua como objeto de evolución.',
+    effects: [
+      { kind: 'SEARCH_DECK', filter: 'STAND', maxCount: 1 },
+      { kind: 'EVOLUTION_CATALYST', catalystTag: 'stand-arrow' },
+    ],
+    tags: ['official', 'catalyst', 'search', 'stand'],
+  },
+  {
+    id: 'item-flecha-requiem',
+    name: 'Flecha Réquiem',
+    type: 'ITEM',
+    part: 5,
+    imageId: 'flecha-requiem',
+    assetFolder: 'items',
+    itemKind: 'CONSUMABLE',
+    targetScope: 'PLAYER',
+    catalystTag: 'requiem-arrow',
+    description:
+      'Flecha que despierta el verdadero potencial de un stand. Al jugar por su cuenta: Busca una evolución de un Stand en tu mazo, y añádela a tu mano. Al jugarla junto a un stand: Actua como objeto de evolución.',
+    effects: [
+      { kind: 'SEARCH_DECK', filter: 'STAND_EVOLUTION', maxCount: 1 },
+      { kind: 'EVOLUTION_CATALYST', catalystTag: 'requiem-arrow' },
+    ],
+    tags: ['official', 'catalyst', 'search'],
   },
 ];

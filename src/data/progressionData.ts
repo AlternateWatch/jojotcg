@@ -129,6 +129,7 @@ export const CARD_RARITY_MAP: Record<string, CardRarity> = {
   'item-flecha-de-stand': 'RARE',
   'item-mascara-de-piedra': 'RARE',
   'item-piedra-roja-de-aja': 'RARE',
+  'item-cinta-de-caesar': 'RARE',
 
   // === COMMON (C) ===
   'char-jonathan-joestar': 'COMMON',
@@ -144,6 +145,8 @@ export const CARD_RARITY_MAP: Record<string, CardRarity> = {
   'stand-bastet': 'COMMON',
   'stand-echoes-act-1': 'COMMON',
   'stand-harvest': 'COMMON',
+  'item-pluck': 'COMMON',
+  'item-clackers': 'COMMON',
   'item-comida-de-tonio': 'COMMON',
   'item-suministros-speedwagon': 'COMMON',
   'item-atraccion-usuarios-stand': 'COMMON',
@@ -221,18 +224,12 @@ export interface BoosterPackDef {
   poolCardIds: string[];
 }
 
-const CORE_UTILITY_ITEMS = [
-  'item-comida-de-tonio',
-  'item-suministros-speedwagon',
-  'item-atraccion-usuarios-stand',
-];
-
 export const BOOSTER_PACKS: BoosterPackDef[] = [
   // ===================== SERIE 1: SOBRES POR PARTE =====================
   {
     id: 'pack-part-1',
     name: 'Parte 1: Phantom Blood',
-    subtitle: 'El origen del Hamon y la Máscara de Piedra. Chase UR: Dio Brando (0.5%).',
+    subtitle: 'El origen del Hamon, (P)luck y la Máscara de Piedra. Chase UR: Dio Brando (0.5%).',
     series: 'PART',
     badge: 'PARTE 1',
     price: 150,
@@ -247,18 +244,18 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'char-robert-e-o-speedwagon',
       'char-dio-brando',
       'item-mascara-de-piedra',
-      ...CORE_UTILITY_ITEMS,
+      'item-pluck',
     ],
   },
   {
     id: 'pack-part-2',
     name: 'Parte 2: Battle Tendency',
-    subtitle: 'Hombres del Pilar y Maestros del Hamon. Chase UR: Kars y Kars Definitivo (0.5%).',
+    subtitle: 'Hombres del Pilar, Hamon, Clackers y Cinta de Caesar. Chase UR: Kars y Kars Definitivo (0.5%).',
     series: 'PART',
     badge: 'PARTE 2',
     price: 200,
     cardsPerPack: 5,
-    accentHex: '#00b87c',
+    accentHex: '#9333ea',
     patternUrl: '/assets/patterns/pattern5.png',
     coverCardId: 'evo-kars-ultimate',
     chaseCardIds: ['char-kars', 'evo-kars-ultimate'],
@@ -274,7 +271,9 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'evo-kars-ultimate',
       'item-mascara-de-piedra',
       'item-piedra-roja-de-aja',
-      ...CORE_UTILITY_ITEMS,
+      'item-cinta-de-caesar',
+      'item-clackers',
+      'item-suministros-speedwagon',
     ],
   },
   {
@@ -285,7 +284,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
     badge: 'PARTE 3',
     price: 260,
     cardsPerPack: 5,
-    accentHex: '#f2c12e',
+    accentHex: '#94a3b8',
     patternUrl: '/assets/patterns/pattern3.png',
     coverCardId: 'stand-the-world',
     chaseCardIds: [
@@ -321,18 +320,19 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'stand-cream',
       'stand-the-world',
       'evo-star-platinum-the-world',
-      ...CORE_UTILITY_ITEMS,
+      'item-suministros-speedwagon',
+      'item-atraccion-usuarios-stand',
     ],
   },
   {
     id: 'pack-part-4',
     name: 'Parte 4: Diamond is Unbreakable',
-    subtitle: 'Morioh-cho, sinergias de banca y bombas. Chase UR: Crazy Diamond, Kira, Killer Queen y Bites The Dust (0.5%).',
+    subtitle: 'Morioh-cho, Comida de Tonio, Flecha de Stand y bombas. Chase UR: Crazy Diamond, Kira, Killer Queen y Bites The Dust (0.5%).',
     series: 'PART',
     badge: 'PARTE 4',
     price: 260,
     cardsPerPack: 5,
-    accentHex: '#d81b60',
+    accentHex: '#e4e4e7',
     patternUrl: '/assets/patterns/pattern4.png',
     coverCardId: 'stand-killer-queen',
     chaseCardIds: [
@@ -361,14 +361,16 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'stand-killer-queen',
       'evo-kosaku-kawajiri',
       'evo-killer-queen-bites-the-dust',
+      'item-comida-de-tonio',
+      'item-atraccion-usuarios-stand',
+      'item-suministros-speedwagon',
       'item-flecha-de-stand',
-      ...CORE_UTILITY_ITEMS,
     ],
   },
   {
     id: 'pack-part-5',
     name: 'Parte 5: Vento Aureo · Réquiem',
-    subtitle: 'La Flecha Réquiem y el despertar en Italia. Chase UR: Silver Chariot Requiem (0.5%).',
+    subtitle: 'La Flecha Réquiem, la Flecha de Stand y el despertar en Italia. Chase UR: Silver Chariot Requiem (0.5%).',
     series: 'PART',
     badge: 'PARTE 5 · EVO',
     price: 280,
@@ -382,11 +384,11 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
     poolCardIds: [
       'evo-silver-chariot-requiem',
       'item-flecha-requiem',
+      'item-flecha-de-stand',
+      'item-atraccion-usuarios-stand',
       'char-jean-pierre-polnareff',
       'stand-silver-chariot',
-      'item-flecha-de-stand',
       'char-koichi-hirose',
-      ...CORE_UTILITY_ITEMS,
     ],
   },
 
@@ -418,6 +420,8 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'stand-star-platinum',
       'evo-star-platinum-the-world',
       'stand-crazy-diamond',
+      'item-pluck',
+      'item-clackers',
       'item-atraccion-usuarios-stand',
       'item-flecha-de-stand',
       'item-comida-de-tonio',
@@ -462,6 +466,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'stand-harvest',
       'evo-silver-chariot-requiem',
       'item-flecha-requiem',
+      'item-cinta-de-caesar',
       'item-comida-de-tonio',
       'item-suministros-speedwagon',
     ],
@@ -580,6 +585,9 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
     coverCardId: 'item-flecha-de-stand',
     chaseCardIds: [],
     poolCardIds: [
+      'item-pluck',
+      'item-cinta-de-caesar',
+      'item-clackers',
       'item-comida-de-tonio',
       'item-suministros-speedwagon',
       'item-atraccion-usuarios-stand',

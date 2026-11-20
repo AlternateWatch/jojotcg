@@ -244,6 +244,51 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     expect(res.state.players.P1.active!.attachedItems).toHaveLength(1);
   });
 
+  it('(P)luck (+10 dmg), Cinta de Caesar (+20 maxHp & heal 20), and Clackers (+20 dmg for Hamon users only) work accurately', () => {
+    const deck = PRESET_DECKS[0]!.cardIds;
+    const { state: initState, rng } = buildQuickBattleState(deck, deck);
+    initState.players.P1.hand = [
+      'char-jonathan-joestar', // HAMON_USER, 130 HP, Zoom Punch 20 dmg (1 COLORLESS)
+      'item-pluck',
+      'item-cinta-de-caesar',
+      'item-clackers',
+      'energy-electric',
+    ];
+    initState.players.P1.deck = ['energy-psychic', 'energy-psychic', 'energy-psychic'];
+    initState.players.P2.hand = ['char-dio-brando']; // 140 HP
+
+    let res = dispatchAction(initState, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P1', handIndex: 0 }, rng);
+    res = dispatchAction(res.state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P2', handIndex: 0 }, rng);
+    // Pass T1 & T2 so P1 can attack on T3
+    res = dispatchAction(res.state, { type: 'END_TURN', playerId: 'P1' }, rng);
+    res = dispatchAction(res.state, { type: 'END_TURN', playerId: 'P2' }, rng);
+
+    // Damage Jonathan slightly (130 -> 100) and Burn him to verify Cinta de Caesar heals 20 + increases maxHp to 150 + cleanses Burn
+    res.state.players.P1.active!.currentHp = 100;
+    res.state.players.P1.active!.statuses.burn = { active: true, damagePerTurn: 10 };
+    const activeId = res.state.players.P1.active!.instanceId;
+
+    const cintaIdx = res.state.players.P1.hand.indexOf('item-cinta-de-caesar');
+    res = dispatchAction(res.state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: cintaIdx, targetInstanceId: activeId }, rng);
+    expect(res.ok).toBe(true);
+    expect(res.state.players.P1.active!.currentHp).toBe(120);
+    expect(res.state.players.P1.active!.statuses.burn).toBeNull();
+
+    // Equip (P)luck (+10) & Clackers (+20 for HAMON_USER) + attach 1 Energy
+    const pluckIdx = res.state.players.P1.hand.indexOf('item-pluck');
+    res = dispatchAction(res.state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: pluckIdx, targetInstanceId: activeId }, rng);
+    const clackersIdx = res.state.players.P1.hand.indexOf('item-clackers');
+    res = dispatchAction(res.state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: clackersIdx, targetInstanceId: activeId }, rng);
+    const energyIdx = res.state.players.P1.hand.indexOf('energy-electric');
+    res = dispatchAction(res.state, { type: 'ATTACH_ENERGY', playerId: 'P1', handIndex: energyIdx, targetInstanceId: activeId }, rng);
+
+    res = dispatchAction(res.state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' }, rng);
+    res = dispatchAction(res.state, { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-zoom-punch' }, rng);
+    expect(res.ok).toBe(true);
+    // Zoom Punch (20) + (P)luck (10) + Clackers (20) = 50 damage! Dio Brando 140 -> 90 HP
+    expect(res.state.players.P2.active!.currentHp).toBe(90);
+  });
+
   it('preventConsecutiveStun blocks infinite back-to-back stun-locking for 1 turn', () => {
     const deck = PRESET_DECKS[0]!.cardIds;
     const { state: initState, rng } = buildQuickBattleState(deck, deck);

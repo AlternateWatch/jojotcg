@@ -79,11 +79,14 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
 
 export const OFFICIAL_ITEM_IMAGE_IDS = new Set<string>([
   'atraccion-usuarios-stand',
+  'cinta-de-caesar',
+  'clackers',
   'comida-de-tonio',
   'flecha-de-stand',
   'flecha-requiem',
   'mascara-de-piedra',
   'piedra-roja-de-aja',
+  'pluck',
   'suministros-speedwagon',
 ]);
 

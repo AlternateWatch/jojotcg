@@ -152,6 +152,7 @@ export type ItemEffectDef =
   | { kind: 'HEAL_TARGET'; amount: number; curesBurn: boolean }
   | { kind: 'EQUIP_PASSIVE_MAX_HP'; bonusHp: number }
   | { kind: 'EQUIP_PASSIVE_DAMAGE_BONUS'; bonusDamage: number }
+  | { kind: 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS'; category: CharacterCategory; bonusDamage: number }
   | { kind: 'EQUIP_PASSIVE_ELEMENT_BONUS'; energy: EnergyType; bonusDamage: number }
   | { kind: 'BURN_ENEMY_ACTIVE' }
   | { kind: 'EVOLUTION_CATALYST'; catalystTag: string }

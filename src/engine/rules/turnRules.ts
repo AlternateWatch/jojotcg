@@ -338,7 +338,14 @@ export function applyPlayItem(
     });
     const newMax = computeEffectiveMaxHp(state, playerId, target.character);
     if (newMax > prevMax) {
-      target.character.currentHp += newMax - prevMax;
+      healCharacter(
+        state,
+        eventsOut,
+        playerId,
+        target.character.instanceId,
+        newMax - prevMax,
+        item.name,
+      );
     }
     return;
   }

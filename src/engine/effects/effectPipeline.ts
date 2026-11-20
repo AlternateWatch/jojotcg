@@ -146,12 +146,17 @@ export function computeAttackDamageBonus(
     bonus += player.permanentWaterAttackBonus;
   }
 
-  // 6. Equippable Item bonuses (e.g., Máscara de Piedra +10 permanent damage)
+  // 6. Equippable Item bonuses (e.g., Máscara de Piedra, (P)luck +10; Clackers +20 for Hamon users)
   for (const item of attackerInst.attachedItems) {
     const itemCard = getItemCard(item.cardId);
     if (!itemCard) continue;
     for (const eff of itemCard.effects) {
       if (eff.kind === 'EQUIP_PASSIVE_DAMAGE_BONUS') {
+        bonus += eff.bonusDamage;
+      } else if (
+        eff.kind === 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS' &&
+        profile.categories.includes(eff.category)
+      ) {
         bonus += eff.bonusDamage;
       } else if (
         eff.kind === 'EQUIP_PASSIVE_ELEMENT_BONUS' &&

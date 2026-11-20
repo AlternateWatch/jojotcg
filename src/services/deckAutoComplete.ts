@@ -237,6 +237,10 @@ export function autoCompleteDeck(
 
   // 5. Fill Utility Items (preserving at least MIN_ENERGIES slots for Basic Energies)
   const hasStandsInDeck = countByType('STAND') > 0;
+  const hasHamonInDeck = nextIds.some((id) => {
+    const ch = getCharacterCard(id);
+    return Boolean(ch && ch.categories.includes('HAMON_USER'));
+  });
   const hasStandEvoInDeck = nextIds.some((id) => {
     const evo = getEvolutionCard(id);
     return Boolean(evo && evo.evolutionTarget === 'STAND');
@@ -246,6 +250,9 @@ export function autoCompleteDeck(
     { id: 'item-atraccion-usuarios-stand', target: 3 },
     { id: 'item-comida-de-tonio', target: 2 },
     { id: 'item-suministros-speedwagon', target: 2 },
+    ...(hasHamonInDeck ? [{ id: 'item-clackers', target: 2 }] : []),
+    { id: 'item-pluck', target: 1 },
+    { id: 'item-cinta-de-caesar', target: 1 },
     ...(hasStandsInDeck ? [{ id: 'item-flecha-de-stand', target: 2 }] : []),
     ...(hasStandEvoInDeck ? [{ id: 'item-flecha-requiem', target: 1 }] : []),
     { id: 'item-mascara-de-piedra', target: 1 },
