@@ -9,6 +9,7 @@ import {
   STARTER_DECK,
 } from '../../data/progressionData';
 import { createSeededRng } from '../../engine/rng';
+import { autoCompleteDeck } from '../../services/deckAutoComplete';
 import { validateDeck } from '../../services/deckValidator';
 import {
   COLLECTIBLE_CARDS,
@@ -215,5 +216,32 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(easy.coins).toBeGreaterThan(loss.coins);
     expect(normal.coins).toBeGreaterThan(easy.coins);
     expect(hard.coins).toBeGreaterThan(normal.coins);
+  });
+
+  it('autoCompleteDeck fills a partial deck (e.g. Okuyasu or empty) up to 40 legal owned cards with 0 missing cards', () => {
+    const baseProg = createInitialProgression();
+    const progWithOkuyasu = {
+      ...baseProg,
+      ownedCards: {
+        ...baseProg.ownedCards,
+        'char-okuyasu-nijimura': 1,
+        'stand-the-hand': 1,
+      },
+    };
+
+    const resOkuyasu = autoCompleteDeck(['char-okuyasu-nijimura'], progWithOkuyasu);
+    expect(resOkuyasu.cardIds).toHaveLength(40);
+    expect(resOkuyasu.cardIds).toContain('char-okuyasu-nijimura');
+    expect(resOkuyasu.cardIds).toContain('stand-the-hand');
+    expect(getMissingCardsForDeck(progWithOkuyasu, resOkuyasu.cardIds)).toHaveLength(0);
+    const valOkuyasu = validateDeck(resOkuyasu.cardIds);
+    expect(valOkuyasu.valid, valOkuyasu.errors.map((e) => e.message).join('; ')).toBe(true);
+    expect(valOkuyasu.warnings, valOkuyasu.warnings.map((w) => w.message).join('; ')).toHaveLength(0);
+
+    // Also works from a completely empty deck
+    const resEmpty = autoCompleteDeck([], baseProg);
+    expect(resEmpty.cardIds).toHaveLength(40);
+    expect(getMissingCardsForDeck(baseProg, resEmpty.cardIds)).toHaveLength(0);
+    expect(validateDeck(resEmpty.cardIds).valid).toBe(true);
   });
 });

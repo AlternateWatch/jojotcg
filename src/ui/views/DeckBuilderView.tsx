@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Download, Lock, Minus, Play, Plus, Save, Search, ShoppingBag, Trash2, Upload } from 'lucide-react';
+import { Download, Lock, Minus, Play, Plus, Save, Search, ShoppingBag, Trash2, Upload, Wand2 } from 'lucide-react';
 import { ALL_CARDS, getCardById } from '../../data/cardRegistry';
 import { DEFAULT_RULES_CONFIG } from '../../data/rulesConfig';
 import type { CardType } from '../../data/schemas/cardTypes';
+import { autoCompleteDeck } from '../../services/deckAutoComplete';
 import { validateDeck } from '../../services/deckValidator';
 import {
   getMissingCardsForDeck,
@@ -113,6 +114,23 @@ export function DeckBuilderView() {
     });
     setSaveFeedback(null);
     setDeckNotice(null);
+  };
+
+  const handleAutoComplete = () => {
+    if (cardIds.length >= DEFAULT_RULES_CONFIG.maxDeckSize) {
+      setDeckNotice(
+        `El mazo ya tiene ${cardIds.length}/${DEFAULT_RULES_CONFIG.maxDeckSize} cartas. Quita cartas si quieres rellenar huecos automáticamente.`,
+      );
+      return;
+    }
+    const result = autoCompleteDeck(cardIds, progression);
+    setCardIds(result.cardIds);
+    setDeckNotice(null);
+    setSaveFeedback(
+      result.addedCount > 0
+        ? `¡Mazo rellenado! Se añadieron ${result.addedCount} carta(s) de tu colección (sinergias, Stands, objetos y energías). Pulsa Guardar para conservarlo.`
+        : 'No se pudieron añadir más cartas automáticamente.',
+    );
   };
 
   const handleSave = (): string => {
@@ -247,6 +265,15 @@ export function DeckBuilderView() {
               className="jojo-btn-ink px-3 py-2 font-jojo-heading text-xs tracking-widest uppercase"
             >
               + Mazo Vacío
+            </button>
+            <button
+              type="button"
+              onClick={handleAutoComplete}
+              disabled={cardIds.length >= DEFAULT_RULES_CONFIG.maxDeckSize}
+              title="Rellena automáticamente el mazo hasta 40 cartas con sinergias, objetos y energías usando solo tus cartas desbloqueadas"
+              className="jojo-btn-crimson inline-flex items-center gap-1.5 px-3 py-2 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-35"
+            >
+              <Wand2 size={13} /> Rellenar ({cardIds.length}/{DEFAULT_RULES_CONFIG.maxDeckSize})
             </button>
             <button
               type="button"
