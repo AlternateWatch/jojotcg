@@ -1,4 +1,4 @@
-import { getCharacterCard } from '../../data/cardRegistry';
+import { getCardById, getCharacterCard } from '../../data/cardRegistry';
 import {
   getCharacterUnlockTurn,
   hasAnyTurnOneEligibleCharacter,
@@ -53,6 +53,68 @@ export function validateMulliganAction(
   return { ok: true };
 }
 
+function buildGuaranteedValidStartingHand(
+  shuffledPool: string[],
+  drawCount: number,
+  maxInitialDg: number | null,
+): { hand: string[]; deck: string[] } | null {
+  const tryWithCap = (dgCap: number | null): { hand: string[]; deck: string[] } | null => {
+    // 1. Prefer a self-sufficient character (attacks.length > 0) within DG cap
+    const selfSufficientIdx = shuffledPool.findIndex((id) => {
+      const c = getCardById(id);
+      return (
+        c?.type === 'CHARACTER' &&
+        c.attacks.length > 0 &&
+        (dgCap === null || c.dg === null || c.dg <= dgCap)
+      );
+    });
+    if (selfSufficientIdx !== -1) {
+      const remaining = [...shuffledPool];
+      const starter = remaining.splice(selfSufficientIdx, 1)[0]!;
+      const hand = [starter, ...remaining.splice(0, Math.max(0, drawCount - 1))];
+      return { hand, deck: remaining };
+    }
+
+    // 2. Otherwise find a compatible Stand User + Stand pair within DG cap
+    for (let uIdx = 0; uIdx < shuffledPool.length; uIdx++) {
+      const user = getCardById(shuffledPool[uIdx]!);
+      if (
+        !user ||
+        user.type !== 'CHARACTER' ||
+        !user.categories.includes('STAND_USER') ||
+        user.dg === null ||
+        (dgCap !== null && user.dg > dgCap)
+      ) {
+        continue;
+      }
+      for (let sIdx = 0; sIdx < shuffledPool.length; sIdx++) {
+        if (sIdx === uIdx) continue;
+        const stand = getCardById(shuffledPool[sIdx]!);
+        if (
+          stand?.type === 'STAND' &&
+          user.dg >= stand.requiredDg &&
+          (!stand.compatibleCharacterIds || stand.compatibleCharacterIds.includes(user.id))
+        ) {
+          const remaining = [...shuffledPool];
+          const [hi, lo] = uIdx > sIdx ? [uIdx, sIdx] : [sIdx, uIdx];
+          const firstRemoved = remaining.splice(hi, 1)[0]!;
+          const secondRemoved = remaining.splice(lo, 1)[0]!;
+          const hand = [
+            secondRemoved,
+            firstRemoved,
+            ...remaining.splice(0, Math.max(0, drawCount - 2)),
+          ];
+          return { hand, deck: remaining };
+        }
+      }
+    }
+
+    return null;
+  };
+
+  return tryWithCap(maxInitialDg) ?? (maxInitialDg !== null ? tryWithCap(null) : null);
+}
+
 export function applyPerformMulligan(
   state: GameState,
   eventsOut: CombatEvent[],
@@ -73,6 +135,21 @@ export function applyPerformMulligan(
   }
   player.mulliganCount += 1;
 
+  // Anti-brick pity rule: on the 3rd mulligan (or later), guarantee a valid starting hand
+  let guaranteedApplied = false;
+  const effectiveMaxDg = hasAnyTurnOneEligibleCharacter([...player.hand, ...player.deck])
+    ? 3
+    : null;
+  if (player.mulliganCount >= 3 && !hasValidStartingHand(player.hand, effectiveMaxDg)) {
+    const pool = rng.shuffle([...player.hand, ...player.deck]);
+    const built = buildGuaranteedValidStartingHand(pool, drawCount, effectiveMaxDg);
+    if (built) {
+      player.hand = built.hand;
+      player.deck = built.deck;
+      guaranteedApplied = true;
+    }
+  }
+
   // Opponent draws 1 extra card when player mulligans
   let opponentDrew = false;
   const opponentId = getOpponentId(playerId);
@@ -85,7 +162,9 @@ export function applyPerformMulligan(
     type: 'MULLIGAN',
     playerId,
     opponentDrewCard: opponentDrew,
-    message: `${player.name} hace Mulligan (#${player.mulliganCount}).${opponentDrew ? ` ${opponent.name} roba 1 carta adicional.` : ''}`,
+    message: `${player.name} hace Mulligan (#${player.mulliganCount}).${
+      guaranteedApplied ? ' Mano válida garantizada tras 3 mulligans.' : ''
+    }${opponentDrew ? ` ${opponent.name} roba 1 carta adicional.` : ''}`,
   });
 
   if (opponentDrew) {

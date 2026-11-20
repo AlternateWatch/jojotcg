@@ -278,4 +278,43 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     // Turn 4: DG 6 unlocked!
     expect(dispatchAction(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: state.players.P1.hand.indexOf('char-dio') }, noShuffle).ok).toBe(true);
   });
+
+  it('guarantees a valid starting hand automatically on the 3rd mulligan', () => {
+    const p1Deck = [
+      ...Array.from({ length: 18 }, () => 'energy-colorless'),
+      'char-hol-horse',
+      'stand-emperor',
+    ]; // 20 cards, valid pair buried at the very bottom
+    const p2Deck = [
+      'char-dio-brando',
+      ...Array.from({ length: 19 }, () => 'energy-psychic'),
+    ];
+    const noShuffle = {
+      nextFloat: () => 0.5,
+      flipCoin: () => 'HEADS' as const,
+      shuffle: <T,>(a: readonly T[]) => [...a],
+    };
+
+    let state = createGame({ p1Name: 'P1', p2Name: 'P2', p1Deck, p2Deck, rng: noShuffle });
+    expect(hasValidStartingHand(state.players.P1.hand, 3)).toBe(false);
+
+    // Mulligan #1 & #2: still invalid with noShuffle
+    state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P1' }, noShuffle).state;
+    expect(state.players.P1.mulliganCount).toBe(1);
+    expect(hasValidStartingHand(state.players.P1.hand, 3)).toBe(false);
+
+    state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P1' }, noShuffle).state;
+    expect(state.players.P1.mulliganCount).toBe(2);
+    expect(hasValidStartingHand(state.players.P1.hand, 3)).toBe(false);
+
+    // Mulligan #3: pity rule guarantees a valid Turn-1 hand (Hol Horse + Emperor) & preserves all 20 cards!
+    state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P1' }, noShuffle).state;
+    expect(state.players.P1.mulliganCount).toBe(3);
+    expect(hasValidStartingHand(state.players.P1.hand, 3)).toBe(true);
+    expect(state.players.P1.hand).toHaveLength(5);
+    expect(state.players.P1.hand.length + state.players.P1.deck.length).toBe(20);
+    expect(
+      dispatchAction(state, { type: 'CONFIRM_STARTING_HAND', playerId: 'P1' }, noShuffle).ok,
+    ).toBe(true);
+  });
 });

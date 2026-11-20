@@ -340,12 +340,12 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
       gamesByDeck[d.id] = 0;
     }
 
-    // 8 seeded games per pair (48 games total -> fast & statistically solid)
+    // 12 seeded games per pair (72 games total -> fast & statistically solid)
     for (let i = 0; i < themedPresets.length; i++) {
       for (let j = i + 1; j < themedPresets.length; j++) {
         const d1 = themedPresets[i]!;
         const d2 = themedPresets[j]!;
-        for (let g = 0; g < 8; g++) {
+        for (let g = 0; g < 12; g++) {
           const r = runAiMatch(
             d1.cardIds,
             d2.cardIds,
