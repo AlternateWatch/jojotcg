@@ -7,12 +7,12 @@ import {
   getEffectiveStandProfile,
 } from '../helpers/cardStats';
 import {
+  checkImmediateDeckOut,
   enqueuePrompt,
   findCharacterOnBoard,
   getOpponentId,
   isGameOver,
   pushEvent,
-  setGameOver,
 } from '../helpers/stateHelpers';
 import type { CoinResult, RngProvider } from '../rng';
 import {
@@ -60,14 +60,8 @@ export function startNextTurn(
     message: `Turno ${state.turnNumber} — Fase de Robo de ${player.name}.`,
   });
 
-  // Mandatory draw: if deck is empty, player loses by deck-out
-  if (player.deck.length === 0) {
-    setGameOver(
-      state,
-      eventsOut,
-      getOpponentId(nextPlayerId),
-      `${player.name} no tiene cartas en el mazo para robar.`,
-    );
+  // Mandatory draw: if deck is empty before or after drawing, player loses by deck-out
+  if (checkImmediateDeckOut(state, eventsOut, nextPlayerId)) {
     return;
   }
 
@@ -79,6 +73,10 @@ export function startNextTurn(
     count: 1,
     message: `${player.name} roba una carta.`,
   });
+
+  if (checkImmediateDeckOut(state, eventsOut, nextPlayerId)) {
+    return;
+  }
 
   state.phase = 'PREPARATION';
   pushEvent(state, eventsOut, {
@@ -1043,6 +1041,7 @@ export function resolvePendingPrompt(
         count: r.pickedIndices.length,
         message: `${player.name} añade ${r.pickedIndices.length} carta(s) a su mano con ${prompt.sourceLabel}.`,
       });
+      checkImmediateDeckOut(state, eventsOut, playerId);
       break;
     }
     case 'REORDER_OPPONENT_TOP_DECK': {
@@ -1131,6 +1130,7 @@ export function resolvePendingPrompt(
             ? `${player.name} busca en el mazo (${prompt.sourceLabel}): obtiene ${pickedNames.reverse().join(', ')} y baraja.`
             : `${player.name} baraja su mazo sin elegir cartas (${prompt.sourceLabel}).`,
       });
+      checkImmediateDeckOut(state, eventsOut, playerId);
       break;
     }
     case 'RECOVER_ENERGY_FROM_DISCARD': {

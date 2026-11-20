@@ -176,6 +176,27 @@ export function BattleView() {
     const reward = computeBattleReward(mode, aiDifficulty, didWin);
     awardBattleReward(reward.coins, didWin);
     claimBattleReward(reward);
+
+    if (mode !== 'ONLINE') {
+      void fetch('/api/matches/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode,
+          p1Name: gameState.players.P1.name,
+          p2Name: gameState.players.P2.name,
+          winnerId: gameState.winnerId,
+          winnerName: gameState.players[gameState.winnerId].name,
+          winReason: gameState.winReason,
+          turnNumber: gameState.turnNumber,
+          p1DeckRemaining: gameState.players.P1.deck.length,
+          p2DeckRemaining: gameState.players.P2.deck.length,
+          p1HandCount: gameState.players.P1.hand.length,
+          p2HandCount: gameState.players.P2.hand.length,
+          eventLog: gameState.eventLog.slice(-40),
+        }),
+      }).catch(() => undefined);
+    }
   }, [gameState, mode, onlineRole, aiDifficulty, battleRewardClaimed, awardBattleReward, claimBattleReward]);
 
   // Live polling synchronization for ONLINE 1v1 matches

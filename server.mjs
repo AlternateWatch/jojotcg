@@ -24,6 +24,24 @@ const DB_CONFIG = {
 
 let pool = null;
 
+const LOGS_DIR = path.resolve(__dirname, 'logs');
+const MATCH_LOG_FILE = path.join(LOGS_DIR, 'matches.jsonl');
+
+function appendMatchLog(record) {
+  try {
+    if (!fs.existsSync(LOGS_DIR)) {
+      fs.mkdirSync(LOGS_DIR, { recursive: true });
+    }
+    const line = JSON.stringify({
+      loggedAt: new Date().toISOString(),
+      ...record,
+    });
+    fs.appendFileSync(MATCH_LOG_FILE, `${line}\n`, 'utf-8');
+  } catch (err) {
+    console.error('[JoJo TCG] Failed to write match log:', err.message);
+  }
+}
+
 // ===================== ONLINE MULTIPLAYER MATCHMAKING & ROOMS =====================
 // roomCode -> { code, isPrivate, status, p1, p2, gameState, lastEvents, version, updatedAt }
 const onlineRooms = new Map();
@@ -399,14 +417,71 @@ async function handleApiRequest(req, res, pathname) {
       room.lastEvents = lastEvents;
       room.version += 1;
       room.updatedAt = Date.now();
-      if (nextGameState?.phase === 'GAME_OVER') {
+      if (nextGameState?.phase === 'GAME_OVER' && room.status !== 'FINISHED') {
         room.status = 'FINISHED';
+        appendMatchLog({
+          mode: 'ONLINE',
+          roomCode: room.code,
+          p1Name: room.p1?.name,
+          p2Name: room.p2?.name,
+          winnerId: nextGameState.winnerId,
+          winnerName: nextGameState.winnerId
+            ? nextGameState.players?.[nextGameState.winnerId]?.name
+            : null,
+          winReason: nextGameState.winReason,
+          turnNumber: nextGameState.turnNumber,
+          p1DeckRemaining: nextGameState.players?.P1?.deck?.length ?? null,
+          p2DeckRemaining: nextGameState.players?.P2?.deck?.length ?? null,
+          p1HandCount: nextGameState.players?.P1?.hand?.length ?? null,
+          p2HandCount: nextGameState.players?.P2?.hand?.length ?? null,
+          eventLog: (nextGameState.eventLog || []).slice(-40),
+        });
       }
 
       sendJson(res, 200, {
         ok: true,
         version: room.version,
       });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/matches/log') {
+      const body = await readJsonBody(req);
+      appendMatchLog({
+        mode: body.mode || 'LOCAL',
+        p1Name: body.p1Name,
+        p2Name: body.p2Name,
+        winnerId: body.winnerId,
+        winnerName: body.winnerName,
+        winReason: body.winReason,
+        turnNumber: body.turnNumber,
+        p1DeckRemaining: body.p1DeckRemaining,
+        p2DeckRemaining: body.p2DeckRemaining,
+        p1HandCount: body.p1HandCount,
+        p2HandCount: body.p2HandCount,
+        eventLog: Array.isArray(body.eventLog) ? body.eventLog.slice(-40) : [],
+      });
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/matches/logs') {
+      const urlObj = new URL(req.url || '/', 'http://localhost');
+      const limit = Math.min(50, Math.max(1, Number(urlObj.searchParams.get('limit')) || 10));
+      if (!fs.existsSync(MATCH_LOG_FILE)) {
+        sendJson(res, 200, { count: 0, matches: [] });
+        return;
+      }
+      const lines = fs
+        .readFileSync(MATCH_LOG_FILE, 'utf-8')
+        .split('\n')
+        .filter((l) => l.trim().length > 0);
+      const recent = lines
+        .slice(-limit)
+        .reverse()
+        .map((l) => safeParseJson(l, null))
+        .filter(Boolean);
+      sendJson(res, 200, { count: recent.length, matches: recent });
       return;
     }
 
@@ -432,6 +507,21 @@ async function handleApiRequest(req, res, pathname) {
           room.status = 'FINISHED';
           room.version += 1;
           room.updatedAt = Date.now();
+          appendMatchLog({
+            mode: 'ONLINE',
+            roomCode: room.code,
+            p1Name: room.p1?.name,
+            p2Name: room.p2?.name,
+            winnerId: winnerRole,
+            winnerName: room.gameState.players?.[winnerRole]?.name ?? null,
+            winReason: room.gameState.winReason,
+            turnNumber: room.gameState.turnNumber,
+            p1DeckRemaining: room.gameState.players?.P1?.deck?.length ?? null,
+            p2DeckRemaining: room.gameState.players?.P2?.deck?.length ?? null,
+            p1HandCount: room.gameState.players?.P1?.hand?.length ?? null,
+            p2HandCount: room.gameState.players?.P2?.hand?.length ?? null,
+            eventLog: (room.gameState.eventLog || []).slice(-40),
+          });
         }
       }
 

@@ -1,6 +1,7 @@
 import { getCharacterCard } from '../../data/cardRegistry';
 import { hasValidStartingHand } from '../helpers/cardStats';
 import {
+  checkImmediateDeckOut,
   createCharacterInstance,
   getOpponentId,
   pushEvent,
@@ -67,6 +68,7 @@ export function applyPerformMulligan(
 
   // Opponent draws 1 extra card when player mulligans
   let opponentDrew = false;
+  const opponentId = getOpponentId(playerId);
   if (opponent.deck.length > 0) {
     opponent.hand.push(opponent.deck.shift()!);
     opponentDrew = true;
@@ -78,6 +80,10 @@ export function applyPerformMulligan(
     opponentDrewCard: opponentDrew,
     message: `${player.name} hace Mulligan (#${player.mulliganCount}).${opponentDrew ? ` ${opponent.name} roba 1 carta adicional.` : ''}`,
   });
+
+  if (opponentDrew) {
+    checkImmediateDeckOut(state, eventsOut, opponentId);
+  }
 }
 
 export function applyConfirmStartingHand(
@@ -173,6 +179,10 @@ export function applyChooseStartingActive(
         count: 1,
         message: `${firstPlayer.name} roba su primera carta del turno.`,
       });
+    }
+
+    if (checkImmediateDeckOut(state, eventsOut, firstPlayer.id)) {
+      return;
     }
 
     state.phase = 'PREPARATION';

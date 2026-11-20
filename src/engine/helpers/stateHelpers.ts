@@ -121,3 +121,25 @@ export function setGameOver(
     message: `¡${winnerName} gana la partida! (${reason})`,
   });
 }
+
+/**
+ * Checks whether a player's deck has reached 0 cards and immediately triggers a deck-out loss.
+ */
+export function checkImmediateDeckOut(
+  state: GameState,
+  eventsOut: CombatEvent[],
+  playerId: PlayerId,
+): boolean {
+  if (state.phase === 'GAME_OVER') return true;
+  const player = state.players[playerId];
+  if (player.deck.length === 0) {
+    setGameOver(
+      state,
+      eventsOut,
+      getOpponentId(playerId),
+      `${player.name} se ha quedado sin cartas en el mazo.`,
+    );
+    return true;
+  }
+  return false;
+}

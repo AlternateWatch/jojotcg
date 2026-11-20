@@ -17,6 +17,7 @@ import {
   isStandCompatibleWithCharacter,
 } from '../helpers/cardStats';
 import {
+  checkImmediateDeckOut,
   createCharacterInstance,
   enqueuePrompt,
   findCharacterOnBoard,
@@ -395,6 +396,9 @@ export function applyPlayItem(
 
   void rng;
   player.discard.push(item.id);
+  if (!state.pendingPrompt) {
+    checkImmediateDeckOut(state, eventsOut, playerId);
+  }
 }
 
 export function validateEvolveCard(
@@ -561,6 +565,7 @@ export function applyUsePrepAbility(
         abilityName: 'Solo de Guitarra',
         message: `${player.name} activa Solo de Guitarra y roba ${drawn} carta(s).`,
       });
+      checkImmediateDeckOut(state, eventsOut, playerId);
       break;
     }
     case 'MONEY_SHIGEKIYO': {

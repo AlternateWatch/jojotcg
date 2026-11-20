@@ -156,4 +156,41 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     expect(getControllingPlayerId(state, 'VS_AI')).toBe('P1');
     expect(getControllingPlayerId(state, 'HOTSEAT')).toBe('P2');
   });
+
+  it('triggers immediate deck-out loss as soon as a player empties their deck (draw, item, or ability)', () => {
+    const p1Deck = [
+      'char-jonathan-joestar',
+      'item-suministros-speedwagon',
+      'energy-electric',
+      'energy-electric',
+      'energy-electric',
+      'energy-electric',
+      'energy-electric',
+    ]; // 7 cards total: 5 initial hand + 1 T1 draw + 1 left in deck
+    const p2Deck = [
+      'char-dio-brando',
+      ...Array.from({ length: 19 }, () => 'energy-psychic'),
+    ];
+    const noShuffle = {
+      nextFloat: () => 0.5,
+      flipCoin: () => 'HEADS' as const,
+      shuffle: <T,>(a: readonly T[]) => [...a],
+    };
+
+    let state = createGame({ p1Name: 'Basildo', p2Name: 'Rival', p1Deck, p2Deck, rng: noShuffle });
+    state = dispatchAction(state, { type: 'CONFIRM_STARTING_HAND', playerId: 'P1' }, noShuffle).state;
+    state = dispatchAction(state, { type: 'CONFIRM_STARTING_HAND', playerId: 'P2' }, noShuffle).state;
+    state = dispatchAction(state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P1', handIndex: 0 }, noShuffle).state;
+    state = dispatchAction(state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P2', handIndex: 0 }, noShuffle).state;
+
+    // P1 now has 1 card left in deck. Playing Suministros de la Fundación draws it and hits 0 cards -> P1 immediately loses!
+    expect(state.players.P1.deck).toHaveLength(1);
+    const itemIdx = state.players.P1.hand.indexOf('item-suministros-speedwagon');
+    state = dispatchAction(state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: itemIdx }, noShuffle).state;
+
+    expect(state.players.P1.deck).toHaveLength(0);
+    expect(state.phase).toBe('GAME_OVER');
+    expect(state.winnerId).toBe('P2');
+    expect(state.winReason).toContain('Basildo se ha quedado sin cartas en el mazo');
+  });
 });
