@@ -37,6 +37,8 @@ export function BattleSetupView() {
   const authUser = useAppStore((s) => s.authUser);
   const setHotseatPrivacyScreen = useAppStore((s) => s.setHotseatPrivacyScreen);
   const setAiDifficulty = useAppStore((s) => s.setAiDifficulty);
+  const setSelectedDeckId = useAppStore((s) => s.setSelectedDeckId);
+  const setSelectedOpponentDeckId = useAppStore((s) => s.setSelectedOpponentDeckId);
   const setScreen = useAppStore((s) => s.setScreen);
   const startBattle = useBattleStore((s) => s.startBattle);
   const startOnlineBattle = useBattleStore((s) => s.startOnlineBattle);
@@ -44,18 +46,23 @@ export function BattleSetupView() {
   const [mode, setMode] = useState<BattleMode>(preferredMode);
   const [p1Name, setP1Name] = useState(authUser?.username ?? 'Jotaro (J1)');
   const [p2Name, setP2Name] = useState(preferredMode === 'VS_AI' ? 'IA Bizarra' : 'DIO (J2)');
-  const [p1DeckId, setP1DeckId] = useState(
-    preselectedDeckId ??
-      allDecks.find((d) => d.id === STARTER_DECK_ID)?.id ??
-      allDecks[0]?.id ??
-      '',
-  );
-  const [p2DeckId, setP2DeckId] = useState(
+  const defaultP1DeckId =
+    allDecks.find((d) => d.id === STARTER_DECK_ID)?.id ?? allDecks[0]?.id ?? '';
+  const defaultP2DeckId =
     allDecks.find((d) => d.id === 'preset-dio-pillar-men')?.id ??
-      allDecks[1]?.id ??
-      allDecks[0]?.id ??
-      '',
-  );
+    allDecks[1]?.id ??
+    allDecks[0]?.id ??
+    '';
+  const preferredP1DeckId = preselectedDeckId ?? settings.selectedDeckId;
+  const p1DeckId =
+    preferredP1DeckId && allDecks.some((d) => d.id === preferredP1DeckId)
+      ? preferredP1DeckId
+      : defaultP1DeckId;
+  const p2DeckId =
+    settings.selectedOpponentDeckId &&
+    allDecks.some((d) => d.id === settings.selectedOpponentDeckId)
+      ? settings.selectedOpponentDeckId
+      : defaultP2DeckId;
   const [starter, setStarter] = useState<'P1' | 'P2' | 'RANDOM'>('P1');
 
   // Online Lobby State
@@ -328,7 +335,7 @@ export function BattleSetupView() {
                 <select
                   disabled={Boolean(waitingRoom)}
                   value={p1DeckId}
-                  onChange={(e) => setP1DeckId(e.target.value)}
+                  onChange={(e) => setSelectedDeckId(e.target.value)}
                   className="mt-1 w-full border-2 border-[#060508] bg-[#0e0b14] px-3 py-2.5 text-sm font-semibold text-[#f5efe0] focus:border-[#f2c12e] focus:outline-none disabled:opacity-50"
                 >
                   {allDecks.map((d) => {
@@ -589,7 +596,7 @@ export function BattleSetupView() {
                   </label>
                   <select
                     value={p2DeckId}
-                    onChange={(e) => setP2DeckId(e.target.value)}
+                    onChange={(e) => setSelectedOpponentDeckId(e.target.value)}
                     className="mt-1 w-full border-2 border-[#060508] bg-[#0e0b14] px-3 py-2.5 text-sm font-semibold text-[#f5efe0] focus:border-[#f2c12e] focus:outline-none"
                   >
                     {allDecks.map((d) => (

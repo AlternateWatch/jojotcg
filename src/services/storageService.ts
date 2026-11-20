@@ -28,6 +28,8 @@ export interface UserSettings {
   enable3dVfx: boolean;
   aiDifficulty: AiDifficulty;
   customImageOverrides: Record<string, string>;
+  selectedDeckId?: string;
+  selectedOpponentDeckId?: string;
 }
 
 export interface StorageAdapter {

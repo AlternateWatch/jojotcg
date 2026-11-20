@@ -64,6 +64,8 @@ interface AppStoreState {
   setAnimationSpeed: (speed: UserSettings['animationSpeed']) => void;
   setEnable3dVfx: (enabled: boolean) => void;
   setAiDifficulty: (difficulty: AiDifficulty) => void;
+  setSelectedDeckId: (deckId: string) => void;
+  setSelectedOpponentDeckId: (deckId: string) => void;
   setCustomImageOverride: (imageId: string, url: string) => void;
   clearCustomImageOverride: (imageId: string) => void;
 
@@ -184,10 +186,25 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
 
   openBattleSetup: (mode, preselectedDeckId) =>
-    set({
-      screen: 'BATTLE_SETUP',
-      preferredBattleMode: mode,
-      preselectedDeckId: preselectedDeckId ?? null,
+    set((state) => {
+      if (preselectedDeckId) {
+        const nextSettings: UserSettings = {
+          ...state.settings,
+          selectedDeckId: preselectedDeckId,
+        };
+        if (state.authUser) void authService.syncAccountData({ settings: nextSettings });
+        return {
+          screen: 'BATTLE_SETUP',
+          preferredBattleMode: mode,
+          preselectedDeckId,
+          settings: nextSettings,
+        };
+      }
+      return {
+        screen: 'BATTLE_SETUP',
+        preferredBattleMode: mode,
+        preselectedDeckId: null,
+      };
     }),
 
   openInspector: (cardId) => set({ inspectedCardId: cardId }),
@@ -224,6 +241,20 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   setAiDifficulty: (aiDifficulty) =>
     set((state) => {
       const next = { ...state.settings, aiDifficulty };
+      if (state.authUser) void authService.syncAccountData({ settings: next });
+      return { settings: next };
+    }),
+
+  setSelectedDeckId: (selectedDeckId) =>
+    set((state) => {
+      const next: UserSettings = { ...state.settings, selectedDeckId };
+      if (state.authUser) void authService.syncAccountData({ settings: next });
+      return { settings: next, preselectedDeckId: null };
+    }),
+
+  setSelectedOpponentDeckId: (selectedOpponentDeckId) =>
+    set((state) => {
+      const next: UserSettings = { ...state.settings, selectedOpponentDeckId };
       if (state.authUser) void authService.syncAccountData({ settings: next });
       return { settings: next };
     }),
@@ -268,8 +299,32 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   deleteDeck: (deckId) =>
     set((state) => {
       const nextDecks = state.customDecks.filter((d) => d.id !== deckId);
-      if (state.authUser) void authService.syncAccountData({ customDecks: nextDecks });
-      return { customDecks: nextDecks, allDecks: [...PRESET_DECKS, ...nextDecks] };
+      const settingsChanged =
+        state.settings.selectedDeckId === deckId ||
+        state.settings.selectedOpponentDeckId === deckId;
+      const nextSettings: UserSettings = settingsChanged
+        ? {
+            ...state.settings,
+            selectedDeckId:
+              state.settings.selectedDeckId === deckId ? undefined : state.settings.selectedDeckId,
+            selectedOpponentDeckId:
+              state.settings.selectedOpponentDeckId === deckId
+                ? undefined
+                : state.settings.selectedOpponentDeckId,
+          }
+        : state.settings;
+      if (state.authUser) {
+        void authService.syncAccountData({
+          customDecks: nextDecks,
+          ...(settingsChanged ? { settings: nextSettings } : {}),
+        });
+      }
+      return {
+        customDecks: nextDecks,
+        allDecks: [...PRESET_DECKS, ...nextDecks],
+        settings: nextSettings,
+        preselectedDeckId: state.preselectedDeckId === deckId ? null : state.preselectedDeckId,
+      };
     }),
 
   buyAndOpenPack: (packId, count = 1) => {
