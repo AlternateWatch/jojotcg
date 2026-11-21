@@ -586,41 +586,47 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
           </div>
         )}
 
-        {/* 11. CHOOSE ALLY BENCH HEAL (Giorno Giovanna — I, Giorno Giovanna, Have a Dream) */}
+        {/* 11. CHOOSE ALLY HEAL (Giorno Giovanna / Gold Experience / Gold Experience Requiem) */}
         {prompt.kind === 'CHOOSE_ALLY_BENCH_HEAL' && (
           <div className="space-y-4">
             <h3 className="font-jojo-display text-2xl text-[#f5efe0] uppercase">
-              {prompt.sourceLabel} — Curar Aliado en Banca
+              {prompt.sourceLabel} — Elegir Aliado para Curar
             </h3>
             <p className="text-xs text-zinc-300">
-              Elige un aliado de tu banca para curarle{' '}
+              Elige un aliado para curarle{' '}
               <strong className="text-[#00e599]">+{prompt.healAmount} HP</strong> (también elimina
               Quemadura).
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              {player.bench
-                .filter((b) => prompt.eligibleInstanceIds.includes(b.instanceId))
-                .map((b) => {
-                  const prof = getEffectiveCharacterProfile(b);
+              {[
+                ...(player.active ? [{ ch: player.active, zoneLabel: 'Activo' }] : []),
+                ...player.bench.map((ch) => ({ ch, zoneLabel: 'Banca' })),
+              ]
+                .filter(({ ch }) => prompt.eligibleInstanceIds.includes(ch.instanceId))
+                .map(({ ch, zoneLabel }) => {
+                  const prof = getEffectiveCharacterProfile(ch);
                   const card = getCardById(prof.currentCardId);
                   if (!card) return null;
-                  const maxHp = computeEffectiveMaxHp(state, prompt.playerId, b);
+                  const maxHp = computeEffectiveMaxHp(state, prompt.playerId, ch);
                   return (
-                    <div key={b.instanceId} className="flex flex-col items-center gap-1.5">
+                    <div key={ch.instanceId} className="flex flex-col items-center gap-1.5">
                       <CardView
                         card={card}
                         size="md"
                         highlighted
                         badgeText={`+${prompt.healAmount} HP`}
                         onClick={() =>
-                          onRespond({ kind: 'CHOOSE_ALLY_BENCH_HEAL', benchInstanceId: b.instanceId })
+                          onRespond({
+                            kind: 'CHOOSE_ALLY_BENCH_HEAL',
+                            benchInstanceId: ch.instanceId,
+                          })
                         }
                       />
                       <span className="font-jojo-heading text-sm tracking-wider text-[#f2c12e]">
-                        {prof.name}
+                        {prof.name} ({zoneLabel})
                       </span>
                       <span className="font-mono text-xs text-zinc-400">
-                        {b.currentHp}/{maxHp} HP
+                        {ch.currentHp}/{maxHp} HP
                       </span>
                     </div>
                   );

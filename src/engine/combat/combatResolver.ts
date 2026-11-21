@@ -13,6 +13,7 @@ import {
   getOpponentId,
   isGameOver,
   pushEvent,
+  setGameOver,
 } from '../helpers/stateHelpers';
 import type { CoinResult, RngProvider } from '../rng';
 import {
@@ -336,6 +337,7 @@ export function executeAttack(
   const statusesToDefender: ('STUNNED' | 'BLEED' | 'BURN')[] = [];
   const statusesToSelf: ('STUNNED' | 'BLEED' | 'BURN')[] = [];
   let burnEnemyBenchChoice = false;
+  let bounceDefenderToHand = false;
 
   if (attack.coinFlip) {
     coinResults = Array.from({ length: attack.coinFlip.count }, () => rng.flipCoin());
@@ -350,6 +352,18 @@ export function executeAttack(
         .map((r) => (r === 'HEADS' ? 'Cara' : 'Cruz'))
         .join(', ')} (${headsCount} cara(s), ${tailsCount} cruz/cruces).`,
     });
+
+    if (attack.coinFlip.requireMajorityHeads && headsCount <= tailsCount) {
+      attackCancelled = true;
+    }
+
+    if (
+      attack.coinFlip.allHeadsEffect === 'BOUNCE_DEFENDER_TO_HAND' &&
+      coinResults.length > 0 &&
+      headsCount === coinResults.length
+    ) {
+      bounceDefenderToHand = true;
+    }
 
     for (const flip of coinResults) {
       const outcomes = flip === 'HEADS' ? attack.coinFlip.onHeads : attack.coinFlip.onTails;
@@ -527,6 +541,70 @@ export function executeAttack(
     }
   }
 
+  // Sticky Fingers — Zipper Man: 3/3 heads bounces enemy active character + attached Stand to opponent's hand
+  if (
+    bounceDefenderToHand &&
+    !defenderDodgedOrImmune &&
+    opponent.active?.instanceId === defender.instanceId
+  ) {
+    const bounced = opponent.active;
+    const bouncedProf = getEffectiveCharacterProfile(bounced);
+    opponent.active = null;
+
+    // Return user card + any character evolutions to opponent's hand
+    opponent.hand.push(bounced.cardId);
+    for (const evoId of bounced.evolvedCardIds) opponent.hand.push(evoId);
+
+    // Return attached Stand + any Stand evolutions to opponent's hand
+    let standNote = '';
+    if (bounced.attachedStand) {
+      const standProf = getEffectiveStandProfile(bounced.attachedStand);
+      opponent.hand.push(bounced.attachedStand.cardId);
+      for (const evoId of bounced.attachedStand.evolvedCardIds) opponent.hand.push(evoId);
+      standNote = ` y su Stand ${standProf.name}`;
+    }
+
+    // Discard attached items & energies
+    for (const item of bounced.attachedItems) opponent.discard.push(item.cardId);
+    for (const eType of bounced.attachedEnergies) {
+      opponent.discard.push(`energy-${eType.toLowerCase()}`);
+    }
+
+    pushEvent(state, eventsOut, {
+      type: 'ABILITY_TRIGGERED',
+      playerId,
+      abilityName: attack.name,
+      message: `¡${attack.name} (3 caras)! ${bouncedProf.name}${standNote} regresa(n) a la mano de ${opponent.name}.`,
+    });
+
+    if (opponent.bench.length === 0) {
+      setGameOver(
+        state,
+        eventsOut,
+        playerId,
+        `${opponent.name} se quedó sin personajes en el campo tras ${attack.name}.`,
+      );
+      return;
+    } else if (opponent.bench.length === 1) {
+      const promoted = opponent.bench.splice(0, 1)[0]!;
+      opponent.active = promoted;
+      cleanseBurn(state, eventsOut, opponentId, promoted.instanceId, 'promoción al Puesto Activo');
+      pushEvent(state, eventsOut, {
+        type: 'BENCH_SWAP',
+        playerId: opponentId,
+        newActiveCardId: getEffectiveCharacterProfile(promoted).currentCardId,
+        endedTurn: false,
+        message: `${getEffectiveCharacterProfile(promoted).name} pasa automáticamente al Puesto Activo.`,
+      });
+    } else {
+      enqueuePrompt(state, {
+        kind: 'PROMOTE_FROM_BENCH',
+        playerId: opponentId,
+        reason: `${attack.name} devolvió a tu Personaje Activo a la mano. Elige un reemplazo de tu banca.`,
+      });
+    }
+  }
+
   // Apply special effects defined on the attack
   for (const eff of attack.specialEffects ?? []) {
     if (isGameOver(state)) return;
@@ -565,6 +643,85 @@ export function executeAttack(
       case 'HEAL_DEFENDER': {
         if (!defenderDodgedOrImmune && findCharacterOnBoard(state, opponentId, defender.instanceId)) {
           healCharacter(state, eventsOut, opponentId, defender.instanceId, eff.amount, attack.name);
+        }
+        break;
+      }
+      case 'HEAL_ALLY_BENCH': {
+        if (player.bench.length === 1) {
+          healCharacter(
+            state,
+            eventsOut,
+            playerId,
+            player.bench[0]!.instanceId,
+            eff.amount,
+            attack.name,
+          );
+        } else if (player.bench.length > 1) {
+          enqueuePrompt(state, {
+            kind: 'CHOOSE_ALLY_BENCH_HEAL',
+            playerId,
+            eligibleInstanceIds: player.bench.map((b) => b.instanceId),
+            healAmount: eff.amount,
+            sourceLabel: attack.name,
+          });
+        } else {
+          pushEvent(state, eventsOut, {
+            type: 'ABILITY_TRIGGERED',
+            playerId,
+            abilityName: attack.name,
+            message: `${player.name} no tiene aliados en banca para curar con ${attack.name}.`,
+          });
+        }
+        break;
+      }
+      case 'HEAL_SELF_OR_BENCH': {
+        const eligibleIds = [
+          ...(findCharacterOnBoard(state, playerId, attacker.instanceId) ? [attacker.instanceId] : []),
+          ...player.bench.map((b) => b.instanceId),
+        ];
+        if (eligibleIds.length === 1) {
+          healCharacter(state, eventsOut, playerId, eligibleIds[0]!, eff.amount, attack.name);
+        } else if (eligibleIds.length > 1) {
+          enqueuePrompt(state, {
+            kind: 'CHOOSE_ALLY_BENCH_HEAL',
+            playerId,
+            eligibleInstanceIds: eligibleIds,
+            healAmount: eff.amount,
+            sourceLabel: attack.name,
+          });
+        }
+        break;
+      }
+      case 'RETURN_TO_ZERO': {
+        if (findCharacterOnBoard(state, playerId, attacker.instanceId)) {
+          attacker.maxHpPenalty = 0;
+          attacker.statuses.stunned = false;
+          attacker.statuses.stunImmuneNextTurn = false;
+          attacker.statuses.bleedStacks = [];
+          attacker.statuses.burn = null;
+          attacker.tookDamageThisTurn = false;
+          if (attacker.attachedStand) {
+            attacker.attachedStand.damageDebuff = 0;
+          }
+          const originalMaxHp = computeEffectiveMaxHp(state, playerId, attacker);
+          const restored = Math.max(0, originalMaxHp - attacker.currentHp);
+          attacker.currentHp = originalMaxHp;
+
+          pushEvent(state, eventsOut, {
+            type: 'ABILITY_TRIGGERED',
+            playerId,
+            abilityName: attack.name,
+            message: `¡RETURN TO ZERO! ${attackerProfile.name} y su Stand regresan a su estado original (${originalMaxHp}/${originalMaxHp} HP, sin estados ni penalizaciones).`,
+          });
+          if (restored > 0) {
+            pushEvent(state, eventsOut, {
+              type: 'HEALED',
+              targetPlayerId: playerId,
+              targetInstanceId: attacker.instanceId,
+              amount: restored,
+              message: `${attackerProfile.name} restaura +${restored} HP con Return to Zero.`,
+            });
+          }
         }
         break;
       }
@@ -928,9 +1085,9 @@ export function validatePromptResponse(
       const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_ALLY_BENCH_HEAL' }>;
       if (
         !prompt.eligibleInstanceIds.includes(r.benchInstanceId) ||
-        !player.bench.some((b) => b.instanceId === r.benchInstanceId)
+        !findCharacterOnBoard(state, playerId, r.benchInstanceId)
       ) {
-        return { ok: false, reason: 'Debes elegir un aliado válido de tu banca para curar.' };
+        return { ok: false, reason: 'Debes elegir un personaje aliado válido para curar.' };
       }
       return { ok: true };
     }

@@ -47,6 +47,10 @@ export interface CoinFlipSpec {
   onTails?: CoinEffectOutcome[];
   /** If true, baseDamage is replaced by coin damage outcomes (e.g. Muda Muda, Light Blades, Horda) */
   replacesBaseDamage?: boolean;
+  /** If true, the attack only takes effect when heads > tails (e.g. Gold Experience 7-Page Muda) */
+  requireMajorityHeads?: boolean;
+  /** Special effect triggered only if EVERY coin flipped lands on HEADS (e.g. Sticky Fingers Zipper Man) */
+  allHeadsEffect?: 'BOUNCE_DEFENDER_TO_HAND';
 }
 
 export type AttackSpecialEffect =
@@ -55,6 +59,9 @@ export type AttackSpecialEffect =
   | { kind: 'GLOBAL_BENCH_DAMAGE'; damage: number }
   | { kind: 'HEAL_SELF'; amount: number }
   | { kind: 'HEAL_DEFENDER'; amount: number }
+  | { kind: 'HEAL_ALLY_BENCH'; amount: number }
+  | { kind: 'HEAL_SELF_OR_BENCH'; amount: number }
+  | { kind: 'RETURN_TO_ZERO' }
   | { kind: 'EXTRA_COMBAT_ACTIONS'; extraActions: number; oncePerTurnKey: string }
   | { kind: 'SELF_KO_AFTER_ATTACK' }
   | { kind: 'RETREAT_SELF_AFTER_ATTACK' }

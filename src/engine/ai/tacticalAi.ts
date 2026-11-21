@@ -400,7 +400,8 @@ function buildPromptResponse(
       return { kind: 'RECOVER_ENERGY_FROM_DISCARD', discardIndex: Math.max(0, bestIdx) };
     }
     case 'CHOOSE_ALLY_BENCH_HEAL': {
-      const eligible = player.bench.filter((b) => prompt.eligibleInstanceIds.includes(b.instanceId));
+      const boardChars = [...(player.active ? [player.active] : []), ...player.bench];
+      const eligible = boardChars.filter((b) => prompt.eligibleInstanceIds.includes(b.instanceId));
       const sorted = [...eligible].sort((a, b) => {
         const missA =
           Math.max(0, computeEffectiveMaxHp(state, prompt.playerId, a) - a.currentHp) +
@@ -627,7 +628,8 @@ export function chooseAiAction(
           (item.catalystTag === 'stand-arrow' &&
             player.hand.includes('evo-killer-queen-bites-the-dust')) ||
           (item.catalystTag === 'requiem-arrow' &&
-            player.hand.includes('evo-silver-chariot-requiem'));
+            (player.hand.includes('evo-silver-chariot-requiem') ||
+              player.hand.includes('evo-gold-experience-requiem')));
         if (keepAsCatalyst) continue;
 
         const searchEff = item.effects.find(

@@ -9,9 +9,9 @@ import { OFFICIAL_CARD_IMAGE_IDS, OFFICIAL_ITEM_IMAGE_IDS } from '../../services
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 60 official PNG cards, all 10 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 63 official PNG cards, all 10 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(60);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(63);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(10);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -239,6 +239,93 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     const benchP2Hand = benchState.players.P2.hand.length;
     benchState = mustDispatch(benchState, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: 0 });
     expect(benchState.players.P2.hand.length).toBe(benchP2Hand);
+  });
+
+  it('resolves Gold Experience (7-Page Muda + Live Giver), Gold Experience Requiem (Flecha Réquiem + Return to Zero), and Sticky Fingers (Zipper Man 3-heads bounce)', () => {
+    // 1. Gold Experience: Live Giver heals bench ally +20 HP; 7-Page Muda hits for 70 only on majority heads
+    let geState = buildControlledBattleState({
+      p1ActiveId: 'char-giorno-giovanna',
+      p1ActiveStandId: 'stand-gold-experience',
+      p1BenchIds: ['char-bruno-bucciarati'],
+      p1ActiveEnergies: ['NATURE', 'NATURE', 'WATER'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    geState.players.P1.bench[0]!.currentHp = 80;
+    const afterLiveGiver = mustDispatch(geState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-live-giver',
+    });
+    expect(afterLiveGiver.players.P1.bench[0]!.currentHp).toBe(100);
+
+    const allHeadsRng = {
+      ...createSeededRng(1),
+      flipCoin: () => 'HEADS' as const,
+    };
+    const allTailsRng = {
+      ...createSeededRng(1),
+      flipCoin: () => 'TAILS' as const,
+    };
+    const mudaHit = mustDispatch(
+      geState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-7-page-muda' },
+      allHeadsRng,
+    );
+    expect(mudaHit.players.P2.active!.currentHp).toBe(90); // 160 - 70
+    const mudaMiss = mustDispatch(
+      geState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-7-page-muda' },
+      allTailsRng,
+    );
+    expect(mudaMiss.players.P2.active!.currentHp).toBe(160);
+
+    // 2. Gold Experience Requiem evolution + Return to Zero restores full HP & cleanses statuses/debuffs while dealing 70 dmg
+    let gerState = buildControlledBattleState({
+      p1ActiveId: 'char-giorno-giovanna', // 130 HP, DG 6
+      p1ActiveStandId: 'stand-gold-experience',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS', 'COLORLESS', 'COLORLESS', 'COLORLESS'],
+      p1Hand: ['evo-gold-experience-requiem', 'item-flecha-requiem'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'PREPARATION',
+    });
+    gerState.players.P1.active!.currentHp = 40;
+    gerState.players.P1.active!.statuses.burn = { active: true, damagePerTurn: 10 };
+    gerState.players.P1.active!.statuses.bleedStacks = [{ turnsRemaining: 2, damagePerTurn: 10 }];
+    gerState.players.P1.active!.attachedStand!.damageDebuff = 20;
+
+    gerState = mustDispatch(gerState, { type: 'EVOLVE_CARD', playerId: 'P1', handIndex: 0 });
+    gerState = mustDispatch(gerState, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    gerState = mustDispatch(gerState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-return-to-zero',
+    });
+    expect(gerState.players.P1.active!.currentHp).toBe(130);
+    expect(gerState.players.P1.active!.statuses.burn).toBeNull();
+    expect(gerState.players.P1.active!.statuses.bleedStacks).toHaveLength(0);
+    expect(gerState.players.P1.active!.attachedStand!.damageDebuff).toBe(0);
+    // Damage was 70 - 20 (debuff applied before Return to Zero clears it) = 50 -> 160 - 50 = 110
+    expect(gerState.players.P2.active!.currentHp).toBe(110);
+
+    // 3. Sticky Fingers — Zipper Man with 3/3 heads bounces enemy user + Stand to hand and promotes bench
+    let sfState = buildControlledBattleState({
+      p1ActiveId: 'char-bruno-bucciarati',
+      p1ActiveStandId: 'stand-sticky-fingers',
+      p1ActiveEnergies: ['PSYCHIC', 'PSYCHIC', 'PSYCHIC'],
+      p2ActiveId: 'char-dio',
+      p2ActiveStandId: 'stand-the-world',
+      p2BenchIds: ['char-hol-horse'],
+      phase: 'COMBAT',
+    });
+    sfState = mustDispatch(
+      sfState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-zipper-man' },
+      allHeadsRng,
+    );
+    expect(sfState.players.P2.hand).toContain('char-dio');
+    expect(sfState.players.P2.hand).toContain('stand-the-world');
+    expect(sfState.players.P2.active!.cardId).toBe('char-hol-horse');
   });
 
   it('completes AI vs AI matches across all 4 preset decks cleanly', () => {

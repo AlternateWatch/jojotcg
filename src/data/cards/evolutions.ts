@@ -209,4 +209,42 @@ export const EVOLUTION_CARDS: EvolutionCard[] = [
       },
     ],
   },
+  {
+    id: 'evo-gold-experience-requiem',
+    name: 'Gold Experience Réquiem',
+    type: 'EVOLUTION',
+    part: 5,
+    imageId: 'gold-experience-requiem',
+    assetFolder: 'official',
+    evolutionTarget: 'STAND',
+    baseCardId: 'stand-gold-experience',
+    requiredDg: 6,
+    requirements: [
+      { kind: 'BASE_ATTACHED_STAND', standId: 'stand-gold-experience' },
+      { kind: 'CONSUME_HAND_ITEM_TAG', catalystTag: 'requiem-arrow', label: 'Flecha Réquiem en mano' },
+    ],
+    requirementText:
+      'Para evolucionar a Gold Experience a Gold Experience Réquiem, es necesaria una Flecha Réquiem.',
+    attacks: [
+      {
+        id: 'atk-enhanced-live-giver',
+        name: 'Enhanced Live Giver',
+        energyCost: ['NATURE', 'WATER'],
+        baseDamage: 0,
+        damageLabel: '+40 HP',
+        effectText: 'Cura 40 de vida a sí mismo o a un aliado de la banca.',
+        specialEffects: [{ kind: 'HEAL_SELF_OR_BENCH', amount: 40 }],
+      },
+      {
+        id: 'atk-return-to-zero',
+        name: 'Return to Zero',
+        energyCost: ['COLORLESS', 'COLORLESS', 'COLORLESS', 'COLORLESS', 'COLORLESS'],
+        baseDamage: 70,
+        damageLabel: '7x10',
+        effectText:
+          'Devuelve a Gold Experience y a su portador a su estado original (el estado original es como se encontraba al jugarse por primera vez).',
+        specialEffects: [{ kind: 'RETURN_TO_ZERO' }],
+      },
+    ],
+  },
 ];

@@ -20,7 +20,7 @@ const PACK_COMPLETION_REWARDS: Record<string, { title: string; rewardCoins: numb
   'pack-part-2': { title: 'Sobre Completo: Parte 2 (Battle Tendency)', rewardCoins: 750 },
   'pack-part-3': { title: 'Sobre Completo: Parte 3 (Stardust Crusaders)', rewardCoins: 1500 },
   'pack-part-4': { title: 'Sobre Completo: Parte 4 (Diamond is Unbreakable)', rewardCoins: 1300 },
-  'pack-part-5': { title: 'Sobre Completo: Parte 5 (Vento Aureo · Réquiem)', rewardCoins: 550 },
+  'pack-part-5': { title: 'Sobre Completo: Parte 5 (Vento Aureo · Réquiem)', rewardCoins: 1150 },
   'pack-corr-jojos': { title: 'Sobre Completo: Linaje Joestar', rewardCoins: 1100 },
   'pack-corr-jobros': { title: 'Sobre Completo: JoBros & Aliados', rewardCoins: 1200 },
   'pack-corr-villains': { title: 'Sobre Completo: Villanos & Amenazas', rewardCoins: 1800 },
@@ -229,6 +229,23 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
       'char-jotaro-kujo',
       'char-josuke-higashikata',
       'char-giorno-giovanna',
+    ],
+  },
+  {
+    id: 'milestone-set-passione-vanguard',
+    title: 'Vanguardia de Passione',
+    description:
+      'Reúne a Giorno Giovanna, Gold Experience, Gold Experience Réquiem, Bruno Bucciarati y Sticky Fingers.',
+    category: 'CARD_SET',
+    badge: 'PARTE 5 · ÉPICO',
+    accentHex: '#f59e0b',
+    rewardCoins: 1050,
+    requiredCardIds: [
+      'char-giorno-giovanna',
+      'stand-gold-experience',
+      'evo-gold-experience-requiem',
+      'char-bruno-bucciarati',
+      'stand-sticky-fingers',
     ],
   },
   {

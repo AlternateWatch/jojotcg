@@ -657,4 +657,75 @@ export const STAND_CARDS: StandCard[] = [
       },
     ],
   },
+
+  // ===================== PART 5: GOLDEN WIND (VENTO AUREO) =====================
+  {
+    id: 'stand-gold-experience',
+    name: 'Gold Experience',
+    type: 'STAND',
+    part: 5,
+    imageId: 'gold-experience',
+    assetFolder: 'official',
+    requiredDg: 5,
+    attacks: [
+      {
+        id: 'atk-live-giver',
+        name: 'Live Giver',
+        energyCost: ['NATURE', 'WATER'],
+        baseDamage: 0,
+        damageLabel: '+20 HP',
+        effectText: 'Cura 20 de vida a un aliado de la banca.',
+        specialEffects: [{ kind: 'HEAL_ALLY_BENCH', amount: 20 }],
+      },
+      {
+        id: 'atk-7-page-muda',
+        name: '7-Page Muda',
+        energyCost: ['NATURE', 'NATURE'],
+        baseDamage: 70,
+        damageLabel: '7x10',
+        effectText:
+          'Lanza siete monedas. Si la cantidad de caras es mayor que la de cruces, el ataque surte efecto.',
+        coinFlip: {
+          count: 7,
+          requireMajorityHeads: true,
+        },
+      },
+    ],
+  },
+  {
+    id: 'stand-sticky-fingers',
+    name: 'Sticky Fingers',
+    type: 'STAND',
+    part: 5,
+    imageId: 'sticky-fingers',
+    assetFolder: 'official',
+    requiredDg: 5,
+    attacks: [
+      {
+        id: 'atk-ari-ari-ari',
+        name: 'Ari Ari Ari',
+        energyCost: ['COLORLESS', 'COLORLESS'],
+        baseDamage: 40,
+        damageLabel: '4x10',
+        effectText: 'Tira una moneda. Si sale cara, el oponente pasa a estar aturdido.',
+        coinFlip: {
+          count: 1,
+          onHeads: [{ kind: 'STATUS', status: 'STUNNED', target: 'DEFENDER' }],
+        },
+      },
+      {
+        id: 'atk-zipper-man',
+        name: 'Zipper Man',
+        energyCost: ['PSYCHIC', 'PSYCHIC', 'PSYCHIC'],
+        baseDamage: 40,
+        damageLabel: '40',
+        effectText:
+          'Lanza tres monedas. Si todas son cara, devuelve al usuario enemigo y su stand a la mano del rival.',
+        coinFlip: {
+          count: 3,
+          allHeadsEffect: 'BOUNCE_DEFENDER_TO_HAND',
+        },
+      },
+    ],
+  },
 ];
