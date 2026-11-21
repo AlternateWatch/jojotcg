@@ -99,6 +99,7 @@ export const CARD_RARITY_MAP: Record<string, CardRarity> = {
   'char-noriaki-kakyoin': 'SUPER_RARE',
   'char-vanilla-ice': 'SUPER_RARE',
   'char-josuke-higashikata': 'SUPER_RARE',
+  'char-bruno-bucciarati': 'SUPER_RARE',
   'char-joseph-joestar': 'SUPER_RARE',
   'char-lisa-lisa': 'SUPER_RARE',
   'stand-silver-chariot': 'SUPER_RARE',
@@ -385,6 +386,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
     ],
     poolCardIds: [
       'char-giorno-giovanna',
+      'char-bruno-bucciarati',
       'evo-silver-chariot-requiem',
       'item-flecha-requiem',
       'item-flecha-de-stand',
@@ -460,6 +462,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'char-rohan-kishibe',
       'char-yukako-yamagishi',
       'char-shigekiyo-yangu',
+      'char-bruno-bucciarati',
       'stand-silver-chariot',
       'stand-hierophant-green',
       'stand-magicians-red',

@@ -8,6 +8,7 @@ import {
   getEffectiveStandProfile,
 } from '../helpers/cardStats';
 import {
+  checkImmediateDeckOut,
   enqueuePrompt,
   findCharacterOnBoard,
   getOpponentId,
@@ -203,6 +204,43 @@ export function healCharacter(
   cleanseBurn(state, eventsOut, playerId, instanceId, `curación por ${sourceLabel}`);
 
   return actualHeal;
+}
+
+/**
+ * Bruno Bucciarati — DETECCIÓN DE MENTIRAS:
+ * While Bucciarati is in the Active slot, whenever the opponent draws extra card(s)
+ * via any item/ability/search method (excluding the mandatory start-of-turn draw),
+ * Bucciarati's controller draws 1 card as well (without chaining into another Bucciarati).
+ */
+export function triggerOpponentExtraDrawReaction(
+  state: GameState,
+  eventsOut: CombatEvent[],
+  drawingPlayerId: PlayerId,
+): void {
+  if (isGameOver(state)) return;
+  const reactorId = getOpponentId(drawingPlayerId);
+  const reactor = state.players[reactorId];
+  if (!reactor.active) return;
+
+  const activeProfile = getEffectiveCharacterProfile(reactor.active);
+  if (activeProfile.signatureAbility.id !== 'LIE_DETECTION_BUCCIARATI') return;
+  if (reactor.deck.length === 0) return;
+
+  const drawn = reactor.deck.shift()!;
+  reactor.hand.push(drawn);
+  pushEvent(state, eventsOut, {
+    type: 'ABILITY_TRIGGERED',
+    playerId: reactorId,
+    abilityName: 'Detección de Mentiras',
+    message: `¡Detección de Mentiras! Bruno Bucciarati detecta el robo extra rival y ${reactor.name} roba 1 carta.`,
+  });
+  pushEvent(state, eventsOut, {
+    type: 'CARD_DRAWN',
+    playerId: reactorId,
+    count: 1,
+    message: `${reactor.name} roba 1 carta gracias a Detección de Mentiras.`,
+  });
+  checkImmediateDeckOut(state, eventsOut, reactorId);
 }
 
 export function handleCharacterKo(

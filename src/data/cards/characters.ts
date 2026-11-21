@@ -834,4 +834,22 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     },
     attacks: [],
   },
+  {
+    id: 'char-bruno-bucciarati',
+    name: 'Bruno Bucciarati',
+    type: 'CHARACTER',
+    part: 5,
+    imageId: 'bruno-bucciarati',
+    assetFolder: 'official',
+    categories: ['STAND_USER'],
+    maxHp: 130,
+    dg: 5,
+    signatureAbility: {
+      id: 'LIE_DETECTION_BUCCIARATI',
+      name: 'DETECCIÓN DE MENTIRAS',
+      text: 'Mientras Bucciarati esté en el puesto activo, cuando el rival robe una carta extra por algún método, roba una tu también.',
+      trigger: 'PASSIVE',
+    },
+    attacks: [],
+  },
 ];

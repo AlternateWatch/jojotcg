@@ -30,7 +30,7 @@ import {
 } from '../helpers/stateHelpers';
 import type { RngProvider } from '../rng';
 import { cleanseBurn, tryApplyElementalStatus } from '../statuses/statusSystem';
-import { healCharacter } from '../effects/effectPipeline';
+import { healCharacter, triggerOpponentExtraDrawReaction } from '../effects/effectPipeline';
 import { finishTurnToEndPhase } from '../combat/combatResolver';
 import type { CombatEvent } from '../types/events';
 import type { CharacterInstance, GameState, PlayerId } from '../types/state';
@@ -443,6 +443,8 @@ export function applyPlayItem(
           count: drawnCount,
           message: `${player.name} roba ${drawnCount} carta(s) gracias a ${item.name}.`,
         });
+        checkImmediateDeckOut(state, eventsOut, playerId);
+        triggerOpponentExtraDrawReaction(state, eventsOut, playerId);
       }
     } else if (eff.kind === 'SEARCH_DECK') {
       enqueuePrompt(state, {
@@ -701,6 +703,9 @@ export function applyUsePrepAbility(
         message: `${player.name} activa Solo de Guitarra y roba ${drawn} carta(s).`,
       });
       checkImmediateDeckOut(state, eventsOut, playerId);
+      if (drawn > 0) {
+        triggerOpponentExtraDrawReaction(state, eventsOut, playerId);
+      }
       break;
     }
     case 'MONEY_SHIGEKIYO': {

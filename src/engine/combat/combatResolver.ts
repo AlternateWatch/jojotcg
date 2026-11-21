@@ -26,6 +26,7 @@ import {
   handleCharacterKo,
   healCharacter,
   resolveEndOfTurnEffects,
+  triggerOpponentExtraDrawReaction,
 } from '../effects/effectPipeline';
 import type { PromptResponsePayload } from '../types/actions';
 import type { CombatEvent } from '../types/events';
@@ -1056,6 +1057,9 @@ export function resolvePendingPrompt(
         message: `${player.name} añade ${r.pickedIndices.length} carta(s) a su mano con ${prompt.sourceLabel}.`,
       });
       checkImmediateDeckOut(state, eventsOut, playerId);
+      if (r.pickedIndices.length > 0) {
+        triggerOpponentExtraDrawReaction(state, eventsOut, playerId);
+      }
       break;
     }
     case 'REORDER_OPPONENT_TOP_DECK': {
@@ -1145,6 +1149,9 @@ export function resolvePendingPrompt(
             : `${player.name} baraja su mazo sin elegir cartas (${prompt.sourceLabel}).`,
       });
       checkImmediateDeckOut(state, eventsOut, playerId);
+      if (pickedNames.length > 0) {
+        triggerOpponentExtraDrawReaction(state, eventsOut, playerId);
+      }
       break;
     }
     case 'RECOVER_ENERGY_FROM_DISCARD': {

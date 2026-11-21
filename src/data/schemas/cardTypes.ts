@@ -124,6 +124,7 @@ export type SignatureEffectId =
   | 'QUIET_LIFE_KIRA'
   | 'NOTHING_WILL_REMAIN_KOSAKU'
   | 'HAVE_A_DREAM_GIORNO'
+  | 'LIE_DETECTION_BUCCIARATI'
   | 'NONE';
 
 export interface SignatureAbilityDef {

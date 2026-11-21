@@ -13,13 +13,14 @@ export interface CardAssetInfo {
 }
 
 /**
- * Manifest of all 59 official card PNGs provided by the user.
+ * Manifest of all 60 official card PNGs provided by the user.
  * Adding new artwork only requires dropping the file into public/assets/cards/<folder>/
  * and registering its imageId (or setting a custom override in user settings).
  */
 export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'akira-otoishi',
   'bastet',
+  'bruno-bucciarati',
   'caesar-zeppeli',
   'crazy-diamond',
   'cream',

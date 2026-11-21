@@ -48,4 +48,10 @@ export const MENU_PLAYLIST: MenuTrack[] = [
     artist: 'Tomoya Ohtani',
     src: '/assets/music/windmill-isle-day.flac',
   },
+  {
+    id: 'snooze',
+    title: 'snooze (intermission)',
+    artist: 'nicopatty',
+    src: '/assets/music/snooze.flac',
+  },
 ];
