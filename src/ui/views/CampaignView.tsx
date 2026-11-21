@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
+  BookOpen,
   CheckCircle2,
   Coins,
   Crown,
   Gift,
+  Layers,
   Lock,
   MapPin,
   ShoppingBag,
@@ -44,10 +46,11 @@ export function CampaignView() {
   const startBattle = useBattleStore((s) => s.startBattle);
 
   const [selectedPartNum, setSelectedPartNum] = useState<CampaignPartDef['part']>(1);
+  const [deckMode, setDeckMode] = useState<'STORY' | 'CUSTOM'>('STORY');
+
   const activePart = CAMPAIGN_PARTS.find((p) => p.part === selectedPartNum) ?? CAMPAIGN_PARTS[0]!;
   const completedIds = progression.completedCampaignStages ?? [];
 
-  // Default selected stage = first unlocked uncompleted stage, or stage 10 if all cleared
   const defaultStageId = useMemo(() => {
     const nextStage = activePart.stages.find(
       (s) => isCampaignStageUnlocked(s, completedIds) && !completedIds.includes(s.id),
@@ -67,13 +70,18 @@ export function CampaignView() {
     settings.selectedDeckId && allDecks.some((d) => d.id === settings.selectedDeckId)
       ? settings.selectedDeckId
       : defaultDeckId;
-  const playerDeck = allDecks.find((d) => d.id === selectedDeckId);
-  const deckVal = useMemo(() => (playerDeck ? validateDeck(playerDeck.cardIds) : null), [playerDeck]);
-  const deckMissing = useMemo(
-    () => (playerDeck ? getMissingCardsForDeck(progression, playerDeck.cardIds) : []),
-    [progression, playerDeck],
+  const playerCustomDeck = allDecks.find((d) => d.id === selectedDeckId);
+  const customDeckVal = useMemo(
+    () => (playerCustomDeck ? validateDeck(playerCustomDeck.cardIds) : null),
+    [playerCustomDeck],
   );
-  const canPlayDeck = Boolean(playerDeck && deckVal?.valid && deckMissing.length === 0);
+  const customDeckMissing = useMemo(
+    () => (playerCustomDeck ? getMissingCardsForDeck(progression, playerCustomDeck.cardIds) : []),
+    [progression, playerCustomDeck],
+  );
+  const canPlayCustomDeck = Boolean(
+    playerCustomDeck && customDeckVal?.valid && customDeckMissing.length === 0,
+  );
 
   const clearedInPart = activePart.stages.filter((s) => completedIds.includes(s.id)).length;
   const stageUnlocked = selectedStage
@@ -82,14 +90,40 @@ export function CampaignView() {
   const stageCompleted = selectedStage ? completedIds.includes(selectedStage.id) : false;
   const featuredCard = selectedStage ? getCardById(selectedStage.featuredCardId) : undefined;
 
+  // Enforce themed campaign story deck until the stage is completed at least once!
+  const effectiveDeckMode: 'STORY' | 'CUSTOM' = stageCompleted ? deckMode : 'STORY';
+  const canLaunchSelected =
+    Boolean(selectedStage && stageUnlocked) &&
+    (effectiveDeckMode === 'STORY' || canPlayCustomDeck);
+
+  // Unique non-energy cards in the selected stage's story deck for visual preview
+  const storyDeckHighlights = useMemo(() => {
+    if (!selectedStage) return [];
+    const seen = new Set<string>();
+    const list: NonNullable<ReturnType<typeof getCardById>>[] = [];
+    for (const id of selectedStage.storyDeckIds) {
+      if (seen.has(id)) continue;
+      const c = getCardById(id);
+      if (!c || c.type === 'ENERGY') continue;
+      seen.add(id);
+      list.push(c);
+    }
+    return list;
+  }, [selectedStage]);
+
   const handleLaunchStage = () => {
-    if (!selectedStage || !stageUnlocked || !playerDeck || !canPlayDeck) return;
+    if (!selectedStage || !canLaunchSelected) return;
+    const p1DeckIds =
+      effectiveDeckMode === 'CUSTOM' && playerCustomDeck
+        ? playerCustomDeck.cardIds
+        : selectedStage.storyDeckIds;
+
     startBattle(
       {
         mode: 'VS_AI',
-        p1Name: authUser?.username ?? 'Jotaro (J1)',
+        p1Name: authUser?.username ?? 'Jonathan (Campaña)',
         p2Name: selectedStage.opponentName,
-        p1DeckIds: playerDeck.cardIds,
+        p1DeckIds,
         p2DeckIds: selectedStage.opponentDeckIds,
         firstPlayerId: 'P1',
         aiDifficulty: selectedStage.difficulty,
@@ -100,7 +134,6 @@ export function CampaignView() {
     setScreen('BATTLE');
   };
 
-  // Serpentine rows: Row 1 = stages 1..5 (L->R), Row 2 = stages 6..10 displayed R->L on desktop
   const row1 = activePart.stages.slice(0, 5);
   const row2 = activePart.stages.slice(5, 10);
 
@@ -159,7 +192,7 @@ export function CampaignView() {
           </div>
         </div>
 
-        {/* Top Bar: Progress & Player Deck Picker */}
+        {/* Top Progress & Rules Strip */}
         <div className="jojo-panel flex flex-wrap items-center justify-between gap-4 p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="border-2 border-[#060508] bg-[#0e0b14] px-3.5 py-2">
@@ -180,40 +213,12 @@ export function CampaignView() {
                 </span>
               </div>
               <div className="text-[11px] text-zinc-400">
-                Todas las recompensas de campaña son de <strong>recogida única (1.ª victoria)</strong>.
+                La <strong>1.ª vez</strong> en cada nivel juegas con el{' '}
+                <strong className="text-[#f2c12e]">Mazo Historia temático</strong> (no necesitas
+                tener las cartas). Al completarlo, podrás repetirlo con{' '}
+                <strong className="text-[#00e599]">cualquier mazo tuyo</strong>.
               </div>
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="font-jojo-heading text-xs tracking-widest text-zinc-400 uppercase">
-              Tu Baraja:
-            </label>
-            <select
-              value={selectedDeckId}
-              onChange={(e) => setSelectedDeckId(e.target.value)}
-              className="min-w-[230px] border-2 border-[#060508] bg-[#0e0b14] px-3 py-2 text-xs font-bold text-[#f5efe0] focus:border-[#f2c12e] focus:outline-none"
-            >
-              {allDecks.map((d) => {
-                const miss = getMissingCardsForDeck(progression, d.cardIds).length;
-                return (
-                  <option key={d.id} value={d.id}>
-                    {miss > 0 ? '🔒 ' : d.isPreset ? '★ ' : '♦ '}
-                    {d.name} ({d.cardIds.length})
-                    {miss > 0 ? ` — Faltan ${miss}` : ''}
-                  </option>
-                );
-              })}
-            </select>
-            {!canPlayDeck && (
-              <button
-                type="button"
-                onClick={() => setScreen('SHOP')}
-                className="jojo-btn-crimson inline-flex items-center gap-1 px-3 py-2 font-jojo-heading text-xs tracking-wider uppercase"
-              >
-                <ShoppingBag size={12} /> Tienda
-              </button>
-            )}
           </div>
         </div>
 
@@ -233,7 +238,6 @@ export function CampaignView() {
             <div className="space-y-6">
               {/* ROW 1: Stages 1 -> 5 */}
               <div className="relative">
-                {/* Horizontal connector bar behind row 1 */}
                 <div
                   aria-hidden="true"
                   className="pointer-events-none absolute top-1/2 right-8 left-8 hidden h-1 -translate-y-1/2 bg-[#292038] sm:block"
@@ -316,7 +320,7 @@ export function CampaignView() {
                 </div>
               </div>
 
-              {/* ROW 2: Stages 6 -> 10 (serpentine visual flow right-to-left on sm+) */}
+              {/* ROW 2: Stages 6 -> 10 (serpentine right-to-left) */}
               <div className="relative">
                 <div
                   aria-hidden="true"
@@ -460,6 +464,111 @@ export function CampaignView() {
                 </div>
               </div>
 
+              {/* Deck Selection: Mandatory Story Deck on 1st Clear, Free Choice once Completed! */}
+              <div className="space-y-2.5 border-2 border-[#060508] bg-[#0e0b14] p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 font-jojo-heading text-xs tracking-[0.18em] text-[#f2c12e] uppercase">
+                    <BookOpen size={13} /> Tu Baraja para este Nivel
+                  </span>
+                  {!stageCompleted ? (
+                    <span className="border border-[#060508] bg-[#2952d9] px-1.5 py-0.5 font-mono text-[9px] font-black text-white uppercase">
+                      MAZO HISTORIA · 1.ª VEZ
+                    </span>
+                  ) : (
+                    <span className="border border-[#060508] bg-[#00b87c] px-1.5 py-0.5 font-mono text-[9px] font-black text-[#0b090e] uppercase">
+                      MODO LIBRE DESBLOQUEADO
+                    </span>
+                  )}
+                </div>
+
+                {stageCompleted && (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setDeckMode('STORY')}
+                      className={`inline-flex items-center justify-center gap-1 px-2.5 py-1.5 font-jojo-heading text-xs tracking-wider uppercase ${
+                        effectiveDeckMode === 'STORY'
+                          ? 'jojo-btn-primary'
+                          : 'jojo-btn-ink text-zinc-400'
+                      }`}
+                    >
+                      <BookOpen size={12} /> Mazo Historia
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeckMode('CUSTOM')}
+                      className={`inline-flex items-center justify-center gap-1 px-2.5 py-1.5 font-jojo-heading text-xs tracking-wider uppercase ${
+                        effectiveDeckMode === 'CUSTOM'
+                          ? 'jojo-btn-primary'
+                          : 'jojo-btn-ink text-zinc-400'
+                      }`}
+                    >
+                      <Layers size={12} /> Tu Mazo
+                    </button>
+                  </div>
+                )}
+
+                {effectiveDeckMode === 'STORY' ? (
+                  <div className="space-y-2">
+                    <div className="font-jojo-heading text-sm tracking-wide text-[#f5efe0] uppercase">
+                      ★ {selectedStage.storyDeckName}
+                    </div>
+                    <p className="text-[11px] leading-snug text-zinc-400">
+                      {selectedStage.storyDeckDescription}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {storyDeckHighlights.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => openInspector(c.id)}
+                          className="border border-[#060508] bg-[#1c1626] px-2 py-0.5 text-[10px] font-bold text-zinc-200 transition hover:border-[#f2c12e] hover:text-[#f2c12e]"
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                    {!stageCompleted && (
+                      <div className="text-[10px] text-zinc-500">
+                        Completa este nivel por primera vez para poder rejugarlo con cualquier mazo
+                        de tu colección.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <select
+                      value={selectedDeckId}
+                      onChange={(e) => setSelectedDeckId(e.target.value)}
+                      className="w-full border-2 border-[#060508] bg-[#14101c] px-2.5 py-2 text-xs font-bold text-[#f5efe0] focus:border-[#f2c12e] focus:outline-none"
+                    >
+                      {allDecks.map((d) => {
+                        const miss = getMissingCardsForDeck(progression, d.cardIds).length;
+                        return (
+                          <option key={d.id} value={d.id}>
+                            {miss > 0 ? '🔒 ' : d.isPreset ? '★ ' : '♦ '}
+                            {d.name} ({d.cardIds.length})
+                            {miss > 0 ? ` — Faltan ${miss}` : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {!canPlayCustomDeck && (
+                      <div className="flex items-center justify-between gap-2 border-l-4 border-[#e6194b] bg-[#2a0c16] px-2.5 py-1.5 text-[11px] text-rose-200">
+                        <span>Te faltan cartas o el mazo no es legal (40/40).</span>
+                        <button
+                          type="button"
+                          onClick={() => setScreen('SHOP')}
+                          className="jojo-btn-primary inline-flex items-center gap-1 px-2 py-0.5 font-jojo-heading text-[10px] uppercase"
+                        >
+                          <ShoppingBag size={11} /> Tienda
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* One-Time Pickup Rewards Box */}
               <div
                 className={`border-2 border-[#060508] p-3.5 ${
@@ -509,14 +618,18 @@ export function CampaignView() {
               ) : (
                 <button
                   type="button"
-                  disabled={!canPlayDeck}
+                  disabled={!canLaunchSelected}
                   onClick={handleLaunchStage}
                   className={`w-full inline-flex items-center justify-center gap-2 py-3 font-jojo-heading text-xl tracking-[0.16em] uppercase disabled:opacity-35 ${
                     selectedStage.isBoss ? 'jojo-btn-crimson' : 'jojo-btn-primary'
                   }`}
                 >
                   <Swords size={20} />
-                  {stageCompleted ? 'Rejugar Nivel' : '¡Iniciar Combate!'}
+                  {stageCompleted
+                    ? effectiveDeckMode === 'CUSTOM'
+                      ? 'Rejugar con Tu Mazo'
+                      : 'Rejugar (Mazo Historia)'
+                    : '¡Iniciar Combate (Mazo Historia)!'}
                 </button>
               )}
             </motion.div>

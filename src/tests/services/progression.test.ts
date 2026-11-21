@@ -259,8 +259,13 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     for (const stage of part1.stages) {
       const val = validateDeck(stage.opponentDeckIds);
       expect(val.valid, `Stage ${stage.id} deck invalid: ${val.errors.map((e) => e.message).join(', ')}`).toBe(true);
+      const storyVal = validateDeck(stage.storyDeckIds);
+      expect(
+        storyVal.valid,
+        `Stage ${stage.id} story deck invalid: ${storyVal.errors.map((e) => e.message).join(', ')}`,
+      ).toBe(true);
       // Every non-energy card in Part 1 campaign decks belongs to Part 1 (or Speedwagon utility)
-      for (const cid of stage.opponentDeckIds) {
+      for (const cid of [...stage.opponentDeckIds, ...stage.storyDeckIds]) {
         const c = getCardById(cid)!;
         expect(c).toBeDefined();
         if (c.type === 'CHARACTER') expect(c.part).toBe(1);

@@ -584,32 +584,26 @@ export function chooseAiAction(
           if (validateAction(state, act).ok) return act;
         }
       } else if (item.itemKind === 'EQUIPPABLE' && player.active) {
+        const boardChars = [player.active, ...player.bench];
         const catBonusEff = item.effects.find(
           (e): e is Extract<typeof e, { kind: 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS' }> =>
             e.kind === 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS',
         );
-        if (catBonusEff) {
-          const boardChars = [player.active, ...player.bench];
-          const matchingTarget = boardChars.find((ch) =>
-            getEffectiveCharacterProfile(ch).categories.includes(catBonusEff.category),
-          );
-          if (!matchingTarget) continue;
-          const act: GameAction = {
-            type: 'PLAY_ITEM',
-            playerId: aiPlayerId,
-            handIndex: i,
-            targetInstanceId: matchingTarget.instanceId,
-          };
-          if (validateAction(state, act).ok) return act;
-        } else {
-          const act: GameAction = {
-            type: 'PLAY_ITEM',
-            playerId: aiPlayerId,
-            handIndex: i,
-            targetInstanceId: player.active.instanceId,
-          };
-          if (validateAction(state, act).ok) return act;
-        }
+        const targetChar = catBonusEff
+          ? boardChars.find(
+              (ch) =>
+                !ch.attachedItems.some((it) => it.cardId === item.id) &&
+                getEffectiveCharacterProfile(ch).categories.includes(catBonusEff.category),
+            )
+          : boardChars.find((ch) => !ch.attachedItems.some((it) => it.cardId === item.id));
+        if (!targetChar) continue;
+        const act: GameAction = {
+          type: 'PLAY_ITEM',
+          playerId: aiPlayerId,
+          handIndex: i,
+          targetInstanceId: targetChar.instanceId,
+        };
+        if (validateAction(state, act).ok) return act;
       } else if (item.effects.some((e) => e.kind === 'SEARCH_DECK')) {
         // If this item is also an evolution catalyst and the matching evolution card is already in hand, keep it as catalyst!
         const keepAsCatalyst =

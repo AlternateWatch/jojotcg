@@ -295,6 +295,78 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     expect(res.state.players.P2.active!.currentHp).toBe(90);
   });
 
+  it('enforces max 1 copy of each equippable item per character (allows same item on different characters and different items on same character)', () => {
+    const deck = PRESET_DECKS[0]!.cardIds;
+    const { state: initState, rng } = buildQuickBattleState(deck, deck);
+    initState.players.P1.hand = [
+      'char-jonathan-joestar',
+      'char-will-a-zeppeli',
+      'item-clackers',
+      'item-clackers',
+      'item-mascara-de-piedra',
+      'item-mascara-de-piedra',
+      'item-pluck',
+    ];
+    initState.players.P2.hand = ['char-dio-brando'];
+
+    let res = dispatchAction(initState, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P1', handIndex: 0 }, rng);
+    res = dispatchAction(res.state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P2', handIndex: 0 }, rng);
+
+    // Put Zeppeli on bench (ends P1 T1 -> P2 ends T1 -> back to P1 T2)
+    const zepIdx = res.state.players.P1.hand.indexOf('char-will-a-zeppeli');
+    res = dispatchAction(res.state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: zepIdx }, rng);
+    res = dispatchAction(res.state, { type: 'END_TURN', playerId: 'P2' }, rng);
+
+    const activeId = res.state.players.P1.active!.instanceId;
+    const benchId = res.state.players.P1.bench[0]!.instanceId;
+
+    // 1. Equip 1st Clackers onto Jonathan (active) -> OK
+    res = dispatchAction(
+      res.state,
+      { type: 'PLAY_ITEM', playerId: 'P1', handIndex: res.state.players.P1.hand.indexOf('item-clackers'), targetInstanceId: activeId },
+      rng,
+    );
+    expect(res.ok).toBe(true);
+
+    // 2. Try equipping 2nd Clackers onto Jonathan (same character) -> REJECTED!
+    const dupClackers = dispatchAction(
+      res.state,
+      { type: 'PLAY_ITEM', playerId: 'P1', handIndex: res.state.players.P1.hand.indexOf('item-clackers'), targetInstanceId: activeId },
+      rng,
+    );
+    expect(dupClackers.ok).toBe(false);
+
+    // 3. Equip that 2nd Clackers onto Zeppeli (bench) -> OK!
+    res = dispatchAction(
+      res.state,
+      { type: 'PLAY_ITEM', playerId: 'P1', handIndex: res.state.players.P1.hand.indexOf('item-clackers'), targetInstanceId: benchId },
+      rng,
+    );
+    expect(res.ok).toBe(true);
+
+    // 4. Equip Máscara de Piedra + (P)luck onto Jonathan (different items on same character) -> OK!
+    res = dispatchAction(
+      res.state,
+      { type: 'PLAY_ITEM', playerId: 'P1', handIndex: res.state.players.P1.hand.indexOf('item-mascara-de-piedra'), targetInstanceId: activeId },
+      rng,
+    );
+    expect(res.ok).toBe(true);
+    res = dispatchAction(
+      res.state,
+      { type: 'PLAY_ITEM', playerId: 'P1', handIndex: res.state.players.P1.hand.indexOf('item-pluck'), targetInstanceId: activeId },
+      rng,
+    );
+    expect(res.ok).toBe(true);
+
+    // 5. Try equipping 2nd Máscara de Piedra onto Jonathan -> REJECTED!
+    const dupMask = dispatchAction(
+      res.state,
+      { type: 'PLAY_ITEM', playerId: 'P1', handIndex: res.state.players.P1.hand.indexOf('item-mascara-de-piedra'), targetInstanceId: activeId },
+      rng,
+    );
+    expect(dupMask.ok).toBe(false);
+  });
+
   it('preventConsecutiveStun blocks infinite back-to-back stun-locking for 1 turn', () => {
     const deck = PRESET_DECKS[0]!.cardIds;
     const { state: initState, rng } = buildQuickBattleState(deck, deck);

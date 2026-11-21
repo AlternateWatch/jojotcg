@@ -248,10 +248,31 @@ export function validatePlayItem(
     if (targetInstanceId && targetInstanceId !== player.active.instanceId) {
       return { ok: false, reason: `${item.name} solo puede usarse en tu Personaje Activo.` };
     }
+    if (
+      item.itemKind === 'EQUIPPABLE' &&
+      player.active.attachedItems.some((it) => it.cardId === item.id)
+    ) {
+      const prof = getEffectiveCharacterProfile(player.active);
+      return {
+        ok: false,
+        reason: `${prof.name} ya tiene equipado ${item.name} (máximo 1 de cada objeto por personaje).`,
+      };
+    }
   } else if (item.targetScope === 'ANY_ALLY') {
     const resolvedTarget = targetInstanceId ?? player.active?.instanceId;
-    if (!resolvedTarget || !findCharacterOnBoard(state, playerId, resolvedTarget)) {
+    const foundTarget = resolvedTarget ? findCharacterOnBoard(state, playerId, resolvedTarget) : null;
+    if (!foundTarget) {
       return { ok: false, reason: 'Selecciona un personaje aliado válido en el campo.' };
+    }
+    if (
+      item.itemKind === 'EQUIPPABLE' &&
+      foundTarget.character.attachedItems.some((it) => it.cardId === item.id)
+    ) {
+      const prof = getEffectiveCharacterProfile(foundTarget.character);
+      return {
+        ok: false,
+        reason: `${prof.name} ya tiene equipado ${item.name} (máximo 1 de cada objeto por personaje).`,
+      };
     }
   }
 

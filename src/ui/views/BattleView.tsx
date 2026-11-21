@@ -359,7 +359,15 @@ export function BattleView() {
         targetInstanceId: instanceId,
       }).ok;
     }
-    return isTargetingEnergy || isTargetingEquippable;
+    if (isTargetingEquippable) {
+      return validateAction(gameState, {
+        type: 'PLAY_ITEM',
+        playerId: myId,
+        handIndex: selectedHandIndex,
+        targetInstanceId: instanceId,
+      }).ok;
+    }
+    return isTargetingEnergy;
   };
 
   const targetHint = isTargetingStand
