@@ -1172,6 +1172,481 @@ const PART_3_STAGES: CampaignStageDef[] = [
   },
 ];
 
+// ===================== PART 4: DIAMOND IS UNBREAKABLE STORY DECKS & STAGES =====================
+const P4_STORY_EARLY_NAME = 'Amigos de Morioh (Campaña P4)';
+const P4_STORY_EARLY_DESC =
+  'Josuke, Okuyasu, Koichi y Shigechi con Crazy Diamond, The Hand, Echoes Act 1, Harvest y Comida de Tonio.';
+const P4_STORY_EARLY_IDS = buildPart1Deck(
+  [
+    'char-shigekiyo-yangu',
+    'char-okuyasu-nijimura',
+    'char-koichi-hirose',
+    'char-josuke-higashikata',
+    'stand-harvest',
+    'stand-the-hand',
+    'stand-echoes-act-1',
+    'stand-crazy-diamond',
+  ],
+  [
+    ...rep('item-atraccion-usuarios-stand', 3),
+    ...rep('item-flecha-de-stand', 2),
+    ...rep('item-comida-de-tonio', 3),
+    ...rep('item-suministros-speedwagon', 2),
+  ],
+  [
+    ['energy-psychic', 15],
+    ['energy-nature', 7],
+  ],
+);
+
+const P4_STORY_MID_NAME = 'Defensores de Morioh (Campaña P4)';
+const P4_STORY_MID_DESC =
+  'Los aliados de Morioh al completo: Josuke, Okuyasu, Koichi, Rohan, Yukako y Shigechi investigando la ciudad.';
+const P4_STORY_MID_IDS = buildPart1Deck(
+  [
+    'char-shigekiyo-yangu',
+    'char-okuyasu-nijimura',
+    'char-koichi-hirose',
+    'char-rohan-kishibe',
+    'char-yukako-yamagishi',
+    'char-josuke-higashikata',
+    'stand-harvest',
+    'stand-the-hand',
+    'stand-echoes-act-1',
+    'stand-heavens-door',
+    'stand-love-deluxe',
+    'stand-crazy-diamond',
+  ],
+  [
+    ...rep('item-atraccion-usuarios-stand', 3),
+    ...rep('item-flecha-de-stand', 2),
+    ...rep('item-comida-de-tonio', 2),
+    ...rep('item-suministros-speedwagon', 2),
+  ],
+  [
+    ['energy-psychic', 13],
+    ['energy-nature', 6],
+  ],
+);
+
+const P4_STORY_FINALE_NAME = 'Corazón Dorado de Morioh (Campaña P4)';
+const P4_STORY_FINALE_DESC =
+  'Equipo definitivo de Morioh-cho equipado con curación de Tonio, buscadores de Stand y toda la fuerza de Crazy Diamond.';
+const P4_STORY_FINALE_IDS = buildPart1Deck(
+  [
+    'char-shigekiyo-yangu',
+    'char-okuyasu-nijimura',
+    'char-koichi-hirose',
+    'char-rohan-kishibe',
+    'char-yukako-yamagishi',
+    'char-josuke-higashikata',
+    'stand-harvest',
+    'stand-stray-cat',
+    'stand-the-hand',
+    'stand-echoes-act-1',
+    'stand-heavens-door',
+    'stand-love-deluxe',
+    'stand-crazy-diamond',
+  ],
+  [
+    ...rep('item-atraccion-usuarios-stand', 3),
+    ...rep('item-flecha-de-stand', 2),
+    ...rep('item-comida-de-tonio', 3),
+    ...rep('item-suministros-speedwagon', 2),
+  ],
+  [
+    ['energy-psychic', 12],
+    ['energy-nature', 5],
+  ],
+);
+
+const PART_4_STAGES: CampaignStageDef[] = [
+  {
+    id: 'p4-s1',
+    part: 4,
+    stageNumber: 1,
+    title: 'La Casa de los Nijimura',
+    location: 'Barrio de los Nijimura · Morioh 1999',
+    storyText:
+      'Okuyasu defiende la entrada de la casa familiar borrando el espacio mismo con el poder de The Hand.',
+    opponentName: 'Okuyasu Nijimura · The Hand',
+    featuredCardId: 'char-okuyasu-nijimura',
+    difficulty: 'EASY',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-shigekiyo-yangu',
+        'char-okuyasu-nijimura',
+        'stand-harvest',
+        'stand-the-hand',
+        'stand-stray-cat',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 2),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-comida-de-tonio', 2),
+      ],
+      [
+        ['energy-psychic', 20],
+        ['energy-colorless', 9],
+      ],
+    ),
+    storyDeckName: P4_STORY_EARLY_NAME,
+    storyDeckDescription: P4_STORY_EARLY_DESC,
+    storyDeckIds: P4_STORY_EARLY_IDS,
+    rewardCoins: 170,
+  },
+  {
+    id: 'p4-s2',
+    part: 4,
+    stageNumber: 2,
+    title: 'El Despertar de Echoes',
+    location: 'Instituto Budogaoka · Morioh',
+    storyText:
+      'Atravesado por la Flecha, Koichi despierta a Echoes Act 1 e inunda el combate de onomatopeyas.',
+    opponentName: 'Koichi Hirose · Echoes',
+    featuredCardId: 'char-koichi-hirose',
+    difficulty: 'EASY',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-shigekiyo-yangu',
+        'char-koichi-hirose',
+        'char-okuyasu-nijimura',
+        'stand-harvest',
+        'stand-echoes-act-1',
+        'stand-the-hand',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 2),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-comida-de-tonio', 2),
+      ],
+      [
+        ['energy-psychic', 18],
+        ['energy-colorless', 10],
+      ],
+    ),
+    storyDeckName: P4_STORY_EARLY_NAME,
+    storyDeckDescription: P4_STORY_EARLY_DESC,
+    storyDeckIds: P4_STORY_EARLY_IDS,
+    rewardCoins: 190,
+  },
+  {
+    id: 'p4-s3',
+    part: 4,
+    stageNumber: 3,
+    title: 'Obsesión en el Cabo Boing-Boing',
+    location: 'Villa Costera · Morioh',
+    storyText:
+      'Yukako Yamagishi no dejará escapar a Koichi y atrapa a sus rivales con los cabellos de Love Deluxe.',
+    opponentName: 'Yukako Yamagishi · Love Deluxe',
+    featuredCardId: 'char-yukako-yamagishi',
+    difficulty: 'EASY',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-shigekiyo-yangu',
+        'char-yukako-yamagishi',
+        'char-koichi-hirose',
+        'stand-harvest',
+        'stand-love-deluxe',
+        'stand-echoes-act-1',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 2),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-comida-de-tonio', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-psychic', 16],
+        ['energy-colorless', 10],
+      ],
+    ),
+    storyDeckName: P4_STORY_EARLY_NAME,
+    storyDeckDescription: P4_STORY_EARLY_DESC,
+    storyDeckIds: P4_STORY_EARLY_IDS,
+    rewardCoins: 210,
+  },
+  {
+    id: 'p4-s4',
+    part: 4,
+    stageNumber: 4,
+    title: 'El Estudio del Mangaka',
+    location: 'Casa de Rohan Kishibe',
+    storyText:
+      'Rohan lee tu mano al instante al entrar al campo y convierte a sus rivales en páginas con Heaven’s Door.',
+    opponentName: 'Rohan Kishibe · Heaven’s Door',
+    featuredCardId: 'char-rohan-kishibe',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-shigekiyo-yangu',
+        'char-rohan-kishibe',
+        'char-koichi-hirose',
+        'stand-harvest',
+        'stand-heavens-door',
+        'stand-echoes-act-1',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-comida-de-tonio', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-psychic', 20],
+        ['energy-colorless', 5],
+      ],
+    ),
+    storyDeckName: P4_STORY_MID_NAME,
+    storyDeckDescription: P4_STORY_MID_DESC,
+    storyDeckIds: P4_STORY_MID_IDS,
+    rewardCoins: 230,
+  },
+  {
+    id: 'p4-s5',
+    part: 4,
+    stageNumber: 5,
+    title: 'El Puerto de Morioh: Red Hot Chili Pepper',
+    location: 'Muelle Eléctrico de Morioh',
+    storyText:
+      '¡JEFE INTERMEDIO! Akira Otoishi absorbe toda la red eléctrica de Morioh para desatar el voltaje de Red Hot Chili Pepper. ¡Derrótalo para ganar 1 Sobre de Parte 4!',
+    opponentName: 'Akira Otoishi · Chili Pepper (Jefe)',
+    featuredCardId: 'char-akira-otoishi',
+    difficulty: 'HARD',
+    isBoss: true,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-akira-otoishi',
+        'char-shigekiyo-yangu',
+        'char-okuyasu-nijimura',
+        'char-rohan-kishibe',
+        'stand-red-hot-chilli-pepper',
+        'stand-harvest',
+        'stand-stray-cat',
+        'stand-the-hand',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-comida-de-tonio', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-electric', 14],
+        ['energy-psychic', 9],
+      ],
+    ),
+    storyDeckName: P4_STORY_MID_NAME,
+    storyDeckDescription: P4_STORY_MID_DESC,
+    storyDeckIds: P4_STORY_MID_IDS,
+    rewardCoins: 340,
+    rewardPackId: 'pack-part-4',
+    rewardPackCount: 1,
+  },
+  {
+    id: 'p4-s6',
+    part: 4,
+    stageNumber: 6,
+    title: 'La Horda de la Estación',
+    location: 'Estación de Morioh',
+    storyText:
+      'Shigechi despliega a sus cientos de Harvest en busca de fortuna y recursos por toda la ciudad.',
+    opponentName: 'Shigekiyo Yangu · Harvest',
+    featuredCardId: 'char-shigekiyo-yangu',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-shigekiyo-yangu',
+        'char-okuyasu-nijimura',
+        'char-yukako-yamagishi',
+        'stand-harvest',
+        'stand-stray-cat',
+        'stand-the-hand',
+        'stand-love-deluxe',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-comida-de-tonio', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-psychic', 19],
+        ['energy-colorless', 5],
+      ],
+    ),
+    storyDeckName: P4_STORY_MID_NAME,
+    storyDeckDescription: P4_STORY_MID_DESC,
+    storyDeckIds: P4_STORY_MID_IDS,
+    rewardCoins: 250,
+  },
+  {
+    id: 'p4-s7',
+    part: 4,
+    stageNumber: 7,
+    title: 'El Secreto de la Bolsa de Pan',
+    location: 'Panadería St. Gentleman · Morioh',
+    storyText:
+      'Alguien que solo desea vivir una vida tranquila oculta un secreto mortal. Yoshikage Kira entra en escena.',
+    opponentName: 'Yoshikage Kira',
+    featuredCardId: 'char-yoshikage-kira',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-yoshikage-kira',
+        'char-shigekiyo-yangu',
+        'char-akira-otoishi',
+        'stand-killer-queen',
+        'stand-harvest',
+        'stand-stray-cat',
+        'stand-red-hot-chilli-pepper',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-comida-de-tonio', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-fire', 13],
+        ['energy-electric', 11],
+      ],
+    ),
+    storyDeckName: P4_STORY_MID_NAME,
+    storyDeckDescription: P4_STORY_MID_DESC,
+    storyDeckIds: P4_STORY_MID_IDS,
+    rewardCoins: 280,
+  },
+  {
+    id: 'p4-s8',
+    part: 4,
+    stageNumber: 8,
+    title: 'La Sastrería Centipede: Sheer Heart Attack',
+    location: 'Tienda de Zapatos Centipede',
+    storyText:
+      'La segunda bomba de Killer Queen no tiene debilidades: Sheer Heart Attack persigue el calor sin descanso.',
+    opponentName: 'Yoshikage Kira · Killer Queen',
+    featuredCardId: 'stand-killer-queen',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-yoshikage-kira',
+        'char-shigekiyo-yangu',
+        'char-rohan-kishibe',
+        'char-akira-otoishi',
+        'stand-killer-queen',
+        'stand-stray-cat',
+        'stand-harvest',
+        'stand-heavens-door',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-comida-de-tonio', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-fire', 14],
+        ['energy-psychic', 9],
+      ],
+    ),
+    storyDeckName: P4_STORY_FINALE_NAME,
+    storyDeckDescription: P4_STORY_FINALE_DESC,
+    storyDeckIds: P4_STORY_FINALE_IDS,
+    rewardCoins: 310,
+  },
+  {
+    id: 'p4-s9',
+    part: 4,
+    stageNumber: 9,
+    title: 'Identidad Robada: Kosaku Kawajiri',
+    location: 'Residencia Kawajiri · Morioh',
+    storyText:
+      'Oculto bajo el rostro de Kosaku Kawajiri y aliado con las burbujas de aire de Stray Cat, el asesino acecha en casa.',
+    opponentName: 'Kosaku Kawajiri & Stray Cat',
+    featuredCardId: 'evo-kosaku-kawajiri',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-yoshikage-kira',
+        'evo-kosaku-kawajiri',
+        'char-shigekiyo-yangu',
+        'char-akira-otoishi',
+        'char-rohan-kishibe',
+        'stand-killer-queen',
+        'stand-stray-cat',
+        'stand-harvest',
+        'stand-heavens-door',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-comida-de-tonio', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-fire', 13],
+        ['energy-psychic', 9],
+      ],
+    ),
+    storyDeckName: P4_STORY_FINALE_NAME,
+    storyDeckDescription: P4_STORY_FINALE_DESC,
+    storyDeckIds: P4_STORY_FINALE_IDS,
+    rewardCoins: 350,
+  },
+  {
+    id: 'p4-s10',
+    part: 4,
+    stageNumber: 10,
+    title: 'Mañana Eterna: Bites The Dust',
+    location: 'Calles de Morioh · Amanecer',
+    storyText:
+      '¡JEFE FINAL DE LA PARTE 4! Yoshikage Kira despierta la tercera bomba Killer Queen: Bites The Dust junto a Kosaku Kawajiri y Stray Cat. ¡Salva Morioh y gana 2 Sobres de Parte 4!',
+    opponentName: 'Kira · Bites The Dust (Jefe Final)',
+    featuredCardId: 'evo-killer-queen-bites-the-dust',
+    difficulty: 'HARD',
+    isBoss: true,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-yoshikage-kira',
+        'evo-kosaku-kawajiri',
+        'char-shigekiyo-yangu',
+        'char-rohan-kishibe',
+        'char-akira-otoishi',
+        'stand-killer-queen',
+        'evo-killer-queen-bites-the-dust',
+        'stand-stray-cat',
+        'stand-harvest',
+        'stand-heavens-door',
+      ],
+      [
+        ...rep('item-flecha-de-stand', 3),
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-comida-de-tonio', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-fire', 11],
+        ['energy-psychic', 9],
+      ],
+    ),
+    storyDeckName: P4_STORY_FINALE_NAME,
+    storyDeckDescription: P4_STORY_FINALE_DESC,
+    storyDeckIds: P4_STORY_FINALE_IDS,
+    rewardCoins: 600,
+    rewardPackId: 'pack-part-4',
+    rewardPackCount: 2,
+  },
+];
+
 export const CAMPAIGN_PARTS: CampaignPartDef[] = [
   {
     part: 1,
@@ -1212,14 +1687,14 @@ export const CAMPAIGN_PARTS: CampaignPartDef[] = [
   {
     part: 4,
     name: 'Parte 4: Diamond is Unbreakable',
-    subtitle: 'Morioh frente a Yoshikage Kira (Próximamente)',
+    subtitle: 'Josuke y los aliados de Morioh-cho frente a Red Hot Chili Pepper y Yoshikage Kira (10 niveles)',
     mapHeader: 'MAPA DE RUTA · CIUDAD DE MORIOH 1999',
     badge: 'PARTE 4',
     accentHex: '#00b87c',
     patternUrl: '/assets/patterns/pattern6.png',
     packId: 'pack-part-4',
-    available: false,
-    stages: [],
+    available: true,
+    stages: PART_4_STAGES,
   },
 ];
 

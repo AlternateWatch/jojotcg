@@ -251,8 +251,8 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(validateDeck(resEmpty.cardIds).valid).toBe(true);
   });
 
-  it('validates Part 1, 2 & 3 Campaigns (30 legal Part-themed decks & story decks, HARD bosses on 5 & 10 with 1 & 2 packs, strict one-time pickup)', () => {
-    for (const partNum of [1, 2, 3] as const) {
+  it('validates Part 1–4 Campaigns (40 legal Part-themed decks & story decks, HARD bosses on 5 & 10 with 1 & 2 packs, strict one-time pickup)', () => {
+    for (const partNum of [1, 2, 3, 4] as const) {
       const partDef = CAMPAIGN_PARTS.find((p) => p.part === partNum)!;
       expect(partDef.available).toBe(true);
       expect(partDef.stages).toHaveLength(10);
@@ -296,6 +296,7 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     const s10 = getCampaignStageById('p1-s10')!;
     const p2s10 = getCampaignStageById('p2-s10')!;
     const p3s10 = getCampaignStageById('p3-s10')!;
+    const p4s10 = getCampaignStageById('p4-s10')!;
 
     // Sequential unlock
     let prog = createInitialProgression();
@@ -349,5 +350,11 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(rP3S10.firstClear).toBe(true);
     expect(rP3S10.pack?.id).toBe('pack-part-3');
     expect(rP3S10.packOutcomes).toHaveLength(2);
+
+    // Part 4 Stage 10 grants 2 Part 4 packs once
+    const rP4S10 = claimCampaignStageReward(p4s10, rP3S10.nextProgression, createSeededRng(410));
+    expect(rP4S10.firstClear).toBe(true);
+    expect(rP4S10.pack?.id).toBe('pack-part-4');
+    expect(rP4S10.packOutcomes).toHaveLength(2);
   });
 });
