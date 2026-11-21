@@ -43,6 +43,20 @@ export const ITEM_CARDS: ItemCard[] = [
     tags: ['official', 'equippable', 'catalyst'],
   },
   {
+    id: 'item-ataud-de-dio',
+    name: 'Ataúd de DIO',
+    type: 'ITEM',
+    part: 1,
+    imageId: 'ataud-de-dio',
+    assetFolder: 'items',
+    itemKind: 'CONSUMABLE',
+    targetScope: 'PLAYER',
+    description:
+      'Ataúd utilizado para encerrar a un horror centenario. Al jugar por su cuenta: Aturde al personaje activo rival y le deshabilita la posibilidad de bajar al personaje a la banca.',
+    effects: [{ kind: 'STUN_AND_LOCK_RETREAT_ENEMY_ACTIVE' }],
+    tags: ['official', 'control', 'stun'],
+  },
+  {
     id: 'item-piedra-roja-de-aja',
     name: 'Piedra Roja de Aja',
     type: 'ITEM',

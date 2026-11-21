@@ -113,6 +113,7 @@ export const CARD_RARITY_MAP: Record<string, CardRarity> = {
   'stand-sticky-fingers': 'SUPER_RARE',
   'evo-kosaku-kawajiri': 'SUPER_RARE',
   'item-flecha-requiem': 'SUPER_RARE',
+  'item-ataud-de-dio': 'SUPER_RARE',
 
   // === RARE (R) ===
   'char-caesar-zeppeli': 'RARE',
@@ -251,6 +252,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'char-dio-brando',
       'item-mascara-de-piedra',
       'item-pluck',
+      'item-ataud-de-dio',
     ],
   },
   {
@@ -544,6 +546,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'item-mascara-de-piedra',
       'item-piedra-roja-de-aja',
       'item-flecha-de-stand',
+      'item-ataud-de-dio',
     ],
   },
   {
@@ -625,6 +628,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'item-flecha-de-stand',
       'item-flecha-requiem',
       'item-mechero-de-polpo',
+      'item-ataud-de-dio',
       'char-robert-e-o-speedwagon',
       'char-shigekiyo-yangu',
     ],

@@ -70,6 +70,8 @@ export interface CharacterInstance {
   /** Preparation signature ability usage tracking */
   usedPrepAbilityThisTurn: boolean;
   usedOnceEnterPrepAbility: boolean;
+  /** Ataúd de DIO: disables retreating/swapping this character to the bench until end of its next turn */
+  retreatLockedUntilEndOfTurn?: boolean;
 }
 
 export interface PlayerState {

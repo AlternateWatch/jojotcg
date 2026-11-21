@@ -346,6 +346,17 @@ export function validatePlayItem(
           reason: 'Necesitas al menos 1 personaje en tu banca para usar Cambio Táctico.',
         };
       }
+      if (player.active.retreatLockedUntilEndOfTurn) {
+        return {
+          ok: false,
+          reason: `${getEffectiveCharacterProfile(player.active).name} está encerrado por Ataúd de DIO y no puede bajar a la banca este turno.`,
+        };
+      }
+    } else if (eff.kind === 'STUN_AND_LOCK_RETREAT_ENEMY_ACTIVE') {
+      const opponent = state.players[getOpponentId(playerId)];
+      if (!opponent.active) {
+        return { ok: false, reason: 'El oponente no tiene un personaje activo.' };
+      }
     }
   }
 
@@ -430,6 +441,26 @@ export function applyPlayItem(
           'BURN',
           item.name,
         );
+      }
+    } else if (eff.kind === 'STUN_AND_LOCK_RETREAT_ENEMY_ACTIVE') {
+      const opponentId = getOpponentId(playerId);
+      const opponent = state.players[opponentId];
+      if (opponent.active) {
+        tryApplyElementalStatus(
+          state,
+          eventsOut,
+          opponentId,
+          opponent.active.instanceId,
+          'STUNNED',
+          item.name,
+        );
+        opponent.active.retreatLockedUntilEndOfTurn = true;
+        pushEvent(state, eventsOut, {
+          type: 'ABILITY_TRIGGERED',
+          playerId,
+          abilityName: item.name,
+          message: `¡${item.name}! ${getEffectiveCharacterProfile(opponent.active).name} no podrá retirarse a la banca durante su próximo turno.`,
+        });
       }
     } else if (eff.kind === 'DRAW_CARDS') {
       const drawnCount = Math.min(eff.count, player.deck.length);
@@ -836,6 +867,12 @@ export function validateSwapOrRetreat(
   }
   const player = state.players[playerId];
   if (!player.active) return { ok: false, reason: 'No hay personaje en el Puesto Activo.' };
+  if (player.active.retreatLockedUntilEndOfTurn) {
+    return {
+      ok: false,
+      reason: `${getEffectiveCharacterProfile(player.active).name} está encerrado por Ataúd de DIO y no puede bajar a la banca este turno.`,
+    };
+  }
   if (!player.bench.some((b) => b.instanceId === benchInstanceId)) {
     return { ok: false, reason: 'El personaje seleccionado no está en tu banca.' };
   }

@@ -675,6 +675,16 @@ export function chooseAiAction(
           const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
           if (validateAction(state, act).ok) return act;
         }
+      } else if (item.effects.some((e) => e.kind === 'STUN_AND_LOCK_RETREAT_ENEMY_ACTIVE')) {
+        if (
+          opponent.active &&
+          !opponent.active.statuses.stunned &&
+          !opponent.active.statuses.stunImmuneNextTurn &&
+          !hasElementalStatusImmunity(state, opponent.id, opponent.active).immune
+        ) {
+          const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
+          if (validateAction(state, act).ok) return act;
+        }
       } else if (item.effects.some((e) => e.kind === 'DRAW_CARDS')) {
         // Avoid deck-out suicide: only play draw items when deck has plenty of cards left
         if (player.deck.length >= 10) {

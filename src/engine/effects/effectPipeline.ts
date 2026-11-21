@@ -705,5 +705,6 @@ export function resolveEndOfTurnEffects(
     // Reset per-turn flags
     character.tookDamageThisTurn = false;
     character.usedPrepAbilityThisTurn = false;
+    character.retreatLockedUntilEndOfTurn = false;
   }
 }

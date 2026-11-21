@@ -9,10 +9,10 @@ import { OFFICIAL_CARD_IMAGE_IDS, OFFICIAL_ITEM_IMAGE_IDS } from '../../services
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 63 official PNG cards, all 11 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 63 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
     expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(63);
-    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(11);
+    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(12);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
       const filePath = path.join(projectRoot, 'public', 'assets', 'cards', 'official', `${imageId}.png`);
@@ -374,6 +374,37 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     const p1HandDamaged = damagedState.players.P1.hand.length;
     damagedState = mustDispatch(damagedState, { type: 'END_TURN', playerId: 'P1' });
     expect(damagedState.players.P1.hand.length).toBe(p1HandDamaged);
+  });
+
+  it('resolves Ataúd de DIO stunning enemy active and locking their retreat to bench until end of their turn', () => {
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-dio-brando',
+      p1Hand: ['item-ataud-de-dio'],
+      p2ActiveId: 'char-jonathan-joestar',
+      p2BenchIds: ['char-will-a-zeppeli'],
+      phase: 'PREPARATION',
+    });
+
+    state = mustDispatch(state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: 0 });
+    expect(state.players.P2.active!.statuses.stunned).toBe(true);
+    expect(state.players.P2.active!.retreatLockedUntilEndOfTurn).toBe(true);
+    expect(state.players.P1.discard).toContain('item-ataud-de-dio');
+
+    // End P1 turn -> now P2's turn: P2 cannot swap active to bench!
+    state = mustDispatch(state, { type: 'END_TURN', playerId: 'P1' });
+    expect(state.activePlayerId).toBe('P2');
+    const blockedRetreat = dispatchAction(state, {
+      type: 'SWAP_ACTIVE_WITH_BENCH',
+      playerId: 'P2',
+      benchInstanceId: state.players.P2.bench[0]!.instanceId,
+    });
+    expect(blockedRetreat.ok).toBe(false);
+    expect(blockedRetreat.error).toContain('Ataúd de DIO');
+
+    // After P2 ends their turn, both stun and retreat lock clear
+    state = mustDispatch(state, { type: 'END_TURN', playerId: 'P2' });
+    expect(state.players.P2.active!.statuses.stunned).toBe(false);
+    expect(state.players.P2.active!.retreatLockedUntilEndOfTurn).toBe(false);
   });
 
   it('completes AI vs AI matches across all 4 preset decks cleanly', () => {
