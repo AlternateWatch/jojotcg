@@ -128,6 +128,7 @@ export function CampaignView() {
         firstPlayerId: 'P1',
         aiDifficulty: selectedStage.difficulty,
         campaignStageId: selectedStage.id,
+        p2GuaranteedOpeningCardId: selectedStage.featuredCardId,
       },
       settings.hotseatPrivacyScreen,
     );

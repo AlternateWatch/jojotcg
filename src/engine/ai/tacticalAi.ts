@@ -511,6 +511,7 @@ export function chooseAiAction(
         let s = c.maxHp;
         if (c.attacks.length > 0) s += 85;
         if (c.dg !== null && handStands.some((st) => c.dg! >= st.requiredDg)) s += 115;
+        if (player.guaranteedOpeningCardId && c.id === player.guaranteedOpeningCardId) s += 35;
         return s;
       };
       return score(cB) - score(cA);

@@ -50,9 +50,32 @@ export interface CreateGameOptions {
   p2Deck: readonly string[];
   p1IsAi?: boolean;
   p2IsAi?: boolean;
+  p1GuaranteedOpeningCardId?: string;
+  p2GuaranteedOpeningCardId?: string;
   firstPlayerId?: PlayerId;
   rules?: Partial<GameRulesConfig>;
   rng?: RngProvider;
+}
+
+function drawOpeningHandWithGuarantee(
+  shuffledDeck: string[],
+  initialHandSize: number,
+  guaranteedCardId?: string,
+): { hand: string[]; deck: string[] } {
+  const deck = [...shuffledDeck];
+  const drawCount = Math.min(initialHandSize, deck.length);
+  const hand: string[] = [];
+
+  if (guaranteedCardId && drawCount > 0) {
+    const gIdx = deck.indexOf(guaranteedCardId);
+    if (gIdx !== -1) {
+      hand.push(deck.splice(gIdx, 1)[0]!);
+    }
+  }
+
+  const remainingToDraw = Math.max(0, drawCount - hand.length);
+  hand.push(...deck.splice(0, remainingToDraw));
+  return { hand, deck };
 }
 
 function createPlayerState(
@@ -62,14 +85,19 @@ function createPlayerState(
   isAi: boolean,
   initialHandSize: number,
   rng: RngProvider,
+  guaranteedOpeningCardId?: string,
 ): PlayerState {
   const shuffled = rng.shuffle(deckIds);
-  const hand = shuffled.splice(0, Math.min(initialHandSize, shuffled.length));
+  const { hand, deck } = drawOpeningHandWithGuarantee(
+    shuffled,
+    initialHandSize,
+    guaranteedOpeningCardId,
+  );
   return {
     id,
     name,
     isAi,
-    deck: shuffled,
+    deck,
     hand,
     discard: [],
     active: null,
@@ -85,6 +113,7 @@ function createPlayerState(
     pendingNextAttackBonus: 0,
     permanentWaterAttackBonus: 0,
     handRevealedToOpponent: false,
+    guaranteedOpeningCardId,
   };
 }
 
@@ -100,6 +129,7 @@ export function createGame(options: CreateGameOptions): GameState {
     options.p1IsAi ?? false,
     rules.initialHandSize,
     rng,
+    options.p1GuaranteedOpeningCardId,
   );
   const p2 = createPlayerState(
     'P2',
@@ -108,6 +138,7 @@ export function createGame(options: CreateGameOptions): GameState {
     options.p2IsAi ?? false,
     rules.initialHandSize,
     rng,
+    options.p2GuaranteedOpeningCardId,
   );
 
   const state: GameState = {

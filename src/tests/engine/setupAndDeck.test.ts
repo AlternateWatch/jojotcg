@@ -317,4 +317,45 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
       dispatchAction(state, { type: 'CONFIRM_STARTING_HAND', playerId: 'P1' }, noShuffle).ok,
     ).toBe(true);
   });
+
+  it('guarantees campaign AI featured card in its opening hand (even across mulligans)', () => {
+    const p1Deck = ['char-jonathan-joestar', ...Array.from({ length: 19 }, () => 'energy-electric')];
+    const p2Deck = [
+      ...Array.from({ length: 18 }, () => 'energy-light'),
+      'char-kars',
+      'evo-kars-ultimate',
+    ]; // Both Kars & Kars Ultimate buried at the bottom
+    const noShuffle = {
+      nextFloat: () => 0.5,
+      flipCoin: () => 'HEADS' as const,
+      shuffle: <T,>(a: readonly T[]) => [...a],
+    };
+
+    let state = createGame({
+      p1Name: 'P1',
+      p2Name: 'Kars Jefe',
+      p1Deck,
+      p2Deck,
+      p2IsAi: true,
+      p2GuaranteedOpeningCardId: 'evo-kars-ultimate',
+      rng: noShuffle,
+    });
+
+    // Featured card is immediately guaranteed in P2's 5-card opening hand
+    expect(state.players.P2.hand).toHaveLength(5);
+    expect(state.players.P2.hand).toContain('evo-kars-ultimate');
+    expect(state.players.P2.hand.length + state.players.P2.deck.length).toBe(20);
+
+    // Even after 3 mulligans, P2 gets a valid starting hand AND keeps evo-kars-ultimate in hand!
+    state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P2' }, noShuffle).state;
+    expect(state.players.P2.hand).toContain('evo-kars-ultimate');
+    state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P2' }, noShuffle).state;
+    expect(state.players.P2.hand).toContain('evo-kars-ultimate');
+    state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P2' }, noShuffle).state;
+    expect(state.players.P2.hand).toContain('evo-kars-ultimate');
+    expect(state.players.P2.hand).toContain('char-kars');
+    expect(hasValidStartingHand(state.players.P2.hand, 3)).toBe(true);
+    expect(state.players.P2.hand).toHaveLength(5);
+    expect(state.players.P2.hand.length + state.players.P2.deck.length).toBe(20);
+  });
 });

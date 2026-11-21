@@ -96,6 +96,8 @@ export interface PlayerState {
   permanentWaterAttackBonus: number;
   /** Rohan Kishibe reveals opponent hand */
   handRevealedToOpponent: boolean;
+  /** Optional campaign featured card guaranteed in this player's starting hand (including after mulligan) */
+  guaranteedOpeningCardId?: string;
 }
 
 export type PromptContinuation =

@@ -47,6 +47,7 @@ export interface StartBattleConfig {
   firstPlayerId: PlayerId;
   aiDifficulty?: AiDifficulty;
   campaignStageId?: string;
+  p2GuaranteedOpeningCardId?: string;
 }
 
 interface BattleStoreState {
@@ -301,6 +302,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       p2Deck: config.p2DeckIds,
       p1IsAi: false,
       p2IsAi: config.mode === 'VS_AI',
+      p2GuaranteedOpeningCardId: config.p2GuaranteedOpeningCardId,
       firstPlayerId: config.firstPlayerId,
       rng,
     });

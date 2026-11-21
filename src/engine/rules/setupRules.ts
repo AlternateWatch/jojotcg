@@ -57,7 +57,32 @@ function buildGuaranteedValidStartingHand(
   shuffledPool: string[],
   drawCount: number,
   maxInitialDg: number | null,
+  guaranteedCardId?: string,
 ): { hand: string[]; deck: string[] } | null {
+  const includeGuaranteed = (
+    requiredIndices: number[],
+  ): { hand: string[]; deck: string[] } => {
+    const remaining = [...shuffledPool];
+    const picked: string[] = [];
+    // Splice required cards in descending index order first
+    const uniqueSorted = Array.from(new Set(requiredIndices)).sort((a, b) => b - a);
+    for (const idx of uniqueSorted) {
+      picked.push(remaining.splice(idx, 1)[0]!);
+    }
+    // Preserve campaign featured card if not already picked
+    if (guaranteedCardId && !picked.includes(guaranteedCardId) && picked.length < drawCount) {
+      const gIdx = remaining.indexOf(guaranteedCardId);
+      if (gIdx !== -1) {
+        picked.push(remaining.splice(gIdx, 1)[0]!);
+      }
+    }
+    const restCount = Math.max(0, drawCount - picked.length);
+    return {
+      hand: [...picked, ...remaining.splice(0, restCount)],
+      deck: remaining,
+    };
+  };
+
   const tryWithCap = (dgCap: number | null): { hand: string[]; deck: string[] } | null => {
     // 1. Prefer a self-sufficient character (attacks.length > 0) within DG cap
     const selfSufficientIdx = shuffledPool.findIndex((id) => {
@@ -69,10 +94,7 @@ function buildGuaranteedValidStartingHand(
       );
     });
     if (selfSufficientIdx !== -1) {
-      const remaining = [...shuffledPool];
-      const starter = remaining.splice(selfSufficientIdx, 1)[0]!;
-      const hand = [starter, ...remaining.splice(0, Math.max(0, drawCount - 1))];
-      return { hand, deck: remaining };
+      return includeGuaranteed([selfSufficientIdx]);
     }
 
     // 2. Otherwise find a compatible Stand User + Stand pair within DG cap
@@ -95,16 +117,7 @@ function buildGuaranteedValidStartingHand(
           user.dg >= stand.requiredDg &&
           (!stand.compatibleCharacterIds || stand.compatibleCharacterIds.includes(user.id))
         ) {
-          const remaining = [...shuffledPool];
-          const [hi, lo] = uIdx > sIdx ? [uIdx, sIdx] : [sIdx, uIdx];
-          const firstRemoved = remaining.splice(hi, 1)[0]!;
-          const secondRemoved = remaining.splice(lo, 1)[0]!;
-          const hand = [
-            secondRemoved,
-            firstRemoved,
-            ...remaining.splice(0, Math.max(0, drawCount - 2)),
-          ];
-          return { hand, deck: remaining };
+          return includeGuaranteed([uIdx, sIdx]);
         }
       }
     }
@@ -124,13 +137,19 @@ export function applyPerformMulligan(
   const player = state.players[playerId];
   const opponent = state.players[getOpponentId(playerId)];
 
-  // Return hand to deck, shuffle, draw initialHandSize
+  // Return hand to deck, shuffle, draw initialHandSize (preserving campaign guaranteed opening card if set)
   player.deck.push(...player.hand);
   player.hand = [];
   player.deck = rng.shuffle(player.deck);
 
   const drawCount = Math.min(state.rules.initialHandSize, player.deck.length);
-  for (let i = 0; i < drawCount; i++) {
+  if (player.guaranteedOpeningCardId && drawCount > 0) {
+    const gIdx = player.deck.indexOf(player.guaranteedOpeningCardId);
+    if (gIdx !== -1) {
+      player.hand.push(player.deck.splice(gIdx, 1)[0]!);
+    }
+  }
+  while (player.hand.length < drawCount && player.deck.length > 0) {
     player.hand.push(player.deck.shift()!);
   }
   player.mulliganCount += 1;
@@ -142,7 +161,12 @@ export function applyPerformMulligan(
     : null;
   if (player.mulliganCount >= 3 && !hasValidStartingHand(player.hand, effectiveMaxDg)) {
     const pool = rng.shuffle([...player.hand, ...player.deck]);
-    const built = buildGuaranteedValidStartingHand(pool, drawCount, effectiveMaxDg);
+    const built = buildGuaranteedValidStartingHand(
+      pool,
+      drawCount,
+      effectiveMaxDg,
+      player.guaranteedOpeningCardId,
+    );
     if (built) {
       player.hand = built.hand;
       player.deck = built.deck;
