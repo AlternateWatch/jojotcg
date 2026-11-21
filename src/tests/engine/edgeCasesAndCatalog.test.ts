@@ -9,9 +9,9 @@ import { OFFICIAL_CARD_IMAGE_IDS, OFFICIAL_ITEM_IMAGE_IDS } from '../../services
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 58 official PNG cards, all 10 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 59 official PNG cards, all 10 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(58);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(59);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(10);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -155,6 +155,53 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     });
     expect(afterHit.players.P2.active!.currentHp).toBe(110); // 120 - 20 + 10
     expect(afterHit.players.P1.active!.currentHp).toBe(120); // 130 - 10 counter
+  });
+
+  it('resolves Giorno Giovanna (130 HP, DG 6) I, Giorno Giovanna, Have a Dream healing a bench ally by 20 HP only the first time he is played', () => {
+    // 1. Multi-bench case -> prompts to pick which bench ally to heal +20 HP
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar',
+      p1BenchIds: ['char-koichi-hirose', 'char-jean-pierre-polnareff'],
+      p1Hand: ['char-giorno-giovanna'],
+      p2ActiveId: 'char-dio-brando',
+      phase: 'PREPARATION',
+    });
+    state.turnNumber = 4; // DG 6 unlocked on Turn 4+
+    const koichi = state.players.P1.bench[0]!;
+    const polnareff = state.players.P1.bench[1]!;
+    koichi.currentHp = 60;
+    koichi.statuses.burn = { active: true, damagePerTurn: 10 };
+    polnareff.currentHp = 100;
+
+    state = mustDispatch(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: 0 });
+    expect(state.pendingPrompt?.kind).toBe('CHOOSE_ALLY_BENCH_HEAL');
+
+    state = mustDispatch(state, {
+      type: 'RESPOND_PROMPT',
+      playerId: 'P1',
+      response: { kind: 'CHOOSE_ALLY_BENCH_HEAL', benchInstanceId: koichi.instanceId },
+    });
+    const healedKoichi = state.players.P1.bench.find((b) => b.instanceId === koichi.instanceId)!;
+    expect(healedKoichi.currentHp).toBe(80);
+    expect(healedKoichi.statuses.burn).toBeNull();
+    expect(state.players.P1.giornoDreamUsed).toBe(true);
+    // Turn ended after playing to bench and resolving prompt
+    expect(state.activePlayerId).toBe('P2');
+
+    // 2. Single-bench case -> auto-heals the only other bench ally by +20 HP immediately
+    let singleState = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar',
+      p1BenchIds: ['char-koichi-hirose'],
+      p1Hand: ['char-giorno-giovanna'],
+      p2ActiveId: 'char-dio-brando',
+      phase: 'PREPARATION',
+    });
+    singleState.turnNumber = 4;
+    singleState.players.P1.bench[0]!.currentHp = 50;
+    singleState = mustDispatch(singleState, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: 0 });
+    expect(singleState.pendingPrompt).toBeNull();
+    expect(singleState.players.P1.bench[0]!.currentHp).toBe(70);
+    expect(singleState.players.P1.giornoDreamUsed).toBe(true);
   });
 
   it('completes AI vs AI matches across all 4 preset decks cleanly', () => {

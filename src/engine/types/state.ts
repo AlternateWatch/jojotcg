@@ -98,6 +98,8 @@ export interface PlayerState {
   handRevealedToOpponent: boolean;
   /** Optional campaign featured card guaranteed in this player's starting hand (including after mulligan) */
   guaranteedOpeningCardId?: string;
+  /** Giorno Giovanna: triggers "I, Giorno Giovanna, Have a Dream" only the first time Giorno is played */
+  giornoDreamUsed?: boolean;
 }
 
 export type PromptContinuation =
@@ -181,6 +183,13 @@ export type PlayerPrompt =
       kind: 'RECOVER_ENERGY_FROM_DISCARD';
       playerId: PlayerId;
       eligibleCardIds: string[];
+      sourceLabel: string;
+    }
+  | {
+      kind: 'CHOOSE_ALLY_BENCH_HEAL';
+      playerId: PlayerId;
+      eligibleInstanceIds: string[];
+      healAmount: number;
       sourceLabel: string;
     };
 

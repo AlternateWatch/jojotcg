@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowDown, ArrowUp, Minus, Plus } from 'lucide-react';
 import { getCardById } from '../../../data/cardRegistry';
 import {
+  computeEffectiveMaxHp,
   getEffectiveCharacterProfile,
   getEffectiveStandProfile,
 } from '../../../engine/helpers/cardStats';
@@ -581,6 +582,49 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
                   />
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* 11. CHOOSE ALLY BENCH HEAL (Giorno Giovanna — I, Giorno Giovanna, Have a Dream) */}
+        {prompt.kind === 'CHOOSE_ALLY_BENCH_HEAL' && (
+          <div className="space-y-4">
+            <h3 className="font-jojo-display text-2xl text-[#f5efe0] uppercase">
+              {prompt.sourceLabel} — Curar Aliado en Banca
+            </h3>
+            <p className="text-xs text-zinc-300">
+              Elige un aliado de tu banca para curarle{' '}
+              <strong className="text-[#00e599]">+{prompt.healAmount} HP</strong> (también elimina
+              Quemadura).
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              {player.bench
+                .filter((b) => prompt.eligibleInstanceIds.includes(b.instanceId))
+                .map((b) => {
+                  const prof = getEffectiveCharacterProfile(b);
+                  const card = getCardById(prof.currentCardId);
+                  if (!card) return null;
+                  const maxHp = computeEffectiveMaxHp(state, prompt.playerId, b);
+                  return (
+                    <div key={b.instanceId} className="flex flex-col items-center gap-1.5">
+                      <CardView
+                        card={card}
+                        size="md"
+                        highlighted
+                        badgeText={`+${prompt.healAmount} HP`}
+                        onClick={() =>
+                          onRespond({ kind: 'CHOOSE_ALLY_BENCH_HEAL', benchInstanceId: b.instanceId })
+                        }
+                      />
+                      <span className="font-jojo-heading text-sm tracking-wider text-[#f2c12e]">
+                        {prof.name}
+                      </span>
+                      <span className="font-mono text-xs text-zinc-400">
+                        {b.currentHp}/{maxHp} HP
+                      </span>
+                    </div>
+                  );
+                })}
             </div>
           </div>
         )}

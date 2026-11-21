@@ -923,6 +923,16 @@ export function validatePromptResponse(
       }
       return { ok: true };
     }
+    case 'CHOOSE_ALLY_BENCH_HEAL': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_ALLY_BENCH_HEAL' }>;
+      if (
+        !prompt.eligibleInstanceIds.includes(r.benchInstanceId) ||
+        !player.bench.some((b) => b.instanceId === r.benchInstanceId)
+      ) {
+        return { ok: false, reason: 'Debes elegir un aliado válido de tu banca para curar.' };
+      }
+      return { ok: true };
+    }
   }
 }
 
@@ -1147,6 +1157,18 @@ export function resolvePendingPrompt(
         count: 1,
         message: `${player.name} recupera ${getCardById(recovered)?.name ?? recovered} desde descartes (${prompt.sourceLabel}).`,
       });
+      break;
+    }
+    case 'CHOOSE_ALLY_BENCH_HEAL': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_ALLY_BENCH_HEAL' }>;
+      healCharacter(
+        state,
+        eventsOut,
+        playerId,
+        r.benchInstanceId,
+        prompt.healAmount,
+        prompt.sourceLabel,
+      );
       break;
     }
   }

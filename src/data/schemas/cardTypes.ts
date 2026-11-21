@@ -123,6 +123,7 @@ export type SignatureEffectId =
   | 'GUITAR_SOLO_AKIRA'
   | 'QUIET_LIFE_KIRA'
   | 'NOTHING_WILL_REMAIN_KOSAKU'
+  | 'HAVE_A_DREAM_GIORNO'
   | 'NONE';
 
 export interface SignatureAbilityDef {

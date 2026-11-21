@@ -217,17 +217,18 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
   {
     id: 'milestone-set-joestar-bloodline',
     title: 'El Linaje Joestar',
-    description: 'Reúne a todos los protagonistas JoJo del juego (de Jonathan a Josuke).',
+    description: 'Reúne a todos los protagonistas JoJo del juego (de Jonathan a Giorno).',
     category: 'CARD_SET',
     badge: 'LINAJE',
     accentHex: '#f2c12e',
-    rewardCoins: 750,
+    rewardCoins: 850,
     requiredCardIds: [
       'char-jonathan-joestar',
       'char-joseph-joestar',
       'char-joseph-joestar-viejo',
       'char-jotaro-kujo',
       'char-josuke-higashikata',
+      'char-giorno-giovanna',
     ],
   },
   {

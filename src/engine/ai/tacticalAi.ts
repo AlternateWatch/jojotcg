@@ -399,6 +399,22 @@ function buildPromptResponse(
       }
       return { kind: 'RECOVER_ENERGY_FROM_DISCARD', discardIndex: Math.max(0, bestIdx) };
     }
+    case 'CHOOSE_ALLY_BENCH_HEAL': {
+      const eligible = player.bench.filter((b) => prompt.eligibleInstanceIds.includes(b.instanceId));
+      const sorted = [...eligible].sort((a, b) => {
+        const missA =
+          Math.max(0, computeEffectiveMaxHp(state, prompt.playerId, a) - a.currentHp) +
+          (a.statuses.burn?.active ? 35 : 0);
+        const missB =
+          Math.max(0, computeEffectiveMaxHp(state, prompt.playerId, b) - b.currentHp) +
+          (b.statuses.burn?.active ? 35 : 0);
+        return missB - missA;
+      });
+      return {
+        kind: 'CHOOSE_ALLY_BENCH_HEAL',
+        benchInstanceId: sorted[0]?.instanceId ?? prompt.eligibleInstanceIds[0]!,
+      };
+    }
     case 'SEARCH_DECK_CARDS': {
       const boardChars = [...(player.active ? [player.active] : []), ...player.bench];
       const candidates: { idx: number; score: number }[] = [];

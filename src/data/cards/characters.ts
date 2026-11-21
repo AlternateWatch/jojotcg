@@ -814,4 +814,24 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     },
     attacks: [],
   },
+
+  // ===================== PART 5: GOLDEN WIND (VENTO AUREO) =====================
+  {
+    id: 'char-giorno-giovanna',
+    name: 'Giorno Giovanna',
+    type: 'CHARACTER',
+    part: 5,
+    imageId: 'giorno-giovanna',
+    assetFolder: 'official',
+    categories: ['STAND_USER'],
+    maxHp: 130,
+    dg: 6,
+    signatureAbility: {
+      id: 'HAVE_A_DREAM_GIORNO',
+      name: 'I, GIORNO GIOVANNA, HAVE A DREAM',
+      text: 'La primera vez que se juegue a Giorno Giovanna, cura 20 puntos de vida a un aliado en banca.',
+      trigger: 'ON_ENTER_FIELD',
+    },
+    attacks: [],
+  },
 ];

@@ -85,6 +85,43 @@ export function triggerOnEnterFieldAbility(
         sourceLabel: 'Reconocimiento Aéreo',
       });
     }
+  } else if (profile.signatureAbility.id === 'HAVE_A_DREAM_GIORNO') {
+    const player = state.players[playerId];
+    if (!player.giornoDreamUsed) {
+      player.giornoDreamUsed = true;
+      const otherBench = player.bench.filter((b) => b.instanceId !== inst.instanceId);
+      if (otherBench.length === 1) {
+        const target = otherBench[0]!;
+        pushEvent(state, eventsOut, {
+          type: 'ABILITY_TRIGGERED',
+          playerId,
+          abilityName: 'I, Giorno Giovanna, Have a Dream',
+          message: `Giorno Giovanna activa I, Giorno Giovanna, Have a Dream y cura 20 HP a ${getEffectiveCharacterProfile(target).name} en banca.`,
+        });
+        healCharacter(
+          state,
+          eventsOut,
+          playerId,
+          target.instanceId,
+          20,
+          'I, Giorno Giovanna, Have a Dream',
+        );
+      } else if (otherBench.length > 1) {
+        pushEvent(state, eventsOut, {
+          type: 'ABILITY_TRIGGERED',
+          playerId,
+          abilityName: 'I, Giorno Giovanna, Have a Dream',
+          message: `Giorno Giovanna activa I, Giorno Giovanna, Have a Dream: elige un aliado en banca para curarle 20 HP.`,
+        });
+        enqueuePrompt(state, {
+          kind: 'CHOOSE_ALLY_BENCH_HEAL',
+          playerId,
+          eligibleInstanceIds: otherBench.map((b) => b.instanceId),
+          healAmount: 20,
+          sourceLabel: 'I, Giorno Giovanna, Have a Dream',
+        });
+      }
+    }
   }
 }
 
