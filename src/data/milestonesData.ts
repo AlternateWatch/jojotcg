@@ -235,17 +235,19 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
     id: 'milestone-set-passione-vanguard',
     title: 'Vanguardia de Passione',
     description:
-      'Reúne a Giorno Giovanna, Gold Experience, Gold Experience Réquiem, Bruno Bucciarati y Sticky Fingers.',
+      'Reúne a Giorno, Gold Experience, GER, Bucciarati, Sticky Fingers, Guido Mista y Sex Pistols.',
     category: 'CARD_SET',
     badge: 'PARTE 5 · ÉPICO',
     accentHex: '#f59e0b',
-    rewardCoins: 1050,
+    rewardCoins: 1200,
     requiredCardIds: [
       'char-giorno-giovanna',
       'stand-gold-experience',
       'evo-gold-experience-requiem',
       'char-bruno-bucciarati',
       'stand-sticky-fingers',
+      'char-guido-mista',
+      'stand-sex-pistols',
     ],
   },
   {

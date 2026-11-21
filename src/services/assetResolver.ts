@@ -13,7 +13,7 @@ export interface CardAssetInfo {
 }
 
 /**
- * Manifest of all 63 official card PNGs provided by the user.
+ * Manifest of all 65 official card PNGs provided by the user.
  * Adding new artwork only requires dropping the file into public/assets/cards/<folder>/
  * and registering its imageId (or setting a custom override in user settings).
  */
@@ -33,6 +33,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'giorno-giovanna',
   'gold-experience',
   'gold-experience-requiem',
+  'guido-mista',
   'harvest',
   'heavens-door',
   'hermit-purple',
@@ -66,6 +67,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'rohan-kishibe',
   'rudol-von-stroheim',
   'santana',
+  'sex-pistols',
   'shigekiyo-yangu',
   'silver-chariot-requiem',
   'silver-chariot',

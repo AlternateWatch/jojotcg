@@ -35,6 +35,8 @@ export interface StandInstance {
   evolvedCardIds: string[];
   permanentDamageBonus: number;
   damageDebuff: number;
+  /** Sex Pistols — Recarga Rápida: >0 upgrades next Control de las Balas to 6x10 (60) */
+  rapidReloadTurnsRemaining?: number;
 }
 
 export interface CharacterInstance {
@@ -72,6 +74,8 @@ export interface CharacterInstance {
   usedOnceEnterPrepAbility: boolean;
   /** Ataúd de DIO: disables retreating/swapping this character to the bench until end of its next turn */
   retreatLockedUntilEndOfTurn?: boolean;
+  /** Guido Mista — Tetrafobia: true once +10 permanent Stand damage has been triggered */
+  tetraphobiaTriggered?: boolean;
 }
 
 export interface PlayerState {

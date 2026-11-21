@@ -729,5 +729,11 @@ export function resolveEndOfTurnEffects(
     character.tookDamageThisTurn = false;
     character.usedPrepAbilityThisTurn = false;
     character.retreatLockedUntilEndOfTurn = false;
+    if (
+      character.attachedStand?.rapidReloadTurnsRemaining &&
+      character.attachedStand.rapidReloadTurnsRemaining > 0
+    ) {
+      character.attachedStand.rapidReloadTurnsRemaining -= 1;
+    }
   }
 }

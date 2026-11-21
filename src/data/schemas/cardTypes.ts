@@ -62,6 +62,7 @@ export type AttackSpecialEffect =
   | { kind: 'HEAL_ALLY_BENCH'; amount: number }
   | { kind: 'HEAL_SELF_OR_BENCH'; amount: number }
   | { kind: 'RETURN_TO_ZERO' }
+  | { kind: 'RAPID_RELOAD_BUFF'; nextTurnDamage: number }
   | { kind: 'EXTRA_COMBAT_ACTIONS'; extraActions: number; oncePerTurnKey: string }
   | { kind: 'SELF_KO_AFTER_ATTACK' }
   | { kind: 'RETREAT_SELF_AFTER_ATTACK' }
@@ -132,6 +133,7 @@ export type SignatureEffectId =
   | 'NOTHING_WILL_REMAIN_KOSAKU'
   | 'HAVE_A_DREAM_GIORNO'
   | 'LIE_DETECTION_BUCCIARATI'
+  | 'TETRAPHOBIA_MISTA'
   | 'NONE';
 
 export interface SignatureAbilityDef {

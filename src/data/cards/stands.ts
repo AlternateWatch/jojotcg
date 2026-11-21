@@ -728,4 +728,33 @@ export const STAND_CARDS: StandCard[] = [
       },
     ],
   },
+  {
+    id: 'stand-sex-pistols',
+    name: 'Sex Pistols',
+    type: 'STAND',
+    part: 5,
+    imageId: 'sex-pistols',
+    assetFolder: 'official',
+    requiredDg: 4,
+    attacks: [
+      {
+        id: 'atk-control-de-las-balas',
+        name: 'Control de las Balas',
+        energyCost: ['COLORLESS', 'COLORLESS'],
+        baseDamage: 30,
+        damageLabel: '3x10',
+        effectText: 'Puedes repartir el daño como quieras con los personajes de la banca.',
+        specialEffects: [{ kind: 'DISTRIBUTE_BENCH_DAMAGE', totalDamage: 30, increment: 10 }],
+      },
+      {
+        id: 'atk-recarga-rapida',
+        name: 'Recarga Rápida',
+        energyCost: ['COLORLESS', 'COLORLESS'],
+        baseDamage: 0,
+        damageLabel: '6x10',
+        effectText: 'En el siguiente turno, CONTROL DE LAS BALAS pasa a hacer 6x10 puntos de daño.',
+        specialEffects: [{ kind: 'RAPID_RELOAD_BUFF', nextTurnDamage: 60 }],
+      },
+    ],
+  },
 ];

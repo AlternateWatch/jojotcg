@@ -852,4 +852,22 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     },
     attacks: [],
   },
+  {
+    id: 'char-guido-mista',
+    name: 'Guido Mista',
+    type: 'CHARACTER',
+    part: 5,
+    imageId: 'guido-mista',
+    assetFolder: 'official',
+    categories: ['STAND_USER'],
+    maxHp: 120,
+    dg: 4,
+    signatureAbility: {
+      id: 'TETRAPHOBIA_MISTA',
+      name: 'TETRAFOBIA',
+      text: 'Si alguna de las estadísticas del rival contiene el número 4 de forma explícita (vida, dignidad, daño de ataque...) el stand activo unido a Mista hace 10 puntos de daño extra permanentes.',
+      trigger: 'PASSIVE',
+    },
+    attacks: [],
+  },
 ];

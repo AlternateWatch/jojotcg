@@ -9,9 +9,9 @@ import { OFFICIAL_CARD_IMAGE_IDS, OFFICIAL_ITEM_IMAGE_IDS } from '../../services
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 63 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 65 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(63);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(65);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(12);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -405,6 +405,54 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     state = mustDispatch(state, { type: 'END_TURN', playerId: 'P2' });
     expect(state.players.P2.active!.statuses.stunned).toBe(false);
     expect(state.players.P2.active!.retreatLockedUntilEndOfTurn).toBe(false);
+  });
+
+  it('resolves Guido Mista (Tetrafobia +10 permanent Stand dmg vs explicit 4) and Sex Pistols (Recarga Rápida 3x10 -> 6x10 next turn)', () => {
+    // 1. Against Dio Brando (140 HP -> contains explicit "4"!), Mista's Sex Pistols gets permanent +10 dmg!
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-guido-mista',
+      p1ActiveStandId: 'stand-sex-pistols',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS'],
+      p2ActiveId: 'char-dio-brando', // 140 HP (has "4"!)
+      phase: 'COMBAT',
+    });
+
+    // Use Recarga Rápida on Turn 2 -> triggers Tetrafobia (+10 permanent) and arms 6x10 for next turn!
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-recarga-rapida',
+    });
+    expect(state.players.P1.active!.tetraphobiaTriggered).toBe(true);
+    expect(state.players.P1.active!.attachedStand!.permanentDamageBonus).toBe(10);
+    expect(state.players.P1.active!.attachedStand!.rapidReloadTurnsRemaining).toBe(1);
+
+    // P2 ends turn -> P1's next turn: Control de las Balas deals 60 (Recarga Rápida) + 10 (Tetrafobia) = 70!
+    state = mustDispatch(state, { type: 'END_TURN', playerId: 'P2' });
+    state = mustDispatch(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-control-de-las-balas',
+    });
+    expect(state.players.P2.active!.currentHp).toBe(70); // 140 - 70
+    expect(state.players.P1.active!.attachedStand!.rapidReloadTurnsRemaining).toBe(0);
+
+    // 2. Against a rival with NO explicit "4" in any stat (e.g. DIO: 160 HP, DG 6, no attacks), Tetrafobia does NOT trigger
+    let noFourState = buildControlledBattleState({
+      p1ActiveId: 'char-guido-mista',
+      p1ActiveStandId: 'stand-sex-pistols',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS'],
+      p2ActiveId: 'char-dio', // 160 HP, DG 6, 0 attacks -> no "4"!
+      phase: 'COMBAT',
+    });
+    noFourState = mustDispatch(noFourState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-control-de-las-balas',
+    });
+    expect(noFourState.players.P1.active!.tetraphobiaTriggered).toBeFalsy();
+    expect(noFourState.players.P2.active!.currentHp).toBe(130); // 160 - 30 (no +10 bonus)
   });
 
   it('completes AI vs AI matches across all 4 preset decks cleanly', () => {

@@ -195,6 +195,46 @@ export function drainPromptQueueOrContinue(
   }
 }
 
+function enemyActiveHasExplicitFour(
+  state: GameState,
+  opponentId: PlayerId,
+): boolean {
+  const defender = state.players[opponentId].active;
+  if (!defender) return false;
+
+  const hasFour = (val: string | number | null | undefined): boolean =>
+    val !== null && val !== undefined && String(val).includes('4');
+
+  const defProf = getEffectiveCharacterProfile(defender);
+  const effectiveMaxHp = computeEffectiveMaxHp(state, opponentId, defender);
+
+  if (
+    hasFour(defender.currentHp) ||
+    hasFour(effectiveMaxHp) ||
+    hasFour(defProf.baseMaxHp) ||
+    hasFour(defProf.dg)
+  ) {
+    return true;
+  }
+
+  if (defender.attachedStand) {
+    const standProf = getEffectiveStandProfile(defender.attachedStand);
+    if (hasFour(standProf.requiredDg)) return true;
+  }
+
+  for (const { attack } of getAvailableAttacks(defender)) {
+    if (
+      hasFour(attack.baseDamage) ||
+      hasFour(attack.damageLabel) ||
+      hasFour(attack.energyCost.length)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function executeAttack(
   state: GameState,
   eventsOut: CombatEvent[],
@@ -226,6 +266,24 @@ export function executeAttack(
     attackName: attack.name,
     message: `${attackerProfile.name} usa ${attack.name}!`,
   });
+
+  // Guido Mista — TETRAFOBIA: if enemy active has an explicit "4" in any stat, attached Stand gains permanent +10 damage!
+  if (
+    attackerProfile.signatureAbility.id === 'TETRAPHOBIA_MISTA' &&
+    source === 'STAND' &&
+    attacker.attachedStand &&
+    !attacker.tetraphobiaTriggered &&
+    enemyActiveHasExplicitFour(state, opponentId)
+  ) {
+    attacker.tetraphobiaTriggered = true;
+    attacker.attachedStand.permanentDamageBonus += 10;
+    pushEvent(state, eventsOut, {
+      type: 'ABILITY_TRIGGERED',
+      playerId,
+      abilityName: 'Tetrafobia',
+      message: `¡TETRAFOBIA! El rival tiene un 4 en sus estadísticas: ${getEffectiveStandProfile(attacker.attachedStand).name} gana +10 de daño permanente.`,
+    });
+  }
 
   // Calculate passive/synergy attack bonus
   const bonusInfo = computeAttackDamageBonus(state, playerId, attacker, attack, source);
@@ -286,7 +344,22 @@ export function executeAttack(
   );
 
   if (distributeEffect) {
-    const totalPool = Math.max(0, distributeEffect.totalDamage + bonusInfo.bonus);
+    let baseDistribute = distributeEffect.totalDamage;
+    if (
+      attack.id === 'atk-control-de-las-balas' &&
+      attacker.attachedStand?.rapidReloadTurnsRemaining &&
+      attacker.attachedStand.rapidReloadTurnsRemaining > 0
+    ) {
+      baseDistribute = 60;
+      attacker.attachedStand.rapidReloadTurnsRemaining = 0;
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: 'Recarga Rápida',
+        message: `¡Recarga Rápida! Control de las Balas aumenta a 6x10 (60 de daño base).`,
+      });
+    }
+    const totalPool = Math.max(0, baseDistribute + bonusInfo.bonus);
     consumeAttackBonuses();
 
     if (opponent.bench.length > 0 && totalPool > 0) {
@@ -722,6 +795,18 @@ export function executeAttack(
               message: `${attackerProfile.name} restaura +${restored} HP con Return to Zero.`,
             });
           }
+        }
+        break;
+      }
+      case 'RAPID_RELOAD_BUFF': {
+        if (attacker.attachedStand) {
+          attacker.attachedStand.rapidReloadTurnsRemaining = 2;
+          pushEvent(state, eventsOut, {
+            type: 'ABILITY_TRIGGERED',
+            playerId,
+            abilityName: attack.name,
+            message: `¡${attack.name}! En el siguiente turno, Control de las Balas hará 6x10 (${eff.nextTurnDamage}) puntos de daño.`,
+          });
         }
         break;
       }
