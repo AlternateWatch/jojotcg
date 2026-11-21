@@ -1,3 +1,4 @@
+import { getCardById } from '../data/cardRegistry';
 import { DEFAULT_RULES_CONFIG, type GameRulesConfig } from '../data/rulesConfig';
 import { getAvailableAttacks } from './helpers/cardStats';
 import {
@@ -57,6 +58,104 @@ export interface CreateGameOptions {
   rng?: RngProvider;
 }
 
+/**
+ * Sets aside `prizeCount` random face-down Prize Cards from an already-shuffled deck,
+ * guaranteeing that:
+ * 1) Any campaign `guaranteedOpeningCardId` stays in the playable deck (never prized).
+ * 2) At least one Turn-1 playable starter (self-sufficient character with DG <= 3 / null,
+ *    or compatible Stand User DG <= 3 + Stand pair; falling back to any starter) remains
+ *    in the playable deck so the player can always play on Turn 1.
+ */
+function extractPrizeCardsSafely(
+  shuffledDeck: string[],
+  prizeCount: number,
+  initialHandSize: number,
+  guaranteedCardId?: string,
+): { prizeCards: string[]; remainingDeck: string[] } {
+  if (prizeCount <= 0 || shuffledDeck.length < initialHandSize + prizeCount + 1) {
+    return { prizeCards: [], remainingDeck: [...shuffledDeck] };
+  }
+
+  const protectedIndices = new Set<number>();
+
+  // 1. Protect campaign featured card if present
+  if (guaranteedCardId) {
+    const gIdx = shuffledDeck.indexOf(guaranteedCardId);
+    if (gIdx !== -1) protectedIndices.add(gIdx);
+  }
+
+  // 2. Protect at least one Turn-1 playable starter in the deck
+  const protectStarter = (dgCap: number | null): boolean => {
+    const selfSufficientIdx = shuffledDeck.findIndex((id) => {
+      const c = getCardById(id);
+      return (
+        c?.type === 'CHARACTER' &&
+        c.attacks.length > 0 &&
+        (dgCap === null || c.dg === null || c.dg <= dgCap)
+      );
+    });
+    if (selfSufficientIdx !== -1) {
+      protectedIndices.add(selfSufficientIdx);
+      return true;
+    }
+
+    for (let uIdx = 0; uIdx < shuffledDeck.length; uIdx++) {
+      const user = getCardById(shuffledDeck[uIdx]!);
+      if (
+        !user ||
+        user.type !== 'CHARACTER' ||
+        !user.categories.includes('STAND_USER') ||
+        user.dg === null ||
+        (dgCap !== null && user.dg > dgCap)
+      ) {
+        continue;
+      }
+      for (let sIdx = 0; sIdx < shuffledDeck.length; sIdx++) {
+        if (sIdx === uIdx) continue;
+        const stand = getCardById(shuffledDeck[sIdx]!);
+        if (
+          stand?.type === 'STAND' &&
+          user.dg >= stand.requiredDg &&
+          (!stand.compatibleCharacterIds || stand.compatibleCharacterIds.includes(user.id))
+        ) {
+          protectedIndices.add(uIdx);
+          protectedIndices.add(sIdx);
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  if (!protectStarter(3)) {
+    protectStarter(null);
+  }
+
+  const actualPrizeCount = Math.min(
+    prizeCount,
+    Math.max(0, shuffledDeck.length - Math.max(initialHandSize, protectedIndices.size)),
+  );
+
+  const prizeIndices = new Set<number>();
+  for (let i = shuffledDeck.length - 1; i >= 0 && prizeIndices.size < actualPrizeCount; i--) {
+    if (!protectedIndices.has(i)) {
+      prizeIndices.add(i);
+    }
+  }
+
+  const prizeCards: string[] = [];
+  const remainingDeck: string[] = [];
+  for (let i = 0; i < shuffledDeck.length; i++) {
+    if (prizeIndices.has(i)) {
+      prizeCards.push(shuffledDeck[i]!);
+    } else {
+      remainingDeck.push(shuffledDeck[i]!);
+    }
+  }
+
+  return { prizeCards, remainingDeck };
+}
+
 function drawOpeningHandWithGuarantee(
   shuffledDeck: string[],
   initialHandSize: number,
@@ -84,12 +183,19 @@ function createPlayerState(
   deckIds: readonly string[],
   isAi: boolean,
   initialHandSize: number,
+  prizeCardCount: number,
   rng: RngProvider,
   guaranteedOpeningCardId?: string,
 ): PlayerState {
   const shuffled = rng.shuffle(deckIds);
-  const { hand, deck } = drawOpeningHandWithGuarantee(
+  const { prizeCards, remainingDeck } = extractPrizeCardsSafely(
     shuffled,
+    prizeCardCount,
+    initialHandSize,
+    guaranteedOpeningCardId,
+  );
+  const { hand, deck } = drawOpeningHandWithGuarantee(
+    remainingDeck,
     initialHandSize,
     guaranteedOpeningCardId,
   );
@@ -100,6 +206,7 @@ function createPlayerState(
     deck,
     hand,
     discard: [],
+    prizeCards,
     active: null,
     bench: [],
     mulliganConfirmed: false,
@@ -128,6 +235,7 @@ export function createGame(options: CreateGameOptions): GameState {
     options.p1Deck,
     options.p1IsAi ?? false,
     rules.initialHandSize,
+    rules.prizeCardCount,
     rng,
     options.p1GuaranteedOpeningCardId,
   );
@@ -137,6 +245,7 @@ export function createGame(options: CreateGameOptions): GameState {
     options.p2Deck,
     options.p2IsAi ?? false,
     rules.initialHandSize,
+    rules.prizeCardCount,
     rng,
     options.p2GuaranteedOpeningCardId,
   );

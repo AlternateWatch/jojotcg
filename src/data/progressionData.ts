@@ -177,7 +177,7 @@ export const STARTER_DECK: SavedDeck = {
   id: STARTER_DECK_ID,
   name: 'Mazo Inicial — Destino Joestar',
   description:
-    'Mazo base gratuito desbloqueado al inicio (Hamon/Rayo + Psíquica): Jonathan, Zeppeli, Speedwagon, Koichi, Iggy, Hol Horse y Shigekiyo.',
+    'Mazo base gratuito de 46 cartas desbloqueado al inicio (Hamon/Rayo + Psíquica): Jonathan, Zeppeli, Speedwagon, Koichi, Iggy, Hol Horse y Shigekiyo.',
   isPreset: true,
   updatedAt: '2026-01-01T00:00:00.000Z',
   cardIds: [
@@ -196,8 +196,8 @@ export const STARTER_DECK: SavedDeck = {
     ...repeat('item-atraccion-usuarios-stand', 3),
     ...repeat('item-comida-de-tonio', 2),
     ...repeat('item-suministros-speedwagon', 2),
-    ...repeat('energy-electric', 11),
-    ...repeat('energy-psychic', 10),
+    ...repeat('energy-electric', 14),
+    ...repeat('energy-psychic', 13),
   ],
 };
 

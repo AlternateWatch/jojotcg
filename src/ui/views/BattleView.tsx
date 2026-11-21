@@ -673,6 +673,7 @@ export function BattleView() {
           <div className="grid grid-cols-1 items-center gap-3 xl:grid-cols-[auto_1fr_auto]">
             <PhysicalDeckPiles
               deckCount={enemyPlayer.deck.length}
+              prizeCount={enemyPlayer.prizeCards.length}
               discardIds={enemyPlayer.discard}
               label={enemyPlayer.name}
               onOpenDiscard={() =>
@@ -1001,6 +1002,7 @@ export function BattleView() {
 
             <PhysicalDeckPiles
               deckCount={myPlayer.deck.length}
+              prizeCount={myPlayer.prizeCards.length}
               discardIds={myPlayer.discard}
               label={myPlayer.name}
               onOpenDiscard={() =>

@@ -254,7 +254,7 @@ export function DeckBuilderView() {
               {allDecks.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.isPreset ? '★ ' : '♦ '}
-                  {d.name} ({d.cardIds.length}/40)
+                  {d.name} ({d.cardIds.length}/{DEFAULT_RULES_CONFIG.maxDeckSize})
                 </option>
               ))}
             </select>
@@ -270,7 +270,7 @@ export function DeckBuilderView() {
               type="button"
               onClick={handleAutoComplete}
               disabled={cardIds.length >= DEFAULT_RULES_CONFIG.maxDeckSize}
-              title="Rellena automáticamente el mazo hasta 40 cartas con sinergias, objetos y energías usando solo tus cartas desbloqueadas"
+              title="Rellena automáticamente el mazo hasta 46 cartas con sinergias, objetos y energías usando solo tus cartas desbloqueadas"
               className="jojo-btn-crimson inline-flex items-center gap-1.5 px-3 py-2 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-35"
             >
               <Wand2 size={13} /> Rellenar ({cardIds.length}/{DEFAULT_RULES_CONFIG.maxDeckSize})

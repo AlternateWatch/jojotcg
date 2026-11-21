@@ -356,7 +356,30 @@ export function handleCharacterKo(
     message: `${profile.name} de ${owner.name} ha sido eliminado (${reason}).`,
   });
 
-  // 7. If Active was KO'd, check promotion or Game Over
+  // 7. Prize Card award: opponent takes 1 face-down Prize Card into their hand; taking the last Prize Card wins!
+  const prizeWinnerId = getOpponentId(ownerPlayerId);
+  const prizeWinner = state.players[prizeWinnerId];
+  if (prizeWinner.prizeCards.length > 0) {
+    const takenPrizeId = prizeWinner.prizeCards.shift()!;
+    prizeWinner.hand.push(takenPrizeId);
+    pushEvent(state, eventsOut, {
+      type: 'CARD_DRAWN',
+      playerId: prizeWinnerId,
+      count: 1,
+      message: `¡Carta de Premio! ${prizeWinner.name} roba 1 carta de sus premios (${prizeWinner.prizeCards.length} restante(s)).`,
+    });
+    if (prizeWinner.prizeCards.length === 0) {
+      setGameOver(
+        state,
+        eventsOut,
+        prizeWinnerId,
+        `¡${prizeWinner.name} ha robado todas sus Cartas de Premio!`,
+      );
+      return true;
+    }
+  }
+
+  // 8. If Active was KO'd, check promotion or Game Over
   if (zone === 'ACTIVE') {
     if (owner.bench.length === 0) {
       setGameOver(

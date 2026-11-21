@@ -64,7 +64,9 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
               Mazo y Setup Inicial
             </h3>
             <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
-              <li>• Mazo de <strong>40 cartas</strong> (máx. 1 Personaje/Stand/Evo, 3 Objeto, Energías libres).</li>
+              <li>• Mazo de <strong>46 cartas</strong> (máx. 1 Personaje/Stand/Evo, 3 Objeto, Energías libres).</li>
+              <li>• Al empezar, se separan <strong>6 Cartas de Premio boca abajo</strong> (garantizando que siempre quede al menos 1 personaje jugable en Turno 1 en tu mazo).</li>
+              <li>• <strong>Condiciones de victoria</strong>: robar tus <strong>6 Cartas de Premio</strong> (robas 1 por cada personaje rival eliminado), dejar al rival sin personajes en campo/banca o sin cartas en el mazo.</li>
               <li>• Mano inicial de 5 cartas; banca de hasta <strong>3 personajes</strong>.</li>
               <li>• <strong>Mulligan</strong> si no tienes personaje inicial válido (sin DG o DG ≤ 3 autosuficiente, o Usuario DG ≤ 3 + Stand compatible); rival roba +1 y <strong>tras 3 mulligans se garantiza mano válida</strong>.</li>
               <li>• <strong>Desbloqueo progresivo de DG</strong>: Turno 1 máx. <strong>DG 3</strong> (o sin DG), Turno 2 <strong>DG 4</strong>, Turno 3 <strong>DG 5</strong>, Turno 4+ <strong>DG 6</strong>.</li>

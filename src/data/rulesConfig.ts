@@ -3,6 +3,7 @@ export type RulesCardType = 'CHARACTER' | 'STAND' | 'ITEM' | 'EVOLUTION' | 'ENER
 export interface GameRulesConfig {
   minDeckSize: number;
   maxDeckSize: number;
+  prizeCardCount: number;
   maxCopiesByType: Record<RulesCardType, number | null>;
   initialHandSize: number;
   maxBenchSize: number;
@@ -24,8 +25,9 @@ export interface GameRulesConfig {
  * All engine rules and deck validation consume this configuration directly.
  */
 export const DEFAULT_RULES_CONFIG: GameRulesConfig = {
-  minDeckSize: 40,
-  maxDeckSize: 40,
+  minDeckSize: 46,
+  maxDeckSize: 46,
+  prizeCardCount: 6,
   maxCopiesByType: {
     CHARACTER: 1,
     STAND: 1,

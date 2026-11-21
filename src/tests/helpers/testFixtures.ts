@@ -13,6 +13,8 @@ export function buildControlledBattleState(options: {
   p2Hand?: string[];
   p1Deck?: string[];
   p2Deck?: string[];
+  p1PrizeCards?: string[];
+  p2PrizeCards?: string[];
   p1ActiveStandId?: string;
   p2ActiveStandId?: string;
   p1ActiveEnergies?: EnergyType[];
@@ -43,6 +45,12 @@ export function buildControlledBattleState(options: {
   base.players.P2.hand = [...(options.p2Hand ?? [])];
   base.players.P1.deck = [...(options.p1Deck ?? defaultFiller)];
   base.players.P2.deck = [...(options.p2Deck ?? defaultFiller)];
+  base.players.P1.prizeCards = [
+    ...(options.p1PrizeCards ?? Array.from({ length: 6 }, () => 'energy-colorless')),
+  ];
+  base.players.P2.prizeCards = [
+    ...(options.p2PrizeCards ?? Array.from({ length: 6 }, () => 'energy-colorless')),
+  ];
 
   const setupChar = (
     cardId: string,

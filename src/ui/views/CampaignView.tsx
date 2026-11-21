@@ -463,7 +463,7 @@ export function CampaignView() {
                     {selectedStage.opponentName}
                   </div>
                   <div className="text-[11px] text-zinc-400">
-                    Mazo temático de 40 cartas exclusivo de {activePart.name}.
+                    Mazo temático de 46 cartas exclusivo de {activePart.name}.
                   </div>
                 </div>
               </div>
@@ -559,7 +559,7 @@ export function CampaignView() {
                     </select>
                     {!canPlayCustomDeck && (
                       <div className="flex items-center justify-between gap-2 border-l-4 border-[#e6194b] bg-[#2a0c16] px-2.5 py-1.5 text-[11px] text-rose-200">
-                        <span>Te faltan cartas o el mazo no es legal (40/40).</span>
+                        <span>Te faltan cartas o el mazo no es legal (46/46).</span>
                         <button
                           type="button"
                           onClick={() => setScreen('SHOP')}

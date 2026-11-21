@@ -40,7 +40,7 @@ function rep(id: string, count: number): string[] {
 }
 
 /**
- * Helper to build a strictly legal 40-card Part 1 deck
+ * Helper to build a strictly legal 46-card themed Campaign deck
  * (max 1 copy per character, max 3 copies per item, unlimited basic energies).
  */
 function buildPart1Deck(
@@ -50,10 +50,10 @@ function buildPart1Deck(
 ): string[] {
   const energyList = energies.flatMap(([id, n]) => rep(id, n));
   const combined = [...characters, ...items, ...energyList];
-  if (combined.length < 40) {
-    combined.push(...rep('energy-colorless', 40 - combined.length));
+  if (combined.length < 46) {
+    combined.push(...rep('energy-colorless', 46 - combined.length));
   }
-  return combined.slice(0, 40);
+  return combined.slice(0, 46);
 }
 
 // Progressive Part 1 Story Loaner Decks (used mandatorily until each stage is cleared once)

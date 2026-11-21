@@ -7,14 +7,15 @@ import {
   hasValidStartingHand,
 } from '../../engine/helpers/cardStats';
 import { createSeededRng } from '../../engine/rng';
+import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Deck Validation & Setup/Mulligan Rules', () => {
-  it('validates all 4 preset 40-card decks as completely legal', () => {
+  it('validates all preset 46-card decks as completely legal', () => {
     for (const deck of PRESET_DECKS) {
       const result = validateDeck(deck.cardIds);
       expect(result.errors, `Preset ${deck.name} had errors`).toEqual([]);
       expect(result.valid).toBe(true);
-      expect(result.stats.totalCards).toBe(40);
+      expect(result.stats.totalCards).toBe(46);
     }
   });
 
@@ -281,13 +282,13 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
 
   it('guarantees a valid starting hand automatically on the 3rd mulligan', () => {
     const p1Deck = [
-      ...Array.from({ length: 18 }, () => 'energy-colorless'),
+      ...Array.from({ length: 24 }, () => 'energy-colorless'),
       'char-hol-horse',
       'stand-emperor',
-    ]; // 20 cards, valid pair buried at the very bottom
+    ]; // 26 cards (6 prizes + 20 playable), valid pair buried at the very bottom
     const p2Deck = [
       'char-dio-brando',
-      ...Array.from({ length: 19 }, () => 'energy-psychic'),
+      ...Array.from({ length: 25 }, () => 'energy-psychic'),
     ];
     const noShuffle = {
       nextFloat: () => 0.5,
@@ -307,12 +308,14 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     expect(state.players.P1.mulliganCount).toBe(2);
     expect(hasValidStartingHand(state.players.P1.hand, 3)).toBe(false);
 
-    // Mulligan #3: pity rule guarantees a valid Turn-1 hand (Hol Horse + Emperor) & preserves all 20 cards!
+    // Mulligan #3: pity rule guarantees a valid Turn-1 hand (Hol Horse + Emperor) & preserves all 26 cards!
     state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P1' }, noShuffle).state;
     expect(state.players.P1.mulliganCount).toBe(3);
     expect(hasValidStartingHand(state.players.P1.hand, 3)).toBe(true);
     expect(state.players.P1.hand).toHaveLength(5);
-    expect(state.players.P1.hand.length + state.players.P1.deck.length).toBe(20);
+    expect(
+      state.players.P1.hand.length + state.players.P1.deck.length + state.players.P1.prizeCards.length,
+    ).toBe(26);
     expect(
       dispatchAction(state, { type: 'CONFIRM_STARTING_HAND', playerId: 'P1' }, noShuffle).ok,
     ).toBe(true);
@@ -344,7 +347,10 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     // Featured card is immediately guaranteed in P2's 5-card opening hand
     expect(state.players.P2.hand).toHaveLength(5);
     expect(state.players.P2.hand).toContain('evo-kars-ultimate');
-    expect(state.players.P2.hand.length + state.players.P2.deck.length).toBe(20);
+    expect(state.players.P2.prizeCards).toHaveLength(6);
+    expect(
+      state.players.P2.hand.length + state.players.P2.deck.length + state.players.P2.prizeCards.length,
+    ).toBe(20);
 
     // Even after 3 mulligans, P2 gets a valid starting hand AND keeps evo-kars-ultimate in hand!
     state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P2' }, noShuffle).state;
@@ -356,6 +362,85 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     expect(state.players.P2.hand).toContain('char-kars');
     expect(hasValidStartingHand(state.players.P2.hand, 3)).toBe(true);
     expect(state.players.P2.hand).toHaveLength(5);
-    expect(state.players.P2.hand.length + state.players.P2.deck.length).toBe(20);
+    expect(
+      state.players.P2.hand.length + state.players.P2.deck.length + state.players.P2.prizeCards.length,
+    ).toBe(20);
+  });
+
+  it('sets aside 6 face-down Prize Cards at game start while guaranteeing a Turn-1 playable starter remains in deck/hand', () => {
+    // Only 1 Turn-1 playable character in the entire 46-card deck (placed right at index 0!)
+    const singleStarterDeck = [
+      'char-jonathan-joestar',
+      ...Array.from({ length: 45 }, () => 'energy-electric'),
+    ];
+    const noShuffle = {
+      nextFloat: () => 0.5,
+      flipCoin: () => 'HEADS' as const,
+      shuffle: <T,>(a: readonly T[]) => [...a],
+    };
+
+    const state = createGame({
+      p1Name: 'P1',
+      p2Name: 'P2',
+      p1Deck: singleStarterDeck,
+      p2Deck: PRESET_DECKS[0]!.cardIds,
+      rng: noShuffle,
+    });
+
+    expect(state.players.P1.prizeCards).toHaveLength(6);
+    expect(state.players.P1.hand).toHaveLength(5);
+    expect(state.players.P1.deck).toHaveLength(35);
+    // Jonathan must NOT be trapped in Prize Cards!
+    expect(state.players.P1.prizeCards).not.toContain('char-jonathan-joestar');
+    expect([...state.players.P1.hand, ...state.players.P1.deck]).toContain('char-jonathan-joestar');
+
+    // Preset 46-card deck splits cleanly into 6 prize + 5 hand + 35 deck
+    expect(state.players.P2.prizeCards).toHaveLength(6);
+    expect(state.players.P2.hand).toHaveLength(5);
+    expect(state.players.P2.deck).toHaveLength(35);
+  });
+
+  it('draws 1 Prize Card on enemy KO and wins immediately upon taking the last Prize Card even if opponent has bench characters', () => {
+    // 1. Taking 1 of 2 remaining prize cards adds it to hand and continues match
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-dio-brando',
+      p1ActiveEnergies: ['ELECTRIC', 'ELECTRIC'],
+      p1PrizeCards: ['item-comida-de-tonio', 'item-pluck'],
+      p2ActiveId: 'char-jonathan-joestar',
+      p2BenchIds: ['char-will-a-zeppeli', 'char-robert-e-o-speedwagon'],
+      phase: 'COMBAT',
+    });
+    state.players.P2.active!.currentHp = 50;
+
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-space-ripper-stingy-eyes', // 50 dmg -> KO
+    });
+    expect(state.phase).not.toBe('GAME_OVER');
+    expect(state.players.P1.prizeCards).toHaveLength(1);
+    expect(state.players.P1.hand).toContain('item-comida-de-tonio');
+
+    // 2. Taking the LAST prize card wins immediately even though P2 still has bench characters!
+    let winState = buildControlledBattleState({
+      p1ActiveId: 'char-dio-brando',
+      p1ActiveEnergies: ['ELECTRIC', 'ELECTRIC'],
+      p1PrizeCards: ['item-pluck'],
+      p2ActiveId: 'char-jonathan-joestar',
+      p2BenchIds: ['char-will-a-zeppeli'],
+      phase: 'COMBAT',
+    });
+    winState.players.P2.active!.currentHp = 50;
+
+    winState = mustDispatch(winState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-space-ripper-stingy-eyes',
+    });
+    expect(winState.phase).toBe('GAME_OVER');
+    expect(winState.winnerId).toBe('P1');
+    expect(winState.winReason).toContain('Cartas de Premio');
+    expect(winState.players.P1.prizeCards).toHaveLength(0);
+    expect(winState.players.P1.hand).toContain('item-pluck');
   });
 });

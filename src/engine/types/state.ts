@@ -81,6 +81,8 @@ export interface PlayerState {
   deck: string[];
   hand: string[];
   discard: string[];
+  /** Face-down Prize Cards (6 set aside at start; draw 1 per opponent KO, take all to win!) */
+  prizeCards: string[];
   active: CharacterInstance | null;
   bench: CharacterInstance[];
   mulliganConfirmed: boolean;

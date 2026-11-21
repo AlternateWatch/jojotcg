@@ -77,7 +77,7 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     }
   });
 
-  it('grants every new player the 40-card Starter Deck (legal, 0 warnings) + high test coins, while locking elite cards', () => {
+  it('grants every new player the 46-card Starter Deck (legal, 0 warnings) + high test coins, while locking elite cards', () => {
     const val = validateDeck(STARTER_DECK.cardIds);
     expect(val.valid, val.errors.map((e) => e.message).join('; ')).toBe(true);
     expect(val.warnings, val.warnings.map((w) => w.message).join('; ')).toHaveLength(0);
@@ -233,7 +233,7 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(hard.coins).toBeGreaterThan(normal.coins);
   });
 
-  it('autoCompleteDeck fills a partial deck (e.g. Okuyasu or empty) up to 40 legal owned cards with 0 missing cards', () => {
+  it('autoCompleteDeck fills a partial deck (e.g. Okuyasu or empty) up to 46 legal owned cards with 0 missing cards', () => {
     const baseProg = createInitialProgression();
     const progWithOkuyasu = {
       ...baseProg,
@@ -245,7 +245,7 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     };
 
     const resOkuyasu = autoCompleteDeck(['char-okuyasu-nijimura'], progWithOkuyasu);
-    expect(resOkuyasu.cardIds).toHaveLength(40);
+    expect(resOkuyasu.cardIds).toHaveLength(46);
     expect(resOkuyasu.cardIds).toContain('char-okuyasu-nijimura');
     expect(resOkuyasu.cardIds).toContain('stand-the-hand');
     expect(getMissingCardsForDeck(progWithOkuyasu, resOkuyasu.cardIds)).toHaveLength(0);
@@ -255,7 +255,7 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
 
     // Also works from a completely empty deck
     const resEmpty = autoCompleteDeck([], baseProg);
-    expect(resEmpty.cardIds).toHaveLength(40);
+    expect(resEmpty.cardIds).toHaveLength(46);
     expect(getMissingCardsForDeck(baseProg, resEmpty.cardIds)).toHaveLength(0);
     expect(validateDeck(resEmpty.cardIds).valid).toBe(true);
   });

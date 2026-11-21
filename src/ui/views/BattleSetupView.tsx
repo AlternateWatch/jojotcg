@@ -310,7 +310,7 @@ export function BattleSetupView() {
                       p1Val.valid ? 'bg-[#00b87c] text-[#0b090e]' : 'bg-[#e6194b] text-white'
                     }`}
                   >
-                    {p1Val.valid ? 'LEGAL 40/40' : 'INVÁLIDO'}
+                    {p1Val.valid ? 'LEGAL 46/46' : 'INVÁLIDO'}
                   </span>
                 )}
               </div>
@@ -573,7 +573,7 @@ export function BattleSetupView() {
                         p2Val.valid ? 'bg-[#00b87c] text-[#0b090e]' : 'bg-[#e6194b] text-white'
                       }`}
                     >
-                      {p2Val.valid ? 'LEGAL 40/40' : 'INVÁLIDO'}
+                      {p2Val.valid ? 'LEGAL 46/46' : 'INVÁLIDO'}
                     </span>
                   )}
                 </div>
