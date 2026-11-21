@@ -280,11 +280,11 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     );
     expect(mudaMiss.players.P2.active!.currentHp).toBe(160);
 
-    // 2. Gold Experience Requiem evolution + Return to Zero restores full HP & cleanses statuses/debuffs while dealing 70 dmg
+    // 2. Gold Experience Requiem evolution + Return to Zero (0 dmg utility reset) + Muda-Muda-Muda (60 dmg)
     let gerState = buildControlledBattleState({
       p1ActiveId: 'char-giorno-giovanna', // 130 HP, DG 6
       p1ActiveStandId: 'stand-gold-experience',
-      p1ActiveEnergies: ['COLORLESS', 'COLORLESS', 'COLORLESS', 'COLORLESS', 'COLORLESS'],
+      p1ActiveEnergies: ['NATURE', 'COLORLESS', 'COLORLESS', 'COLORLESS', 'COLORLESS'],
       p1Hand: ['evo-gold-experience-requiem', 'item-flecha-requiem'],
       p2ActiveId: 'char-dio', // 160 HP
       phase: 'PREPARATION',
@@ -305,8 +305,18 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(gerState.players.P1.active!.statuses.burn).toBeNull();
     expect(gerState.players.P1.active!.statuses.bleedStacks).toHaveLength(0);
     expect(gerState.players.P1.active!.attachedStand!.damageDebuff).toBe(0);
-    // Damage was 70 - 20 (debuff applied before Return to Zero clears it) = 50 -> 160 - 50 = 110
-    expect(gerState.players.P2.active!.currentHp).toBe(110);
+    // Return to Zero is pure reset (0 damage)
+    expect(gerState.players.P2.active!.currentHp).toBe(160);
+
+    // Next P1 turn: Muda-Muda-Muda deals 60 damage cleanly (since debuff was cleared by Return to Zero!)
+    gerState = mustDispatch(gerState, { type: 'END_TURN', playerId: 'P2' });
+    gerState = mustDispatch(gerState, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    gerState = mustDispatch(gerState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-ger-muda-muda-muda',
+    });
+    expect(gerState.players.P2.active!.currentHp).toBe(100); // 160 - 60
 
     // 3. Sticky Fingers — Zipper Man with 3/3 heads bounces enemy user + Stand to hand and promotes bench
     let sfState = buildControlledBattleState({

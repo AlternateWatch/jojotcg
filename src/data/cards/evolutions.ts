@@ -236,11 +236,18 @@ export const EVOLUTION_CARDS: EvolutionCard[] = [
         specialEffects: [{ kind: 'HEAL_SELF_OR_BENCH', amount: 40 }],
       },
       {
+        id: 'atk-ger-muda-muda-muda',
+        name: 'Muda-Muda-Muda',
+        energyCost: ['NATURE', 'COLORLESS'],
+        baseDamage: 60,
+        damageLabel: '3x20',
+      },
+      {
         id: 'atk-return-to-zero',
         name: 'Return to Zero',
         energyCost: ['COLORLESS', 'COLORLESS', 'COLORLESS', 'COLORLESS', 'COLORLESS'],
-        baseDamage: 70,
-        damageLabel: '7x10',
+        baseDamage: 0,
+        damageLabel: 'ZERO',
         effectText:
           'Devuelve a Gold Experience y a su portador a su estado original (el estado original es como se encontraba al jugarse por primera vez).',
         specialEffects: [{ kind: 'RETURN_TO_ZERO' }],
