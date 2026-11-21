@@ -648,6 +648,39 @@ export function resolveEndOfTurnEffects(
       }
     }
 
+    // 3b. Equipped end-of-turn draw if undamaged (Mechero de Polpo)
+    if (!character.tookDamageThisTurn && character.attachedItems.length > 0) {
+      for (const attached of character.attachedItems) {
+        if (isGameOver(state)) return;
+        const item = getItemCard(attached.cardId);
+        if (!item) continue;
+        for (const eff of item.effects) {
+          if (eff.kind === 'EQUIP_END_TURN_DRAW_IF_UNDAMAGED' && player.deck.length > 0) {
+            const drawnCount = Math.min(eff.count, player.deck.length);
+            for (let d = 0; d < drawnCount; d++) {
+              player.hand.push(player.deck.shift()!);
+            }
+            pushEvent(state, eventsOut, {
+              type: 'ABILITY_TRIGGERED',
+              playerId: endingPlayerId,
+              abilityName: item.name,
+              message: `${item.name} (${profile.name} ileso este turno): ${player.name} roba ${drawnCount} carta extra al final del turno.`,
+            });
+            pushEvent(state, eventsOut, {
+              type: 'CARD_DRAWN',
+              playerId: endingPlayerId,
+              count: drawnCount,
+              message: `${player.name} roba ${drawnCount} carta(s) gracias a ${item.name}.`,
+            });
+            checkImmediateDeckOut(state, eventsOut, endingPlayerId);
+            if (!isGameOver(state)) {
+              triggerOpponentExtraDrawReaction(state, eventsOut, endingPlayerId);
+            }
+          }
+        }
+      }
+    }
+
     // 4. Clear Stunned after the affected player's turn ends (and grant 1-turn stun resistance)
     if (character.statuses.stunned) {
       character.statuses.stunned = false;

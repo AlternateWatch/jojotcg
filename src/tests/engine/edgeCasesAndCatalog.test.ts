@@ -9,10 +9,10 @@ import { OFFICIAL_CARD_IMAGE_IDS, OFFICIAL_ITEM_IMAGE_IDS } from '../../services
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 63 official PNG cards, all 10 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 63 official PNG cards, all 11 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
     expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(63);
-    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(10);
+    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(11);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
       const filePath = path.join(projectRoot, 'public', 'assets', 'cards', 'official', `${imageId}.png`);
@@ -326,6 +326,44 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(sfState.players.P2.hand).toContain('char-dio');
     expect(sfState.players.P2.hand).toContain('stand-the-world');
     expect(sfState.players.P2.active!.cardId).toBe('char-hol-horse');
+  });
+
+  it('resolves Mechero de Polpo drawing 1 extra card at end of turn only if the equipped character took no damage', () => {
+    // 1. Equipped character takes NO damage -> draws 1 extra card at end of turn (+ opponent Bruno reacts!)
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-giorno-giovanna',
+      p1Hand: ['item-mechero-de-polpo'],
+      p2ActiveId: 'char-bruno-bucciarati',
+      phase: 'PREPARATION',
+    });
+    const p1HandBefore = state.players.P1.hand.length;
+    const p2HandBefore = state.players.P2.hand.length;
+
+    state = mustDispatch(state, {
+      type: 'PLAY_ITEM',
+      playerId: 'P1',
+      handIndex: 0,
+      targetInstanceId: state.players.P1.active!.instanceId,
+    });
+    expect(state.players.P1.hand.length).toBe(p1HandBefore - 1);
+
+    state = mustDispatch(state, { type: 'END_TURN', playerId: 'P1' });
+    // P1 drew 1 extra card from Mechero de Polpo at end of P1's turn
+    expect(state.players.P1.hand.length).toBe(p1HandBefore);
+    // P2 drew 1 from Bruno's Detección de Mentiras + 1 mandatory start-of-turn draw!
+    expect(state.players.P2.hand.length).toBe(p2HandBefore + 2);
+
+    // 2. If the equipped character DID take damage this turn -> Mechero de Polpo does NOT draw
+    let damagedState = buildControlledBattleState({
+      p1ActiveId: 'char-giorno-giovanna',
+      p1ActiveItems: ['item-mechero-de-polpo'],
+      p2ActiveId: 'char-dio-brando',
+      phase: 'PREPARATION',
+    });
+    damagedState.players.P1.active!.tookDamageThisTurn = true;
+    const p1HandDamaged = damagedState.players.P1.hand.length;
+    damagedState = mustDispatch(damagedState, { type: 'END_TURN', playerId: 'P1' });
+    expect(damagedState.players.P1.hand.length).toBe(p1HandDamaged);
   });
 
   it('completes AI vs AI matches across all 4 preset decks cleanly', () => {

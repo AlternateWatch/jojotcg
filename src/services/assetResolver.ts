@@ -91,6 +91,7 @@ export const OFFICIAL_ITEM_IMAGE_IDS = new Set<string>([
   'flecha-de-stand',
   'flecha-requiem',
   'mascara-de-piedra',
+  'mechero-de-polpo',
   'piedra-roja-de-aja',
   'pluck',
   'suministros-speedwagon',

@@ -135,6 +135,7 @@ export const CARD_RARITY_MAP: Record<string, CardRarity> = {
   'item-mascara-de-piedra': 'RARE',
   'item-piedra-roja-de-aja': 'RARE',
   'item-cinta-de-caesar': 'RARE',
+  'item-mechero-de-polpo': 'RARE',
 
   // === COMMON (C) ===
   'char-jonathan-joestar': 'COMMON',
@@ -398,6 +399,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'evo-silver-chariot-requiem',
       'item-flecha-requiem',
       'item-flecha-de-stand',
+      'item-mechero-de-polpo',
       'item-atraccion-usuarios-stand',
       'char-jean-pierre-polnareff',
       'stand-silver-chariot',
@@ -622,6 +624,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'item-piedra-roja-de-aja',
       'item-flecha-de-stand',
       'item-flecha-requiem',
+      'item-mechero-de-polpo',
       'char-robert-e-o-speedwagon',
       'char-shigekiyo-yangu',
     ],

@@ -168,4 +168,18 @@ export const ITEM_CARDS: ItemCard[] = [
     ],
     tags: ['official', 'catalyst', 'search'],
   },
+  {
+    id: 'item-mechero-de-polpo',
+    name: 'Mechero de Polpo',
+    type: 'ITEM',
+    part: 5,
+    imageId: 'mechero-de-polpo',
+    assetFolder: 'items',
+    itemKind: 'EQUIPPABLE',
+    targetScope: 'ANY_ALLY',
+    description:
+      'Mechero otorgado por un capo de la mafia a un joven con un sueño. Al jugarla junto a un personaje: Si el personaje no recibe daño este turno, roba una carta extra al final del turno.',
+    effects: [{ kind: 'EQUIP_END_TURN_DRAW_IF_UNDAMAGED', count: 1 }],
+    tags: ['official', 'equip', 'draw'],
+  },
 ];
