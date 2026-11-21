@@ -714,6 +714,464 @@ const PART_2_STAGES: CampaignStageDef[] = [
   },
 ];
 
+// ===================== PART 3: STARDUST CRUSADERS STORY DECKS & STAGES =====================
+const P3_STORY_EARLY_NAME = 'Despertar en Tokio (Campaña P3)';
+const P3_STORY_EARLY_DESC =
+  'Jotaro, Joseph Viejo, Avdol, Kakyoin e Iggy con sus Stands iniciales en el comienzo del viaje a Egipto.';
+const P3_STORY_EARLY_IDS = buildPart1Deck(
+  [
+    'char-iggy',
+    'char-muhammad-avdol',
+    'char-noriaki-kakyoin',
+    'char-joseph-joestar-viejo',
+    'char-jotaro-kujo',
+    'stand-the-fool',
+    'stand-hermit-purple',
+    'stand-magicians-red',
+    'stand-hierophant-green',
+    'stand-star-platinum',
+  ],
+  [
+    ...rep('item-atraccion-usuarios-stand', 3),
+    ...rep('item-flecha-de-stand', 2),
+    ...rep('item-suministros-speedwagon', 3),
+  ],
+  [
+    ['energy-psychic', 11],
+    ['energy-fire', 7],
+    ['energy-light', 4],
+  ],
+);
+
+const P3_STORY_MID_NAME = 'Ruta a Egipto (Campaña P3)';
+const P3_STORY_MID_DESC =
+  'Los 6 Stardust Crusaders al completo: Jotaro, Polnareff, Kakyoin, Avdol, Joseph e Iggy listos para cruzar el desierto.';
+const P3_STORY_MID_IDS = buildPart1Deck(
+  [
+    'char-iggy',
+    'char-jean-pierre-polnareff',
+    'char-noriaki-kakyoin',
+    'char-muhammad-avdol',
+    'char-joseph-joestar-viejo',
+    'char-jotaro-kujo',
+    'stand-the-fool',
+    'stand-hermit-purple',
+    'stand-silver-chariot',
+    'stand-hierophant-green',
+    'stand-magicians-red',
+    'stand-star-platinum',
+  ],
+  [
+    ...rep('item-atraccion-usuarios-stand', 3),
+    ...rep('item-flecha-de-stand', 2),
+    ...rep('item-suministros-speedwagon', 3),
+  ],
+  [
+    ['energy-psychic', 10],
+    ['energy-fire', 6],
+    ['energy-light', 4],
+  ],
+);
+
+const P3_STORY_FINALE_NAME = 'Stardust Crusaders · El Cairo Final (Campaña P3)';
+const P3_STORY_FINALE_DESC =
+  'El equipo definitivo de los Crusaders con Star Platinum: The World para enfrentarse a los asesinos finales y a DIO.';
+const P3_STORY_FINALE_IDS = buildPart1Deck(
+  [
+    'char-iggy',
+    'char-jean-pierre-polnareff',
+    'char-noriaki-kakyoin',
+    'char-muhammad-avdol',
+    'char-joseph-joestar-viejo',
+    'char-jotaro-kujo',
+    'stand-the-fool',
+    'stand-hermit-purple',
+    'stand-silver-chariot',
+    'stand-hierophant-green',
+    'stand-magicians-red',
+    'stand-star-platinum',
+    'evo-star-platinum-the-world',
+  ],
+  [
+    ...rep('item-atraccion-usuarios-stand', 3),
+    ...rep('item-flecha-de-stand', 2),
+    ...rep('item-suministros-speedwagon', 3),
+  ],
+  [
+    ['energy-psychic', 11],
+    ['energy-fire', 5],
+    ['energy-light', 3],
+  ],
+);
+
+const PART_3_STAGES: CampaignStageDef[] = [
+  {
+    id: 'p3-s1',
+    part: 3,
+    stageNumber: 1,
+    title: 'La Celda de Tokio',
+    location: 'Comisaría de Tokio · 1988',
+    storyText:
+      'Jotaro cree estar poseído por un espíritu maligno. Muhammad Avdol invoca a Magician’s Red para demostrarle qué es un Stand.',
+    opponentName: 'Muhammad Avdol',
+    featuredCardId: 'stand-magicians-red',
+    difficulty: 'EASY',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-iggy',
+        'char-muhammad-avdol',
+        'char-joseph-joestar-viejo',
+        'stand-the-fool',
+        'stand-hermit-purple',
+        'stand-magicians-red',
+      ],
+      [...rep('item-atraccion-usuarios-stand', 2), ...rep('item-suministros-speedwagon', 2)],
+      [
+        ['energy-fire', 14],
+        ['energy-psychic', 10],
+        ['energy-light', 6],
+      ],
+    ),
+    storyDeckName: P3_STORY_EARLY_NAME,
+    storyDeckDescription: P3_STORY_EARLY_DESC,
+    storyDeckIds: P3_STORY_EARLY_IDS,
+    rewardCoins: 160,
+  },
+  {
+    id: 'p3-s2',
+    part: 3,
+    stageNumber: 2,
+    title: 'Emboscada en el Instituto',
+    location: 'Instituto de Tokio',
+    storyText:
+      'Bajo el brote de carne de DIO, Noriaki Kakyoin despliega a Hierophant Green y bloquea la banca rival a larga distancia.',
+    opponentName: 'Noriaki Kakyoin',
+    featuredCardId: 'char-noriaki-kakyoin',
+    difficulty: 'EASY',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-hol-horse',
+        'char-noriaki-kakyoin',
+        'char-mariah',
+        'stand-emperor',
+        'stand-bastet',
+        'stand-hierophant-green',
+      ],
+      [...rep('item-atraccion-usuarios-stand', 2), ...rep('item-suministros-speedwagon', 2)],
+      [
+        ['energy-psychic', 18],
+        ['energy-colorless', 12],
+      ],
+    ),
+    storyDeckName: P3_STORY_EARLY_NAME,
+    storyDeckDescription: P3_STORY_EARLY_DESC,
+    storyDeckIds: P3_STORY_EARLY_IDS,
+    rewardCoins: 180,
+  },
+  {
+    id: 'p3-s3',
+    part: 3,
+    stageNumber: 3,
+    title: 'Duelo de Caballeros en Hong Kong',
+    location: 'Parque de Hong Kong',
+    storyText:
+      'Jean Pierre Polnareff reta a los Crusaders con el estoque relámpago de Silver Chariot.',
+    opponentName: 'Jean Pierre Polnareff',
+    featuredCardId: 'char-jean-pierre-polnareff',
+    difficulty: 'EASY',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-iggy',
+        'char-jean-pierre-polnareff',
+        'char-hol-horse',
+        'stand-the-fool',
+        'stand-emperor',
+        'stand-silver-chariot',
+      ],
+      [...rep('item-atraccion-usuarios-stand', 2), ...rep('item-flecha-de-stand', 2), ...rep('item-suministros-speedwagon', 2)],
+      [
+        ['energy-psychic', 16],
+        ['energy-light', 12],
+      ],
+    ),
+    storyDeckName: P3_STORY_EARLY_NAME,
+    storyDeckDescription: P3_STORY_EARLY_DESC,
+    storyDeckIds: P3_STORY_EARLY_IDS,
+    rewardCoins: 200,
+  },
+  {
+    id: 'p3-s4',
+    part: 3,
+    stageNumber: 4,
+    title: 'Pistolero en Calcuta',
+    location: 'Calles de Calcuta · India',
+    storyText:
+      'Hol Horse dispara las balas dirigidas de Emperor buscando golpear primero con Lucky Shot.',
+    opponentName: 'Hol Horse · Emperor',
+    featuredCardId: 'char-hol-horse',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-hol-horse',
+        'char-mariah',
+        'char-n-doul',
+        'stand-emperor',
+        'stand-bastet',
+        'stand-geb',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-psychic', 14],
+        ['energy-water', 13],
+      ],
+    ),
+    storyDeckName: P3_STORY_MID_NAME,
+    storyDeckDescription: P3_STORY_MID_DESC,
+    storyDeckIds: P3_STORY_MID_IDS,
+    rewardCoins: 220,
+  },
+  {
+    id: 'p3-s5',
+    part: 3,
+    stageNumber: 5,
+    title: 'El Desierto de Asuán: Geb',
+    location: 'Desierto de Egipto',
+    storyText:
+      '¡JEFE INTERMEDIO! El asesino ciego N’Doul controla el agua letal de Geb a kilómetros de distancia. Derrótalo para ganar 1 Sobre de Parte 3.',
+    opponentName: 'N’Doul · Geb (Jefe)',
+    featuredCardId: 'char-n-doul',
+    difficulty: 'HARD',
+    isBoss: true,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-n-doul',
+        'char-pet-shop',
+        'char-hol-horse',
+        'char-mariah',
+        'stand-geb',
+        'stand-horus',
+        'stand-emperor',
+        'stand-bastet',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-suministros-speedwagon', 3),
+      ],
+      [
+        ['energy-water', 16],
+        ['energy-psychic', 8],
+      ],
+    ),
+    storyDeckName: P3_STORY_MID_NAME,
+    storyDeckDescription: P3_STORY_MID_DESC,
+    storyDeckIds: P3_STORY_MID_IDS,
+    rewardCoins: 320,
+    rewardPackId: 'pack-part-3',
+    rewardPackCount: 1,
+  },
+  {
+    id: 'p3-s6',
+    part: 3,
+    stageNumber: 6,
+    title: 'Trampa Magnética en Luxor',
+    location: 'Estación de Luxor · Egipto',
+    storyText:
+      'Mariah activa el enchufe de Bastet convirtiendo todo metal cercano en proyectiles que provocan sangrado.',
+    opponentName: 'Mariah · Bastet',
+    featuredCardId: 'char-mariah',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-mariah',
+        'char-hol-horse',
+        'char-n-doul',
+        'stand-bastet',
+        'stand-emperor',
+        'stand-geb',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-psychic', 16],
+        ['energy-water', 11],
+      ],
+    ),
+    storyDeckName: P3_STORY_MID_NAME,
+    storyDeckDescription: P3_STORY_MID_DESC,
+    storyDeckIds: P3_STORY_MID_IDS,
+    rewardCoins: 240,
+  },
+  {
+    id: 'p3-s7',
+    part: 3,
+    stageNumber: 7,
+    title: 'Cacería en las Calles de El Cairo',
+    location: 'Mercado de El Cairo',
+    storyText:
+      'Los mercenarios de DIO estrechan el cerco en la capital egipcia combinando fuego cruzado y trampas de Stand.',
+    opponentName: 'Escuadrón de los 9 Dioses',
+    featuredCardId: 'stand-emperor',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-hol-horse',
+        'char-mariah',
+        'char-n-doul',
+        'char-pet-shop',
+        'stand-emperor',
+        'stand-bastet',
+        'stand-geb',
+        'stand-horus',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-water', 14],
+        ['energy-psychic', 11],
+      ],
+    ),
+    storyDeckName: P3_STORY_MID_NAME,
+    storyDeckDescription: P3_STORY_MID_DESC,
+    storyDeckIds: P3_STORY_MID_IDS,
+    rewardCoins: 260,
+  },
+  {
+    id: 'p3-s8',
+    part: 3,
+    stageNumber: 8,
+    title: 'El Guardián Alado de la Mansión',
+    location: 'Muros de la Mansión de DIO',
+    storyText:
+      'Pet Shop congela el aire con Horus y vigila el cielo con Reconocimiento Aéreo. Supera su lluvia de estalactitas.',
+    opponentName: 'Pet Shop · Horus',
+    featuredCardId: 'char-pet-shop',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-pet-shop',
+        'char-n-doul',
+        'char-mariah',
+        'char-hol-horse',
+        'stand-horus',
+        'stand-geb',
+        'stand-bastet',
+        'stand-emperor',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-suministros-speedwagon', 3),
+      ],
+      [
+        ['energy-water', 17],
+        ['energy-psychic', 7],
+      ],
+    ),
+    storyDeckName: P3_STORY_FINALE_NAME,
+    storyDeckDescription: P3_STORY_FINALE_DESC,
+    storyDeckIds: P3_STORY_FINALE_IDS,
+    rewardCoins: 290,
+  },
+  {
+    id: 'p3-s9',
+    part: 3,
+    stageNumber: 9,
+    title: 'El Vacío Devorador: Cream',
+    location: 'Salón de la Mansión de DIO',
+    storyText:
+      'El fiel devoto Vanilla Ice borra todo rastro de materia con la Esfera del Vacío de Cream.',
+    opponentName: 'Vanilla Ice · Cream',
+    featuredCardId: 'char-vanilla-ice',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-vanilla-ice',
+        'char-mariah',
+        'char-hol-horse',
+        'char-pet-shop',
+        'stand-cream',
+        'stand-bastet',
+        'stand-emperor',
+        'stand-horus',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-suministros-speedwagon', 3),
+      ],
+      [
+        ['energy-psychic', 16],
+        ['energy-water', 8],
+      ],
+    ),
+    storyDeckName: P3_STORY_FINALE_NAME,
+    storyDeckDescription: P3_STORY_FINALE_DESC,
+    storyDeckIds: P3_STORY_FINALE_IDS,
+    rewardCoins: 330,
+  },
+  {
+    id: 'p3-s10',
+    part: 3,
+    stageNumber: 10,
+    title: 'El Mundo de DIO: Za Warudo',
+    location: 'Puente de El Cairo · Medianoche',
+    storyText:
+      '¡JEFE FINAL DE LA PARTE 3! DIO detiene el tiempo con The World respaldado por Vanilla Ice y los asesinos de Egipto. ¡Véncelo para ganar 2 Sobres de Parte 3!',
+    opponentName: 'DIO · The World (Jefe Final)',
+    featuredCardId: 'char-dio',
+    difficulty: 'HARD',
+    isBoss: true,
+    opponentDeckIds: buildPart1Deck(
+      [
+        'char-dio',
+        'char-vanilla-ice',
+        'char-pet-shop',
+        'char-hol-horse',
+        'char-mariah',
+        'stand-the-world',
+        'stand-cream',
+        'stand-horus',
+        'stand-emperor',
+        'stand-bastet',
+      ],
+      [
+        ...rep('item-atraccion-usuarios-stand', 3),
+        ...rep('item-flecha-de-stand', 2),
+        ...rep('item-suministros-speedwagon', 3),
+      ],
+      [
+        ['energy-psychic', 15],
+        ['energy-water', 7],
+      ],
+    ),
+    storyDeckName: P3_STORY_FINALE_NAME,
+    storyDeckDescription: P3_STORY_FINALE_DESC,
+    storyDeckIds: P3_STORY_FINALE_IDS,
+    rewardCoins: 550,
+    rewardPackId: 'pack-part-3',
+    rewardPackCount: 2,
+  },
+];
+
 export const CAMPAIGN_PARTS: CampaignPartDef[] = [
   {
     part: 1,
@@ -742,14 +1200,14 @@ export const CAMPAIGN_PARTS: CampaignPartDef[] = [
   {
     part: 3,
     name: 'Parte 3: Stardust Crusaders',
-    subtitle: 'El viaje a Egipto contra DIO y los 9 Dioses (Próximamente)',
-    mapHeader: 'MAPA DE RUTA · TOKIO → EL CAIRO 1988',
+    subtitle: 'El viaje de Tokio a El Cairo contra los 9 Dioses de Egipto y DIO (10 niveles)',
+    mapHeader: 'MAPA DE RUTA · TOKIO → HONG KONG → CALCUTA → EL CAIRO 1988',
     badge: 'PARTE 3',
     accentHex: '#e6194b',
     patternUrl: '/assets/patterns/pattern2.png',
     packId: 'pack-part-3',
-    available: false,
-    stages: [],
+    available: true,
+    stages: PART_3_STAGES,
   },
   {
     part: 4,

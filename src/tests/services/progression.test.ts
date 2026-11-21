@@ -251,8 +251,8 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(validateDeck(resEmpty.cardIds).valid).toBe(true);
   });
 
-  it('validates Part 1 & Part 2 Campaigns (20 legal Part-themed decks & story decks, HARD bosses on 5 & 10 with 1 & 2 packs, strict one-time pickup)', () => {
-    for (const partNum of [1, 2] as const) {
+  it('validates Part 1, 2 & 3 Campaigns (30 legal Part-themed decks & story decks, HARD bosses on 5 & 10 with 1 & 2 packs, strict one-time pickup)', () => {
+    for (const partNum of [1, 2, 3] as const) {
       const partDef = CAMPAIGN_PARTS.find((p) => p.part === partNum)!;
       expect(partDef.available).toBe(true);
       expect(partDef.stages).toHaveLength(10);
@@ -271,8 +271,10 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
         for (const cid of [...stage.opponentDeckIds, ...stage.storyDeckIds]) {
           const c = getCardById(cid)!;
           expect(c).toBeDefined();
-          if (c.type === 'CHARACTER') expect(c.part).toBe(partNum);
+          if (c.type === 'CHARACTER' || c.type === 'STAND') expect(c.part).toBe(partNum);
         }
+        // Featured card must exist inside opponent deck so guaranteed opening hand works
+        expect(stage.opponentDeckIds).toContain(stage.featuredCardId);
       }
 
       const boss5 = partDef.stages[4]!;
@@ -293,6 +295,7 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     const s5 = getCampaignStageById('p1-s5')!;
     const s10 = getCampaignStageById('p1-s10')!;
     const p2s10 = getCampaignStageById('p2-s10')!;
+    const p3s10 = getCampaignStageById('p3-s10')!;
 
     // Sequential unlock
     let prog = createInitialProgression();
@@ -340,5 +343,11 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(rP2S10.firstClear).toBe(true);
     expect(rP2S10.pack?.id).toBe('pack-part-2');
     expect(rP2S10.packOutcomes).toHaveLength(2);
+
+    // Part 3 Stage 10 grants 2 Part 3 packs once
+    const rP3S10 = claimCampaignStageReward(p3s10, rP2S10.nextProgression, createSeededRng(310));
+    expect(rP3S10.firstClear).toBe(true);
+    expect(rP3S10.pack?.id).toBe('pack-part-3');
+    expect(rP3S10.packOutcomes).toHaveLength(2);
   });
 });
