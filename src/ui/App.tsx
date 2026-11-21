@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { BookOpen, Coins, User, UserCheck } from 'lucide-react';
+import { getClaimableMilestonesCount } from '../services/progressionService';
 import { useAppStore, type AppScreen } from '../store/useAppStore';
 import { CardInspectorModal } from './components/cards/CardInspectorModal';
 import { AuthModal } from './components/common/AuthModal';
@@ -13,6 +14,7 @@ import { CampaignView } from './views/CampaignView';
 import { CollectionView } from './views/CollectionView';
 import { DeckBuilderView } from './views/DeckBuilderView';
 import { HomeView } from './views/HomeView';
+import { MilestonesView } from './views/MilestonesView';
 import { ShopView } from './views/ShopView';
 
 const NAV_ITEMS: { id: AppScreen; num: string; label: string }[] = [
@@ -22,6 +24,7 @@ const NAV_ITEMS: { id: AppScreen; num: string; label: string }[] = [
   { id: 'COLLECTION', num: '04', label: 'Colección' },
   { id: 'DECK_BUILDER', num: '05', label: 'Mazos' },
   { id: 'SHOP', num: '06', label: 'Tienda' },
+  { id: 'MILESTONES', num: '07', label: 'Hitos' },
 ];
 
 const SCREEN_ORDER: Record<AppScreen, number> = {
@@ -31,7 +34,8 @@ const SCREEN_ORDER: Record<AppScreen, number> = {
   COLLECTION: 3,
   DECK_BUILDER: 4,
   SHOP: 5,
-  BATTLE: 6,
+  MILESTONES: 6,
+  BATTLE: 7,
 };
 
 const pageVariants = {
@@ -63,7 +67,9 @@ const pageVariants = {
 export function App() {
   const screen = useAppStore((s) => s.screen);
   const setScreen = useAppStore((s) => s.setScreen);
-  const coins = useAppStore((s) => s.progression.coins);
+  const progression = useAppStore((s) => s.progression);
+  const coins = progression.coins;
+  const claimableMilestones = getClaimableMilestonesCount(progression);
   const authUser = useAppStore((s) => s.authUser);
   const setShowAuthModal = useAppStore((s) => s.setShowAuthModal);
   const hydrateAuthSession = useAppStore((s) => s.hydrateAuthSession);
@@ -164,11 +170,16 @@ export function App() {
                             className="pointer-events-none absolute inset-0 border-2 border-[#060508] bg-[#e6194b] shadow-[3px_3px_0_#060508]"
                           />
                         )}
-                        <span className="relative z-10 inline-block skew-x-10">
-                          <span className="mr-1.5 font-mono text-[10px] opacity-65">
+                        <span className="relative z-10 inline-flex skew-x-10 items-center gap-1">
+                          <span className="font-mono text-[10px] opacity-65">
                             {item.num}
                           </span>
-                          {item.label}
+                          <span>{item.label}</span>
+                          {item.id === 'MILESTONES' && claimableMilestones > 0 && (
+                            <span className="ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center border border-[#060508] bg-[#f2c12e] px-1 font-mono text-[10px] font-black text-[#0b090e]">
+                              {claimableMilestones}
+                            </span>
+                          )}
                         </span>
                       </motion.button>
                     );
@@ -237,6 +248,7 @@ export function App() {
               {screen === 'COLLECTION' && <CollectionView />}
               {screen === 'DECK_BUILDER' && <DeckBuilderView />}
               {screen === 'SHOP' && <ShopView />}
+              {screen === 'MILESTONES' && <MilestonesView />}
             </motion.div>
           </AnimatePresence>
         </main>

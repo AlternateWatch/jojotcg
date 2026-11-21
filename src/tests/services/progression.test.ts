@@ -6,6 +6,11 @@ import {
 } from '../../data/campaignData';
 import { ALL_CARDS, getCardById, PRESET_DECKS } from '../../data/cardRegistry';
 import {
+  ALL_MILESTONES,
+  CARD_SET_MILESTONES,
+  PACK_COMPLETION_MILESTONES,
+} from '../../data/milestonesData';
+import {
   BOOSTER_PACKS,
   CARD_RARITY_MAP,
   getCardRarity,
@@ -17,12 +22,16 @@ import { createSeededRng } from '../../engine/rng';
 import { autoCompleteDeck } from '../../services/deckAutoComplete';
 import { validateDeck } from '../../services/deckValidator';
 import {
+  claimAllReadyMilestones,
   claimCampaignStageReward,
+  claimMilestoneReward,
   COLLECTIBLE_CARDS,
   computeBattleReward,
   computeEffectivePackRates,
   craftRandomCard,
   createInitialProgression,
+  getClaimableMilestonesCount,
+  getMilestoneProgress,
   getMissingCardsForDeck,
   getOwnedCount,
   getRarityInventoryStats,
@@ -356,5 +365,83 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(rP4S10.firstClear).toBe(true);
     expect(rP4S10.pack?.id).toBe('pack-part-4');
     expect(rP4S10.packOutcomes).toHaveLength(2);
+  });
+
+  it('validates all milestones (pack completions + card sets) and grants strictly one-time extra coin rewards', () => {
+    // 1. Every booster pack has a pack-completion milestone, and every requiredCardId is a valid collectible card
+    expect(PACK_COMPLETION_MILESTONES).toHaveLength(BOOSTER_PACKS.length);
+    expect(CARD_SET_MILESTONES.length).toBeGreaterThanOrEqual(10);
+
+    const seenIds = new Set<string>();
+    for (const m of ALL_MILESTONES) {
+      expect(seenIds.has(m.id), `Duplicate milestone id ${m.id}`).toBe(false);
+      seenIds.add(m.id);
+      expect(m.rewardCoins).toBeGreaterThan(0);
+      expect(m.requiredCardIds.length).toBeGreaterThan(0);
+      for (const cid of m.requiredCardIds) {
+        const card = getCardById(cid);
+        expect(card, `Invalid card ${cid} in milestone ${m.id}`).toBeDefined();
+        expect(card?.type).not.toBe('ENERGY');
+      }
+    }
+
+    // 2. Starter progression has 0 claimable milestones initially
+    let prog = createInitialProgression();
+    expect(getClaimableMilestonesCount(prog)).toBe(0);
+
+    const stardustMilestone = ALL_MILESTONES.find((m) => m.id === 'milestone-set-stardust-crusaders')!;
+    const part1PackMilestone = ALL_MILESTONES.find((m) => m.id === 'milestone-pack-part-1')!;
+    expect(stardustMilestone).toBeDefined();
+    expect(part1PackMilestone).toBeDefined();
+
+    // Cannot claim incomplete milestone
+    const failIncomplete = claimMilestoneReward(stardustMilestone.id, prog);
+    expect(failIncomplete.ok).toBe(false);
+    expect(failIncomplete.coinsAwarded).toBe(0);
+
+    // 3. Unlock all 6 Stardust Crusaders -> milestone becomes claimable!
+    for (const cid of stardustMilestone.requiredCardIds) {
+      prog = {
+        ...prog,
+        ownedCards: { ...prog.ownedCards, [cid]: Math.max(1, prog.ownedCards[cid] ?? 0) },
+      };
+    }
+    const scStatus = getMilestoneProgress(prog, stardustMilestone);
+    expect(scStatus.isCompleted).toBe(true);
+    expect(scStatus.canClaim).toBe(true);
+    expect(getClaimableMilestonesCount(prog)).toBe(1);
+
+    // Claim Stardust Crusaders reward
+    const coinsBefore = prog.coins;
+    const claimRes = claimMilestoneReward(stardustMilestone.id, prog);
+    expect(claimRes.ok).toBe(true);
+    expect(claimRes.coinsAwarded).toBe(stardustMilestone.rewardCoins);
+    expect(claimRes.nextProgression.coins).toBe(coinsBefore + stardustMilestone.rewardCoins);
+    expect(claimRes.nextProgression.claimedMilestones).toContain(stardustMilestone.id);
+    prog = claimRes.nextProgression;
+
+    // Cannot claim the same milestone twice (one-time pickup)
+    const doubleClaim = claimMilestoneReward(stardustMilestone.id, prog);
+    expect(doubleClaim.ok).toBe(false);
+    expect(doubleClaim.coinsAwarded).toBe(0);
+    expect(doubleClaim.nextProgression.coins).toBe(prog.coins);
+
+    // 4. Complete Part 1 pack (unlocks both Sangre Fantasma & Sobre Completo Parte 1!) -> claimAllReadyMilestones claims both!
+    for (const cid of part1PackMilestone.requiredCardIds) {
+      prog = {
+        ...prog,
+        ownedCards: { ...prog.ownedCards, [cid]: Math.max(1, prog.ownedCards[cid] ?? 0) },
+      };
+    }
+    const readyCount = getClaimableMilestonesCount(prog);
+    expect(readyCount).toBe(2); // milestone-pack-part-1 + milestone-set-phantom-blood-heroes
+
+    const coinsBeforeAll = prog.coins;
+    const claimAllRes = claimAllReadyMilestones(prog);
+    expect(claimAllRes.claimedIds).toHaveLength(2);
+    expect(claimAllRes.claimedIds).toContain('milestone-pack-part-1');
+    expect(claimAllRes.claimedIds).toContain('milestone-set-phantom-blood-heroes');
+    expect(claimAllRes.nextProgression.coins).toBe(coinsBeforeAll + claimAllRes.totalCoinsAwarded);
+    expect(getClaimableMilestonesCount(claimAllRes.nextProgression)).toBe(0);
   });
 });

@@ -67,6 +67,12 @@ export function normalizeProgression(
       )
     : [];
 
+  const claimedMilestones = Array.isArray(raw.claimedMilestones)
+    ? Array.from(
+        new Set(raw.claimedMilestones.filter((id): id is string => typeof id === 'string')),
+      )
+    : [];
+
   return {
     coins:
       typeof raw.coins === 'number' && Number.isFinite(raw.coins) && raw.coins >= 0
@@ -78,6 +84,7 @@ export function normalizeProgression(
     wins: typeof raw.wins === 'number' && raw.wins >= 0 ? Math.floor(raw.wins) : 0,
     losses: typeof raw.losses === 'number' && raw.losses >= 0 ? Math.floor(raw.losses) : 0,
     completedCampaignStages,
+    claimedMilestones,
   };
 }
 

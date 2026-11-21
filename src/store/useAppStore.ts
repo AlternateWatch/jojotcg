@@ -5,13 +5,17 @@ import { getBoosterPackById } from '../data/progressionData';
 import type { AiDifficulty } from '../engine/ai/tacticalAi';
 import { authService, type AuthUser } from '../services/authService';
 import {
+  claimAllReadyMilestones,
   claimCampaignStageReward,
+  claimMilestoneReward,
   craftRandomCard,
   createInitialProgression,
   normalizePlayerProgression,
   normalizeSavedDecks,
   openBoosterPack,
   type CampaignClearResult,
+  type ClaimAllMilestonesResult,
+  type ClaimMilestoneResult,
   type CraftOutcome,
   type CraftRecipeId,
   type OpenPackOutcome,
@@ -31,7 +35,8 @@ export type AppScreen =
   | 'BATTLE'
   | 'COLLECTION'
   | 'DECK_BUILDER'
-  | 'SHOP';
+  | 'SHOP'
+  | 'MILESTONES';
 
 interface AppStoreState {
   screen: AppScreen;
@@ -85,6 +90,8 @@ interface AppStoreState {
   ) => CraftOutcome;
   awardBattleReward: (coins: number, won: boolean) => void;
   completeCampaignStage: (stageId: string) => CampaignClearResult | null;
+  claimMilestone: (milestoneId: string) => ClaimMilestoneResult;
+  claimAllMilestones: () => ClaimAllMilestonesResult;
   grantTestCoins: (amount: number) => void;
   resetProgression: () => void;
 }
@@ -387,6 +394,30 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       void authService.syncAccountData({ progression: result.nextProgression });
     }
     set({ progression: result.nextProgression });
+    return result;
+  },
+
+  claimMilestone: (milestoneId) => {
+    const current = get().progression;
+    const result = claimMilestoneReward(milestoneId, current);
+    if (result.ok) {
+      if (get().authUser) {
+        void authService.syncAccountData({ progression: result.nextProgression });
+      }
+      set({ progression: result.nextProgression });
+    }
+    return result;
+  },
+
+  claimAllMilestones: () => {
+    const current = get().progression;
+    const result = claimAllReadyMilestones(current);
+    if (result.claimedIds.length > 0) {
+      if (get().authUser) {
+        void authService.syncAccountData({ progression: result.nextProgression });
+      }
+      set({ progression: result.nextProgression });
+    }
     return result;
   },
 

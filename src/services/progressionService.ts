@@ -1,6 +1,11 @@
 import { ALL_CARDS, getCardById } from '../data/cardRegistry';
 import type { CampaignStageDef } from '../data/campaignData';
 import {
+  ALL_MILESTONES,
+  getMilestoneById,
+  type MilestoneDef,
+} from '../data/milestonesData';
+import {
   BATTLE_REWARDS,
   getBoosterPackById,
   getCardRarity,
@@ -24,6 +29,8 @@ export interface PlayerProgression {
   losses: number;
   /** Campaign stage IDs already cleared (one-time pickup rewards claimed) */
   completedCampaignStages: string[];
+  /** Milestone IDs whose extra coin rewards have already been claimed (one-time pickup) */
+  claimedMilestones: string[];
 }
 
 export interface PackPullResult {
@@ -113,6 +120,7 @@ export function createInitialProgression(): PlayerProgression {
     wins: 0,
     losses: 0,
     completedCampaignStages: [],
+    claimedMilestones: [],
   };
 }
 
@@ -154,10 +162,19 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
       )
     : [];
 
+  const claimedMilestones = Array.isArray(progression.claimedMilestones)
+    ? Array.from(
+        new Set(
+          progression.claimedMilestones.filter((id): id is string => typeof id === 'string'),
+        ),
+      )
+    : [];
+
   return {
     ...progression,
     ownedCards: nextOwned,
     completedCampaignStages,
+    claimedMilestones,
   };
 }
 
@@ -704,5 +721,151 @@ export function claimCampaignStageReward(
     pack: rewardPack,
     packOutcomes,
     nextProgression: current,
+  };
+}
+
+export interface MilestoneProgress {
+  milestone: MilestoneDef;
+  unlocked: number;
+  total: number;
+  percent: number;
+  isCompleted: boolean;
+  isClaimed: boolean;
+  canClaim: boolean;
+  missingCardIds: string[];
+}
+
+export function getMilestoneProgress(
+  progression: PlayerProgression,
+  milestone: MilestoneDef,
+): MilestoneProgress {
+  const uniqueIds = Array.from(new Set(milestone.requiredCardIds));
+  const missingCardIds: string[] = [];
+  let unlocked = 0;
+  for (const cardId of uniqueIds) {
+    if ((progression.ownedCards[cardId] ?? 0) > 0) {
+      unlocked++;
+    } else {
+      missingCardIds.push(cardId);
+    }
+  }
+  const total = uniqueIds.length;
+  const isCompleted = total > 0 && unlocked === total;
+  const isClaimed = (progression.claimedMilestones ?? []).includes(milestone.id);
+  return {
+    milestone,
+    unlocked,
+    total,
+    percent: total > 0 ? Math.round((unlocked / total) * 100) : 0,
+    isCompleted,
+    isClaimed,
+    canClaim: isCompleted && !isClaimed,
+    missingCardIds,
+  };
+}
+
+export function getAllMilestonesProgress(progression: PlayerProgression): MilestoneProgress[] {
+  return ALL_MILESTONES.map((m) => getMilestoneProgress(progression, m));
+}
+
+export function getClaimableMilestonesCount(progression: PlayerProgression): number {
+  let count = 0;
+  for (const m of ALL_MILESTONES) {
+    if (getMilestoneProgress(progression, m).canClaim) count++;
+  }
+  return count;
+}
+
+export interface ClaimMilestoneResult {
+  ok: boolean;
+  error?: string;
+  coinsAwarded: number;
+  milestone?: MilestoneDef;
+  nextProgression: PlayerProgression;
+}
+
+/**
+ * Claims the one-time extra coin reward for a completed milestone.
+ */
+export function claimMilestoneReward(
+  milestoneId: string,
+  progression: PlayerProgression,
+): ClaimMilestoneResult {
+  const milestone = getMilestoneById(milestoneId);
+  if (!milestone) {
+    return {
+      ok: false,
+      error: 'Hito no encontrado.',
+      coinsAwarded: 0,
+      nextProgression: progression,
+    };
+  }
+  const status = getMilestoneProgress(progression, milestone);
+  if (status.isClaimed) {
+    return {
+      ok: false,
+      error: 'Este hito ya fue reclamado.',
+      coinsAwarded: 0,
+      milestone,
+      nextProgression: progression,
+    };
+  }
+  if (!status.isCompleted) {
+    return {
+      ok: false,
+      error: `Todavía te faltan ${status.missingCardIds.length} carta(s) para completar este hito.`,
+      coinsAwarded: 0,
+      milestone,
+      nextProgression: progression,
+    };
+  }
+
+  const nextProgression: PlayerProgression = {
+    ...progression,
+    coins: progression.coins + milestone.rewardCoins,
+    claimedMilestones: [...(progression.claimedMilestones ?? []), milestone.id],
+  };
+
+  return {
+    ok: true,
+    coinsAwarded: milestone.rewardCoins,
+    milestone,
+    nextProgression,
+  };
+}
+
+export interface ClaimAllMilestonesResult {
+  claimedIds: string[];
+  totalCoinsAwarded: number;
+  nextProgression: PlayerProgression;
+}
+
+/**
+ * Claims all completed, unclaimed milestones at once.
+ */
+export function claimAllReadyMilestones(
+  progression: PlayerProgression,
+): ClaimAllMilestonesResult {
+  const ready = getAllMilestonesProgress(progression).filter((p) => p.canClaim);
+  if (ready.length === 0) {
+    return {
+      claimedIds: [],
+      totalCoinsAwarded: 0,
+      nextProgression: progression,
+    };
+  }
+
+  const claimedIds = ready.map((p) => p.milestone.id);
+  const totalCoinsAwarded = ready.reduce((sum, p) => sum + p.milestone.rewardCoins, 0);
+  const nextProgression: PlayerProgression = {
+    ...progression,
+    coins: progression.coins + totalCoinsAwarded,
+    claimedMilestones: [...(progression.claimedMilestones ?? []), ...claimedIds],
+  };
+
+  return {
+    claimedIds,
+    totalCoinsAwarded,
+    nextProgression,
   };
 }

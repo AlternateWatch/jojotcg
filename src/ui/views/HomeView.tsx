@@ -2,8 +2,12 @@ import { motion } from 'framer-motion';
 import { ArrowRight, ShieldAlert, UserCheck } from 'lucide-react';
 import { CAMPAIGN_PARTS } from '../../data/campaignData';
 import { getCardById } from '../../data/cardRegistry';
+import { ALL_MILESTONES } from '../../data/milestonesData';
 import { PLAYMAT_THEMES } from '../../services/assetResolver';
-import { getCollectionProgress } from '../../services/progressionService';
+import {
+  getClaimableMilestonesCount,
+  getCollectionProgress,
+} from '../../services/progressionService';
 import type { PlaymatThemeId } from '../../services/storageService';
 import { useAppStore } from '../../store/useAppStore';
 import { CardView } from '../components/cards/CardView';
@@ -29,6 +33,8 @@ export function HomeView() {
   const coll = getCollectionProgress(progression);
   const campaignTotal = CAMPAIGN_PARTS.reduce((sum, p) => sum + (p.available ? p.stages.length : 0), 0);
   const campaignCleared = (progression.completedCampaignStages ?? []).length;
+  const milestonesClaimed = (progression.claimedMilestones ?? []).length;
+  const milestonesReady = getClaimableMilestonesCount(progression);
 
   const showcaseCards = SHOWCASE_IDS.map(getCardById).filter(
     (c): c is NonNullable<typeof c> => Boolean(c),
@@ -83,6 +89,22 @@ export function HomeView() {
       sub: 'Edita tus barajas con las cartas que has desbloqueado',
       accent: 'bg-[#1d1727] text-[#f5efe0]',
       onClick: () => setScreen('DECK_BUILDER'),
+    },
+    {
+      index: '08',
+      title:
+        milestonesReady > 0
+          ? `HITOS & PREMIOS (${milestonesReady} ¡LISTO!)`
+          : `HITOS & COLECCIONES (${milestonesClaimed}/${ALL_MILESTONES.length})`,
+      sub:
+        milestonesReady > 0
+          ? `Tienes ${milestonesReady} recompensa(s) extra de monedas lista(s) para reclamar`
+          : 'Completa sobres y conjuntos como Stardust Crusaders para ganar monedas extra',
+      accent:
+        milestonesReady > 0
+          ? 'bg-[#f2c12e] text-[#0b090e]'
+          : 'bg-[#1d1727] text-[#f5efe0]',
+      onClick: () => setScreen('MILESTONES'),
     },
   ];
 

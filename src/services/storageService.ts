@@ -147,6 +147,13 @@ export const storageService: StorageAdapter = {
             ),
           )
         : [];
+      const claimedMilestones = Array.isArray(parsed.claimedMilestones)
+        ? Array.from(
+            new Set(
+              parsed.claimedMilestones.filter((id): id is string => typeof id === 'string'),
+            ),
+          )
+        : [];
       return {
         coins:
           typeof parsed.coins === 'number' && Number.isFinite(parsed.coins) && parsed.coins >= 0
@@ -161,6 +168,7 @@ export const storageService: StorageAdapter = {
         losses:
           typeof parsed.losses === 'number' && parsed.losses >= 0 ? Math.floor(parsed.losses) : 0,
         completedCampaignStages,
+        claimedMilestones,
       };
     } catch {
       return baseline;
