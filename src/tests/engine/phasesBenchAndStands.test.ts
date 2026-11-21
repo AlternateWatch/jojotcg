@@ -221,4 +221,47 @@ describe('Turn Phases, Bench Management, Stands & Energy Rules', () => {
     const aiAction = chooseAiAction(state, 'P2');
     expect(aiAction?.type).toBe('PLAY_TO_BENCH');
   });
+
+  it('allows Comida de Tonio to heal and cleanse Burn on a bench ally, and AI targets injured bench allies too', () => {
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-josuke-higashikata',
+      p1BenchIds: ['char-okuyasu-nijimura'],
+      p1Hand: ['item-comida-de-tonio'],
+      p2ActiveId: 'char-dio-brando',
+      p2BenchIds: ['char-yoshikage-kira'],
+      p2Hand: ['item-comida-de-tonio'],
+      phase: 'PREPARATION',
+      activePlayerId: 'P1',
+    });
+
+    const benchOkuyasu = state.players.P1.bench[0]!;
+    benchOkuyasu.currentHp = 50;
+    benchOkuyasu.statuses.burn = { active: true, damagePerTurn: 10 };
+
+    state = mustDispatch(state, {
+      type: 'PLAY_ITEM',
+      playerId: 'P1',
+      handIndex: 0,
+      targetInstanceId: benchOkuyasu.instanceId,
+    });
+
+    expect(state.phase).toBe('PREPARATION');
+    expect(state.activePlayerId).toBe('P1');
+    expect(state.players.P1.bench[0]!.currentHp).toBe(90);
+    expect(state.players.P1.bench[0]!.statuses.burn).toBeNull();
+    expect(state.players.P1.discard).toContain('item-comida-de-tonio');
+
+    // AI also uses Comida de Tonio on an injured bench ally when active is full HP
+    state.activePlayerId = 'P2';
+    state.players.P2.isAi = true;
+    const benchKira = state.players.P2.bench[0]!;
+    benchKira.currentHp = 40;
+    const aiAction = chooseAiAction(state, 'P2');
+    expect(aiAction).toEqual({
+      type: 'PLAY_ITEM',
+      playerId: 'P2',
+      handIndex: 0,
+      targetInstanceId: benchKira.instanceId,
+    });
+  });
 });

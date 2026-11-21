@@ -663,14 +663,31 @@ export function chooseAiAction(
           const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
           if (validateAction(state, act).ok) return act;
         }
-      } else if (item.effects.some((e) => e.kind === 'HEAL_TARGET') && player.active) {
-        const maxHp = computeEffectiveMaxHp(state, aiPlayerId, player.active);
-        if (player.active.statuses.burn || maxHp - player.active.currentHp >= 40) {
+      } else if (item.effects.some((e) => e.kind === 'HEAL_TARGET')) {
+        const candidates =
+          item.targetScope === 'ANY_ALLY'
+            ? [...(player.active ? [player.active] : []), ...player.bench]
+            : player.active
+              ? [player.active]
+              : [];
+        const bestTarget = candidates
+          .map((ch) => {
+            const maxHp = computeEffectiveMaxHp(state, aiPlayerId, ch);
+            const missingHp = Math.max(0, maxHp - ch.currentHp);
+            const hasBurn = Boolean(ch.statuses.burn?.active);
+            const isActive = player.active?.instanceId === ch.instanceId;
+            const score = missingHp + (hasBurn ? 35 : 0) + (isActive && (missingHp >= 40 || hasBurn) ? 15 : 0);
+            return { ch, missingHp, hasBurn, score };
+          })
+          .filter((entry) => entry.hasBurn || entry.missingHp >= 40)
+          .sort((a, b) => b.score - a.score)[0];
+
+        if (bestTarget) {
           const act: GameAction = {
             type: 'PLAY_ITEM',
             playerId: aiPlayerId,
             handIndex: i,
-            targetInstanceId: player.active.instanceId,
+            targetInstanceId: bestTarget.ch.instanceId,
           };
           if (validateAction(state, act).ok) return act;
         }

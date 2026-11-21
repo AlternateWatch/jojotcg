@@ -344,11 +344,11 @@ export function BattleView() {
     selectedCard?.type === 'ENERGY' &&
     myPlayer.energyAttachedThisTurn < maxEnergyThisTurn;
 
-  const isTargetingEquippable =
+  const isTargetingItemAlly =
     isHumanTurn &&
     gameState.phase === 'PREPARATION' &&
     selectedCard?.type === 'ITEM' &&
-    selectedCard.itemKind === 'EQUIPPABLE';
+    (selectedCard.itemKind === 'EQUIPPABLE' || selectedCard.targetScope === 'ANY_ALLY');
 
   const canTargetBoardCharacter = (instanceId: string): boolean => {
     if (selectedHandIndex === null) return false;
@@ -360,7 +360,7 @@ export function BattleView() {
         targetInstanceId: instanceId,
       }).ok;
     }
-    if (isTargetingEquippable) {
+    if (isTargetingItemAlly) {
       return validateAction(gameState, {
         type: 'PLAY_ITEM',
         playerId: myId,
@@ -375,8 +375,10 @@ export function BattleView() {
     ? 'EQUIPAR STAND'
     : isTargetingEnergy
       ? 'UNIR ENERGÍA'
-      : isTargetingEquippable
-        ? 'EQUIPAR OBJETO'
+      : isTargetingItemAlly
+        ? selectedCard?.itemKind === 'EQUIPPABLE'
+          ? 'EQUIPAR OBJETO'
+          : 'USAR EN PERSONAJE'
         : undefined;
 
   const myActiveProfile = myPlayer.active ? getEffectiveCharacterProfile(myPlayer.active) : null;
@@ -419,7 +421,7 @@ export function BattleView() {
         handIndex: selectedHandIndex,
         targetInstanceId,
       });
-    } else if (isTargetingEquippable) {
+    } else if (isTargetingItemAlly) {
       handleDispatch({
         type: 'PLAY_ITEM',
         playerId: myId,

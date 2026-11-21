@@ -1,6 +1,9 @@
 import type { AnyCard } from '../../../data/schemas/cardTypes';
 import { validateAction } from '../../../engine/gameEngine';
-import { getEffectiveCharacterProfile } from '../../../engine/helpers/cardStats';
+import {
+  computeEffectiveMaxHp,
+  getEffectiveCharacterProfile,
+} from '../../../engine/helpers/cardStats';
 import type { GameAction } from '../../../engine/types/actions';
 import type { GameState, PlayerId } from '../../../engine/types/state';
 
@@ -142,6 +145,49 @@ export function HandActionRibbon({
             )}
           </div>
         );
+      }
+
+      if (card.itemKind === 'CONSUMABLE' && card.targetScope === 'ANY_ALLY') {
+        const candidates = [
+          ...(player.active ? [{ ch: player.active, zoneLabel: 'Activo' }] : []),
+          ...player.bench.map((ch) => ({ ch, zoneLabel: 'Banca' })),
+        ];
+        const validTargets = candidates
+          .map(({ ch, zoneLabel }) => {
+            const action: GameAction = {
+              type: 'PLAY_ITEM',
+              playerId,
+              handIndex,
+              targetInstanceId: ch.instanceId,
+            };
+            const check = validateAction(gameState, action);
+            return { ch, zoneLabel, action, check };
+          })
+          .filter((item) => item.check.ok);
+
+        if (validTargets.length > 0) {
+          const isHeal = card.effects.some((e) => e.kind === 'HEAL_TARGET');
+          return (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {validTargets.map(({ ch, zoneLabel, action }) => {
+                const prof = getEffectiveCharacterProfile(ch);
+                const maxHp = computeEffectiveMaxHp(gameState, playerId, ch);
+                return (
+                  <button
+                    key={ch.instanceId}
+                    type="button"
+                    onClick={() => onDispatch(action)}
+                    className="jojo-btn-primary px-3 py-1 font-jojo-heading text-xs tracking-wider uppercase"
+                  >
+                    {isHeal
+                      ? `Curar ${prof.name} (${zoneLabel} · ${ch.currentHp}/${maxHp})`
+                      : `Usar en ${prof.name} (${zoneLabel})`}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        }
       }
 
       const action: GameAction = {
