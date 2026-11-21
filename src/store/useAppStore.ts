@@ -45,8 +45,10 @@ interface AppStoreState {
   inspectedCardId: string | null;
   preferredBattleMode: 'VS_AI' | 'HOTSEAT' | 'ONLINE';
   preselectedDeckId: string | null;
+  selectedCampaignPart: 1 | 2 | 3 | 4 | 5;
 
   setScreen: (screen: AppScreen) => void;
+  setSelectedCampaignPart: (part: 1 | 2 | 3 | 4 | 5) => void;
   setShowAuthModal: (open: boolean) => void;
   hydrateAuthSession: () => Promise<void>;
   loginAccount: (
@@ -110,8 +112,10 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   inspectedCardId: null,
   preferredBattleMode: 'VS_AI',
   preselectedDeckId: null,
+  selectedCampaignPart: 1,
 
   setScreen: (screen) => set({ screen }),
+  setSelectedCampaignPart: (selectedCampaignPart) => set({ selectedCampaignPart }),
   setShowAuthModal: (showAuthModal) => set({ showAuthModal }),
 
   hydrateAuthSession: async () => {

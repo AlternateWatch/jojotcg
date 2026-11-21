@@ -120,6 +120,7 @@ export function BattleView() {
   const setPlaymatTheme = useAppStore((s) => s.setPlaymatTheme);
   const setAnimationSpeed = useAppStore((s) => s.setAnimationSpeed);
   const setEnable3dVfx = useAppStore((s) => s.setEnable3dVfx);
+  const setSelectedCampaignPart = useAppStore((s) => s.setSelectedCampaignPart);
   const setScreen = useAppStore((s) => s.setScreen);
 
   const [showLog, setShowLog] = useState(false);
@@ -1112,6 +1113,10 @@ export function BattleView() {
         campaignPackReward={campaignPackReward}
         onOpenCampaignPacks={() => setShowCampaignPacks(true)}
         onReturnToCampaign={() => {
+          if (activeCampaignStageId) {
+            const stage = getCampaignStageById(activeCampaignStageId);
+            if (stage) setSelectedCampaignPart(stage.part);
+          }
           resetBattle();
           setScreen('CAMPAIGN');
         }}

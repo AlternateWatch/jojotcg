@@ -16,7 +16,6 @@ import {
 import {
   CAMPAIGN_PARTS,
   isCampaignStageUnlocked,
-  type CampaignPartDef,
 } from '../../data/campaignData';
 import { getCardById } from '../../data/cardRegistry';
 import { STARTER_DECK_ID } from '../../data/progressionData';
@@ -41,11 +40,12 @@ export function CampaignView() {
   const settings = useAppStore((s) => s.settings);
   const authUser = useAppStore((s) => s.authUser);
   const setSelectedDeckId = useAppStore((s) => s.setSelectedDeckId);
+  const selectedPartNum = useAppStore((s) => s.selectedCampaignPart);
+  const setSelectedPartNum = useAppStore((s) => s.setSelectedCampaignPart);
   const setScreen = useAppStore((s) => s.setScreen);
   const openInspector = useAppStore((s) => s.openInspector);
   const startBattle = useBattleStore((s) => s.startBattle);
 
-  const [selectedPartNum, setSelectedPartNum] = useState<CampaignPartDef['part']>(1);
   const [deckMode, setDeckMode] = useState<'STORY' | 'CUSTOM'>('STORY');
 
   const activePart = CAMPAIGN_PARTS.find((p) => p.part === selectedPartNum) ?? CAMPAIGN_PARTS[0]!;
