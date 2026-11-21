@@ -26,6 +26,7 @@ export interface CampaignPartDef {
   part: 1 | 2 | 3 | 4 | 5;
   name: string;
   subtitle: string;
+  mapHeader: string;
   badge: string;
   accentHex: string;
   patternUrl: string;
@@ -377,11 +378,348 @@ const PART_1_STAGES: CampaignStageDef[] = [
   },
 ];
 
+// ===================== PART 2: BATTLE TENDENCY STORY DECKS & STAGES =====================
+const P2_STORY_EARLY_NAME = 'Trucos de Joseph (Campaña P2)';
+const P2_STORY_EARLY_DESC =
+  'Joseph Joestar, Stroheim y Lisa Lisa con Clackers, Cinta de Caesar y Suministros Speedwagon.';
+const P2_STORY_EARLY_IDS = buildPart1Deck(
+  ['char-joseph-joestar', 'char-rudol-von-stroheim', 'char-lisa-lisa'],
+  [
+    ...rep('item-clackers', 2),
+    ...rep('item-cinta-de-caesar', 2),
+    ...rep('item-suministros-speedwagon', 2),
+  ],
+  [
+    ['energy-electric', 19],
+    ['energy-light', 12],
+  ],
+);
+
+const P2_STORY_MID_NAME = 'Entrenamiento de Venecia (Campaña P2)';
+const P2_STORY_MID_DESC =
+  'Dúo Hamon de Venecia: Joseph, Caesar y Lisa Lisa potenciados con Clackers y Cinta de Caesar.';
+const P2_STORY_MID_IDS = buildPart1Deck(
+  ['char-joseph-joestar', 'char-caesar-zeppeli', 'char-lisa-lisa'],
+  [
+    ...rep('item-clackers', 3),
+    ...rep('item-cinta-de-caesar', 3),
+    ...rep('item-suministros-speedwagon', 2),
+  ],
+  [
+    ['energy-electric', 16],
+    ['energy-water', 13],
+  ],
+);
+
+const P2_STORY_FINALE_NAME = 'Alianza Final de Suiza (Campaña P2)';
+const P2_STORY_FINALE_DESC =
+  'Joseph, Caesar, Lisa Lisa y Stroheim armados con Clackers, Cinta de Caesar y la Piedra Roja de Aja contra los Hombres del Pilar.';
+const P2_STORY_FINALE_IDS = buildPart1Deck(
+  [
+    'char-joseph-joestar',
+    'char-caesar-zeppeli',
+    'char-lisa-lisa',
+    'char-rudol-von-stroheim',
+  ],
+  [
+    ...rep('item-clackers', 3),
+    ...rep('item-cinta-de-caesar', 3),
+    ...rep('item-suministros-speedwagon', 3),
+    ...rep('item-piedra-roja-de-aja', 2),
+  ],
+  [
+    ['energy-electric', 14],
+    ['energy-light', 11],
+  ],
+);
+
+const PART_2_STAGES: CampaignStageDef[] = [
+  {
+    id: 'p2-s1',
+    part: 2,
+    stageNumber: 1,
+    title: 'Infiltración en la Base de México',
+    location: 'Desierto de México · 1938',
+    storyText:
+      'Para rescatar a Speedwagon, Joseph se infiltra en las instalaciones de Rudol Von Stroheim y prueba la ciencia alemana.',
+    opponentName: 'Rudol Von Stroheim',
+    featuredCardId: 'char-rudol-von-stroheim',
+    difficulty: 'EASY',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      ['char-rudol-von-stroheim', 'char-santana'],
+      [...rep('item-suministros-speedwagon', 2), 'item-mascara-de-piedra'],
+      [
+        ['energy-light', 20],
+        ['energy-colorless', 15],
+      ],
+    ),
+    storyDeckName: P2_STORY_EARLY_NAME,
+    storyDeckDescription: P2_STORY_EARLY_DESC,
+    storyDeckIds: P2_STORY_EARLY_IDS,
+    rewardCoins: 140,
+  },
+  {
+    id: 'p2-s2',
+    part: 2,
+    stageNumber: 2,
+    title: 'El Despertar de Santana',
+    location: 'Cámara Subterránea · México',
+    storyText:
+      'El primer Hombre del Pilar despierta y absorbe todo a su paso. Domina tu estrategia para frenar su regeneración.',
+    opponentName: 'Santana',
+    featuredCardId: 'char-santana',
+    difficulty: 'EASY',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      ['char-santana', 'char-rudol-von-stroheim'],
+      [...rep('item-mascara-de-piedra', 2), ...rep('item-suministros-speedwagon', 2)],
+      [
+        ['energy-light', 18],
+        ['energy-colorless', 16],
+      ],
+    ),
+    storyDeckName: P2_STORY_EARLY_NAME,
+    storyDeckDescription: P2_STORY_EARLY_DESC,
+    storyDeckIds: P2_STORY_EARLY_IDS,
+    rewardCoins: 160,
+  },
+  {
+    id: 'p2-s3',
+    part: 2,
+    stageNumber: 3,
+    title: 'Choque de Linajes en Roma',
+    location: 'Plaza de Roma · Italia',
+    storyText:
+      'Antes de unir fuerzas, Joseph y Caesar Zeppeli miden su orgullo y sus técnicas de Hamon en pleno corazón de Roma.',
+    opponentName: 'Caesar Zeppeli',
+    featuredCardId: 'char-caesar-zeppeli',
+    difficulty: 'EASY',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      ['char-caesar-zeppeli', 'char-joseph-joestar'],
+      [...rep('item-cinta-de-caesar', 2), ...rep('item-clackers', 2)],
+      [
+        ['energy-water', 17],
+        ['energy-electric', 17],
+      ],
+    ),
+    storyDeckName: P2_STORY_EARLY_NAME,
+    storyDeckDescription: P2_STORY_EARLY_DESC,
+    storyDeckIds: P2_STORY_EARLY_IDS,
+    rewardCoins: 180,
+  },
+  {
+    id: 'p2-s4',
+    part: 2,
+    stageNumber: 4,
+    title: 'Las Catacumbas del Muro',
+    location: 'Subsuelo de Roma',
+    storyText:
+      'Tres siluetas milenarias emergen de la piedra. Wamuu bloquea el paso con su dominio absoluto del viento.',
+    opponentName: 'Wamuu (Despertar)',
+    featuredCardId: 'char-wamuu',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      ['char-wamuu', 'char-santana'],
+      [...rep('item-mascara-de-piedra', 2), ...rep('item-suministros-speedwagon', 2)],
+      [
+        ['energy-light', 16],
+        ['energy-colorless', 18],
+      ],
+    ),
+    storyDeckName: P2_STORY_MID_NAME,
+    storyDeckDescription: P2_STORY_MID_DESC,
+    storyDeckIds: P2_STORY_MID_IDS,
+    rewardCoins: 200,
+  },
+  {
+    id: 'p2-s5',
+    part: 2,
+    stageNumber: 5,
+    title: 'El Coliseo: Los 3 Hombres del Pilar',
+    location: 'Coliseo de Roma',
+    storyText:
+      '¡JEFE INTERMEDIO! Wamuu desata la Tormenta de Arena Divina junto a Esidisi y Santana. Resiste su embestida para ganar 1 Sobre de Parte 2.',
+    opponentName: 'Wamuu · Guerrero del Viento',
+    featuredCardId: 'char-wamuu',
+    difficulty: 'HARD',
+    isBoss: true,
+    opponentDeckIds: buildPart1Deck(
+      ['char-wamuu', 'char-esidisi', 'char-santana'],
+      [
+        ...rep('item-mascara-de-piedra', 3),
+        ...rep('item-piedra-roja-de-aja', 2),
+        ...rep('item-suministros-speedwagon', 3),
+      ],
+      [
+        ['energy-fire', 15],
+        ['energy-colorless', 14],
+      ],
+    ),
+    storyDeckName: P2_STORY_MID_NAME,
+    storyDeckDescription: P2_STORY_MID_DESC,
+    storyDeckIds: P2_STORY_MID_IDS,
+    rewardCoins: 280,
+    rewardPackId: 'pack-part-2',
+    rewardPackCount: 1,
+  },
+  {
+    id: 'p2-s6',
+    part: 2,
+    stageNumber: 6,
+    title: 'La Torre del Infierno',
+    location: 'Isla Air Supplena · Venecia',
+    storyText:
+      'La maestra Lisa Lisa somete a Joseph y Caesar a la prueba definitiva del pilar aceitado para perfeccionar el Hamon.',
+    opponentName: 'Lisa Lisa · Maestra Hamon',
+    featuredCardId: 'char-lisa-lisa',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      ['char-lisa-lisa', 'char-caesar-zeppeli', 'char-joseph-joestar'],
+      [
+        ...rep('item-clackers', 2),
+        ...rep('item-cinta-de-caesar', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-electric', 18],
+        ['energy-water', 13],
+      ],
+    ),
+    storyDeckName: P2_STORY_MID_NAME,
+    storyDeckDescription: P2_STORY_MID_DESC,
+    storyDeckIds: P2_STORY_MID_IDS,
+    rewardCoins: 220,
+  },
+  {
+    id: 'p2-s7',
+    part: 2,
+    stageNumber: 7,
+    title: 'Sangre Hirviendo en la Isla',
+    location: 'Air Supplena · Noche',
+    storyText:
+      'Esidisi se infiltra en busca de la Piedra Roja de Aja y hace hervir el campo de batalla con su Modo Llama.',
+    opponentName: 'Esidisi · Rey de la Llama',
+    featuredCardId: 'char-esidisi',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      ['char-esidisi', 'char-santana', 'char-wamuu'],
+      [
+        ...rep('item-piedra-roja-de-aja', 2),
+        ...rep('item-mascara-de-piedra', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-fire', 19],
+        ['energy-colorless', 12],
+      ],
+    ),
+    storyDeckName: P2_STORY_MID_NAME,
+    storyDeckDescription: P2_STORY_MID_DESC,
+    storyDeckIds: P2_STORY_MID_IDS,
+    rewardCoins: 240,
+  },
+  {
+    id: 'p2-s8',
+    part: 2,
+    stageNumber: 8,
+    title: 'Emboscada en St. Moritz',
+    location: 'Hotel Abandonado · Suiza',
+    storyText:
+      'Entre la nieve alpina, Kars revela sus Cuchillas de Luz y un intelecto implacable por la Piedra Roja de Aja.',
+    opponentName: 'Kars · Modo Luz',
+    featuredCardId: 'char-kars',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      ['char-kars', 'char-santana', 'char-rudol-von-stroheim'],
+      [
+        ...rep('item-mascara-de-piedra', 2),
+        ...rep('item-piedra-roja-de-aja', 2),
+        ...rep('item-suministros-speedwagon', 2),
+      ],
+      [
+        ['energy-light', 21],
+        ['energy-colorless', 10],
+      ],
+    ),
+    storyDeckName: P2_STORY_FINALE_NAME,
+    storyDeckDescription: P2_STORY_FINALE_DESC,
+    storyDeckIds: P2_STORY_FINALE_IDS,
+    rewardCoins: 260,
+  },
+  {
+    id: 'p2-s9',
+    part: 2,
+    stageNumber: 9,
+    title: 'Duelo de Carros en el Coliseo de Esqueletos',
+    location: 'Arena Alpina · Suiza',
+    storyText:
+      'En honor a Caesar, Joseph acepta el duelo de carros contra Wamuu en un choque decisivo a toda velocidad.',
+    opponentName: 'Wamuu · Modo Final',
+    featuredCardId: 'char-wamuu',
+    difficulty: 'NORMAL',
+    isBoss: false,
+    opponentDeckIds: buildPart1Deck(
+      ['char-wamuu', 'char-esidisi', 'char-kars'],
+      [
+        ...rep('item-mascara-de-piedra', 3),
+        ...rep('item-piedra-roja-de-aja', 2),
+        ...rep('item-suministros-speedwagon', 3),
+      ],
+      [
+        ['energy-light', 16],
+        ['energy-fire', 13],
+      ],
+    ),
+    storyDeckName: P2_STORY_FINALE_NAME,
+    storyDeckDescription: P2_STORY_FINALE_DESC,
+    storyDeckIds: P2_STORY_FINALE_IDS,
+    rewardCoins: 300,
+  },
+  {
+    id: 'p2-s10',
+    part: 2,
+    stageNumber: 10,
+    title: 'El Ser Definitivo en el Volcán',
+    location: 'Isla de Vulcano · Italia',
+    storyText:
+      '¡JEFE FINAL DE LA PARTE 2! Kars combina la Máscara de Piedra y la Piedra Roja de Aja para evolucionar a la Forma de Vida Definitiva. ¡Derrótalo y llévate 2 Sobres de Parte 2!',
+    opponentName: 'Kars · Forma de Vida Definitiva',
+    featuredCardId: 'evo-kars-ultimate',
+    difficulty: 'HARD',
+    isBoss: true,
+    opponentDeckIds: buildPart1Deck(
+      ['char-kars', 'char-wamuu', 'char-esidisi', 'char-santana', 'evo-kars-ultimate'],
+      [
+        ...rep('item-mascara-de-piedra', 3),
+        ...rep('item-piedra-roja-de-aja', 3),
+        ...rep('item-suministros-speedwagon', 3),
+      ],
+      [
+        ['energy-light', 16],
+        ['energy-fire', 10],
+      ],
+    ),
+    storyDeckName: P2_STORY_FINALE_NAME,
+    storyDeckDescription: P2_STORY_FINALE_DESC,
+    storyDeckIds: P2_STORY_FINALE_IDS,
+    rewardCoins: 500,
+    rewardPackId: 'pack-part-2',
+    rewardPackCount: 2,
+  },
+];
+
 export const CAMPAIGN_PARTS: CampaignPartDef[] = [
   {
     part: 1,
     name: 'Parte 1: Phantom Blood',
     subtitle: 'El linaje Joestar frente a Dio Brando y la Máscara de Piedra (10 niveles)',
+    mapHeader: 'MAPA DE RUTA · INGLATERRA 1880–1889',
     badge: 'PARTE 1',
     accentHex: '#2952d9',
     patternUrl: '/assets/patterns/pattern1.png',
@@ -392,18 +730,20 @@ export const CAMPAIGN_PARTS: CampaignPartDef[] = [
   {
     part: 2,
     name: 'Parte 2: Battle Tendency',
-    subtitle: 'Joseph Joestar contra los Hombres del Pilar (Próximamente)',
+    subtitle: 'Joseph Joestar y los maestros del Hamon contra los Hombres del Pilar (10 niveles)',
+    mapHeader: 'MAPA DE RUTA · MÉXICO · ITALIA · SUIZA 1938',
     badge: 'PARTE 2',
     accentHex: '#9333ea',
     patternUrl: '/assets/patterns/pattern5.png',
     packId: 'pack-part-2',
-    available: false,
-    stages: [],
+    available: true,
+    stages: PART_2_STAGES,
   },
   {
     part: 3,
     name: 'Parte 3: Stardust Crusaders',
     subtitle: 'El viaje a Egipto contra DIO y los 9 Dioses (Próximamente)',
+    mapHeader: 'MAPA DE RUTA · TOKIO → EL CAIRO 1988',
     badge: 'PARTE 3',
     accentHex: '#e6194b',
     patternUrl: '/assets/patterns/pattern2.png',
@@ -415,6 +755,7 @@ export const CAMPAIGN_PARTS: CampaignPartDef[] = [
     part: 4,
     name: 'Parte 4: Diamond is Unbreakable',
     subtitle: 'Morioh frente a Yoshikage Kira (Próximamente)',
+    mapHeader: 'MAPA DE RUTA · CIUDAD DE MORIOH 1999',
     badge: 'PARTE 4',
     accentHex: '#00b87c',
     patternUrl: '/assets/patterns/pattern6.png',

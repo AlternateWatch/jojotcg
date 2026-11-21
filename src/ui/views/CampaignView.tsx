@@ -172,7 +172,10 @@ export function CampaignView() {
                   onClick={() => {
                     if (!p.available) return;
                     setSelectedPartNum(p.part);
-                    if (p.stages[0]) setSelectedStageId(p.stages[0].id);
+                    const nextInPart = p.stages.find(
+                      (s) => isCampaignStageUnlocked(s, completedIds) && !completedIds.includes(s.id),
+                    );
+                    setSelectedStageId(nextInPart?.id ?? p.stages[p.stages.length - 1]?.id ?? '');
                   }}
                   className={`-skew-x-10 px-3.5 py-2 font-jojo-heading text-xs tracking-widest uppercase transition ${
                     isSelected
@@ -208,8 +211,8 @@ export function CampaignView() {
               <div className="flex items-center gap-1.5">
                 <Gift size={14} className="text-[#f2c12e]" />
                 <span>
-                  <strong>Nivel 5 (Jefe)</strong>: +1 Sobre Parte 1 ·{' '}
-                  <strong>Nivel 10 (Jefe Final)</strong>: +2 Sobres Parte 1
+                  <strong>Nivel 5 (Jefe)</strong>: +1 Sobre {activePart.badge} ·{' '}
+                  <strong>Nivel 10 (Jefe Final)</strong>: +2 Sobres {activePart.badge}
                 </span>
               </div>
               <div className="text-[11px] text-zinc-400">
@@ -228,7 +231,7 @@ export function CampaignView() {
           <div className="jojo-panel relative overflow-hidden p-5 sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="inline-flex items-center gap-2 border-l-4 border-[#f2c12e] pl-2.5 font-jojo-heading text-sm tracking-[0.2em] text-[#f2c12e] uppercase">
-                <MapPin size={15} /> MAPA DE RUTA · INGLATERRA 1880–1889
+                <MapPin size={15} /> {activePart.mapHeader}
               </div>
               <span className="font-mono text-[10px] font-bold text-zinc-400 uppercase">
                 SELECCIONA UN NIVEL
@@ -459,7 +462,7 @@ export function CampaignView() {
                     {selectedStage.opponentName}
                   </div>
                   <div className="text-[11px] text-zinc-400">
-                    Mazo temático de 40 cartas exclusivo de la Parte 1.
+                    Mazo temático de 40 cartas exclusivo de {activePart.name}.
                   </div>
                 </div>
               </div>
@@ -603,7 +606,7 @@ export function CampaignView() {
                           : 'bg-[#e6194b] text-white'
                       }`}
                     >
-                      <Gift size={14} /> ×{selectedStage.rewardPackCount} Sobre Parte 1
+                      <Gift size={14} /> ×{selectedStage.rewardPackCount} Sobre {activePart.badge}
                     </span>
                   )}
                 </div>

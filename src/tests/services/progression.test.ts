@@ -251,41 +251,48 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(validateDeck(resEmpty.cardIds).valid).toBe(true);
   });
 
-  it('validates Part 1 Campaign (10 legal Part 1 decks, HARD bosses on 5 & 10 with 1 & 2 packs, strict one-time pickup)', () => {
-    const part1 = CAMPAIGN_PARTS.find((p) => p.part === 1)!;
-    expect(part1.available).toBe(true);
-    expect(part1.stages).toHaveLength(10);
+  it('validates Part 1 & Part 2 Campaigns (20 legal Part-themed decks & story decks, HARD bosses on 5 & 10 with 1 & 2 packs, strict one-time pickup)', () => {
+    for (const partNum of [1, 2] as const) {
+      const partDef = CAMPAIGN_PARTS.find((p) => p.part === partNum)!;
+      expect(partDef.available).toBe(true);
+      expect(partDef.stages).toHaveLength(10);
 
-    for (const stage of part1.stages) {
-      const val = validateDeck(stage.opponentDeckIds);
-      expect(val.valid, `Stage ${stage.id} deck invalid: ${val.errors.map((e) => e.message).join(', ')}`).toBe(true);
-      const storyVal = validateDeck(stage.storyDeckIds);
-      expect(
-        storyVal.valid,
-        `Stage ${stage.id} story deck invalid: ${storyVal.errors.map((e) => e.message).join(', ')}`,
-      ).toBe(true);
-      // Every non-energy card in Part 1 campaign decks belongs to Part 1 (or Speedwagon utility)
-      for (const cid of [...stage.opponentDeckIds, ...stage.storyDeckIds]) {
-        const c = getCardById(cid)!;
-        expect(c).toBeDefined();
-        if (c.type === 'CHARACTER') expect(c.part).toBe(1);
+      for (const stage of partDef.stages) {
+        const val = validateDeck(stage.opponentDeckIds);
+        expect(
+          val.valid,
+          `Stage ${stage.id} deck invalid: ${val.errors.map((e) => e.message).join(', ')}`,
+        ).toBe(true);
+        const storyVal = validateDeck(stage.storyDeckIds);
+        expect(
+          storyVal.valid,
+          `Stage ${stage.id} story deck invalid: ${storyVal.errors.map((e) => e.message).join(', ')}`,
+        ).toBe(true);
+        for (const cid of [...stage.opponentDeckIds, ...stage.storyDeckIds]) {
+          const c = getCardById(cid)!;
+          expect(c).toBeDefined();
+          if (c.type === 'CHARACTER') expect(c.part).toBe(partNum);
+        }
       }
+
+      const boss5 = partDef.stages[4]!;
+      const boss10 = partDef.stages[9]!;
+      expect(boss5.isBoss).toBe(true);
+      expect(boss5.difficulty).toBe('HARD');
+      expect(boss5.rewardPackId).toBe(`pack-part-${partNum}`);
+      expect(boss5.rewardPackCount).toBe(1);
+
+      expect(boss10.isBoss).toBe(true);
+      expect(boss10.difficulty).toBe('HARD');
+      expect(boss10.rewardPackId).toBe(`pack-part-${partNum}`);
+      expect(boss10.rewardPackCount).toBe(2);
     }
 
     const s1 = getCampaignStageById('p1-s1')!;
     const s2 = getCampaignStageById('p1-s2')!;
     const s5 = getCampaignStageById('p1-s5')!;
     const s10 = getCampaignStageById('p1-s10')!;
-
-    expect(s5.isBoss).toBe(true);
-    expect(s5.difficulty).toBe('HARD');
-    expect(s5.rewardPackId).toBe('pack-part-1');
-    expect(s5.rewardPackCount).toBe(1);
-
-    expect(s10.isBoss).toBe(true);
-    expect(s10.difficulty).toBe('HARD');
-    expect(s10.rewardPackId).toBe('pack-part-1');
-    expect(s10.rewardPackCount).toBe(2);
+    const p2s10 = getCampaignStageById('p2-s10')!;
 
     // Sequential unlock
     let prog = createInitialProgression();
@@ -327,5 +334,11 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(r10Again.firstClear).toBe(false);
     expect(r10Again.coinsAwarded).toBe(0);
     expect(r10Again.packOutcomes).toBeNull();
+
+    // Part 2 Stage 10 grants 2 Part 2 packs once
+    const rP2S10 = claimCampaignStageReward(p2s10, r10Again.nextProgression, createSeededRng(210));
+    expect(rP2S10.firstClear).toBe(true);
+    expect(rP2S10.pack?.id).toBe('pack-part-2');
+    expect(rP2S10.packOutcomes).toHaveLength(2);
   });
 });

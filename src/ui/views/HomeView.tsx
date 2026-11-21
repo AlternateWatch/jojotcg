@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, ShieldAlert, UserCheck } from 'lucide-react';
+import { CAMPAIGN_PARTS } from '../../data/campaignData';
 import { getCardById } from '../../data/cardRegistry';
 import { PLAYMAT_THEMES } from '../../services/assetResolver';
 import { getCollectionProgress } from '../../services/progressionService';
@@ -26,6 +27,7 @@ export function HomeView() {
   const setShowAuthModal = useAppStore((s) => s.setShowAuthModal);
 
   const coll = getCollectionProgress(progression);
+  const campaignTotal = CAMPAIGN_PARTS.reduce((sum, p) => sum + (p.available ? p.stages.length : 0), 0);
   const campaignCleared = (progression.completedCampaignStages ?? []).length;
 
   const showcaseCards = SHOWCASE_IDS.map(getCardById).filter(
@@ -35,8 +37,8 @@ export function HomeView() {
   const menuEntries = [
     {
       index: '01',
-      title: `MODO CAMPAÑA · PARTE 1 (${campaignCleared}/10)`,
-      sub: 'Mapa de 10 niveles de Phantom Blood contra la IA con sobres en Nivel 5 y 10',
+      title: `MODO CAMPAÑA (${campaignCleared}/${campaignTotal})`,
+      sub: 'Mapas por Partes contra la IA con mazos historia, jefes y sobres de recompensa',
       accent: 'bg-[#2952d9] text-white',
       onClick: () => setScreen('CAMPAIGN'),
     },
