@@ -139,6 +139,7 @@ export type SignatureEffectId =
   | 'PRECOGNITION_TONPETTY'
   | 'AFTERIMAGE_DIRE'
   | 'HAMON_SCHOLAR_STRAIZO'
+  | 'KNIGHT_LOYALTY_BRUFORD'
   | 'NONE';
 
 export interface SignatureAbilityDef {

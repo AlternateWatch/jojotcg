@@ -11,7 +11,7 @@ import { buildControlledBattleState, mustDispatch } from '../helpers/testFixture
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
   it('verifies all 69 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(69);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(70);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(12);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -678,5 +678,43 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
 
       expect(state.phase).toBe('GAME_OVER');
     }
+  });
+
+  it('resolves Bruford (120 HP, Metal): Lealtad de Caballero doubles (P)luck bonus (+20) and Danse Macab-Hair inflicts Bleed on TAILS', () => {
+    const baseState = buildControlledBattleState({
+      p1ActiveId: 'char-bruford',
+      p1ActiveItems: ['item-pluck'],
+      p1ActiveEnergies: ['METAL', 'METAL'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+
+    // Luck (30) + (P)luck boosted by Lealtad de Caballero (+20 instead of +10) = 50 dmg -> 110 HP
+    const afterLuck = mustDispatch(baseState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-luck',
+    });
+    expect(afterLuck.players.P2.active!.currentHp).toBe(110);
+
+    // Danse Macab-Hair (60 + 20 = 80 dmg): TAILS inflicts Bleed!
+    const tailsRng = { ...createSeededRng(1), flipCoin: () => 'TAILS' as const };
+    const afterDanseTails = mustDispatch(
+      baseState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-danse-macab-hair' },
+      tailsRng,
+    );
+    expect(afterDanseTails.players.P2.active!.currentHp).toBe(80);
+    expect(afterDanseTails.players.P2.active!.statuses.bleedStacks).toHaveLength(1);
+
+    // HEADS deals 80 dmg without Bleed
+    const headsRng = { ...createSeededRng(1), flipCoin: () => 'HEADS' as const };
+    const afterDanseHeads = mustDispatch(
+      baseState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-danse-macab-hair' },
+      headsRng,
+    );
+    expect(afterDanseHeads.players.P2.active!.currentHp).toBe(80);
+    expect(afterDanseHeads.players.P2.active!.statuses.bleedStacks).toHaveLength(0);
   });
 });

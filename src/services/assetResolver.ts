@@ -20,6 +20,7 @@ export interface CardAssetInfo {
 export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'akira-otoishi',
   'bastet',
+  'bruford',
   'bruno-bucciarati',
   'caesar-zeppeli',
   'crazy-diamond',

@@ -164,13 +164,19 @@ export function computeAttackDamageBonus(
     bonus += player.permanentWaterAttackBonus;
   }
 
-  // 6. Equippable Item bonuses (e.g., Máscara de Piedra, (P)luck +10; Clackers +20 for Hamon users)
+  // 6. Equippable Item bonuses (e.g., Máscara de Piedra, (P)luck +10; Bruford Lealtad de Caballero turns (P)luck into +20; Clackers +20 for Hamon users)
   for (const item of attackerInst.attachedItems) {
     const itemCard = getItemCard(item.cardId);
     if (!itemCard) continue;
     for (const eff of itemCard.effects) {
       if (eff.kind === 'EQUIP_PASSIVE_DAMAGE_BONUS') {
         bonus += eff.bonusDamage;
+        if (
+          profile.signatureAbility.id === 'KNIGHT_LOYALTY_BRUFORD' &&
+          item.cardId === 'item-pluck'
+        ) {
+          bonus += 10; // Total +20 instead of +10!
+        }
       } else if (
         eff.kind === 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS' &&
         profile.categories.includes(eff.category)

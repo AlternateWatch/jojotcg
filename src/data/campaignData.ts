@@ -322,25 +322,26 @@ const PART_1_STAGES: CampaignStageDef[] = [
     title: 'La Espada de la Suerte y el Valor',
     location: 'Ruinas de los Caballeros',
     storyText:
-      'Con la espada (P)luck en mano, la fuerza del Hamon alcanza un filo capaz de cortar la oscuridad.',
-    opponentName: 'Jonathan · Filo (P)luck',
-    featuredCardId: 'item-pluck',
+      'En las ruinas de Windknight’s Lot te aguarda Bruford, el noble caballero resucitado por Dio armado con la espada (P)luck y su Danse Macab-Hair.',
+    opponentName: 'Bruford · Caballero Oscuro',
+    featuredCardId: 'char-bruford',
     difficulty: 'NORMAL',
     isBoss: false,
     opponentDeckIds: buildPart1Deck(
       [
-        'char-jonathan-joestar',
-        'char-will-a-zeppeli',
-        'char-tonpetty',
-        'char-dire',
-        'char-straizo',
+        'char-bruford',
+        'char-dio-brando',
         'char-robert-e-o-speedwagon',
-        'char-erina-pendleton',
       ],
-      [...rep('item-pluck', 3), ...rep('item-suministros-speedwagon', 3)],
       [
-        ['energy-electric', 24],
-        ['energy-colorless', 9],
+        ...rep('item-pluck', 3),
+        ...rep('item-mascara-de-piedra', 2),
+        ...rep('item-suministros-speedwagon', 3),
+      ],
+      [
+        ['energy-metal', 17],
+        ['energy-electric', 10],
+        ['energy-water', 8],
       ],
     ),
     storyDeckName: STORY_DECK_FINALE_NAME,
@@ -355,13 +356,13 @@ const PART_1_STAGES: CampaignStageDef[] = [
     title: 'Asalto al Castillo de Dio',
     location: 'Castillo de Windknight’s Lot',
     storyText:
-      'A las puertas de la cámara del trono, la guardia de Dio desata la energía congelante y la Máscara de Piedra.',
+      'A las puertas de la cámara del trono, Bruford y la guardia de Dio desatan la energía congelante y la Máscara de Piedra.',
     opponentName: 'Guardia Oscura del Castillo',
     featuredCardId: 'char-dio-brando',
     difficulty: 'NORMAL',
     isBoss: false,
     opponentDeckIds: buildPart1Deck(
-      ['char-dio-brando', 'char-will-a-zeppeli', 'char-robert-e-o-speedwagon'],
+      ['char-dio-brando', 'char-bruford', 'char-robert-e-o-speedwagon'],
       [
         ...rep('item-mascara-de-piedra', 3),
         ...rep('item-pluck', 2),
@@ -369,8 +370,9 @@ const PART_1_STAGES: CampaignStageDef[] = [
         'item-ataud-de-dio',
       ],
       [
-        ['energy-electric', 20],
-        ['energy-water', 15],
+        ['energy-electric', 14],
+        ['energy-water', 11],
+        ['energy-metal', 10],
       ],
     ),
     storyDeckName: STORY_DECK_FINALE_NAME,
@@ -393,7 +395,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
     opponentDeckIds: buildPart1Deck(
       [
         'char-dio-brando',
-        'char-jonathan-joestar',
+        'char-bruford',
         'char-will-a-zeppeli',
         'char-robert-e-o-speedwagon',
       ],
@@ -404,8 +406,9 @@ const PART_1_STAGES: CampaignStageDef[] = [
         ...rep('item-ataud-de-dio', 2),
       ],
       [
-        ['energy-electric', 18],
-        ['energy-water', 13],
+        ['energy-electric', 13],
+        ['energy-water', 10],
+        ['energy-metal', 8],
       ],
     ),
     storyDeckName: STORY_DECK_FINALE_NAME,

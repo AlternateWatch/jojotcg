@@ -142,6 +142,7 @@ export const CARD_RARITY_MAP: Record<string, CardRarity> = {
   'item-piedra-roja-de-aja': 'RARE',
   'item-cinta-de-caesar': 'RARE',
   'item-mechero-de-polpo': 'RARE',
+  'char-bruford': 'RARE',
 
   // === COMMON (C) ===
   'char-jonathan-joestar': 'COMMON',
@@ -259,6 +260,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'char-tonpetty',
       'char-dire',
       'char-straizo',
+      'char-bruford',
       'char-dio-brando',
       'item-mascara-de-piedra',
       'item-pluck',
@@ -537,6 +539,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
     ],
     poolCardIds: [
       'char-dio-brando',
+      'char-bruford',
       'char-santana',
       'char-wamuu',
       'char-esidisi',
