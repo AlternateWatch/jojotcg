@@ -145,6 +145,7 @@ export const CARD_RARITY_MAP: Record<string, CardRarity> = {
   'item-estilo-de-combate-ogre-street': 'RARE',
   'char-bruford': 'RARE',
   'char-tarkus': 'RARE',
+  'char-straizo-vampiro': 'RARE',
 
   // === COMMON (C) ===
   'char-jonathan-joestar': 'COMMON',
@@ -292,6 +293,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'char-caesar-zeppeli',
       'char-lisa-lisa',
       'char-rudol-von-stroheim',
+      'char-straizo-vampiro',
       'char-santana',
       'char-wamuu',
       'char-esidisi',
@@ -553,6 +555,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'char-bruford',
       'char-tarkus',
       'char-wang-chan',
+      'char-straizo-vampiro',
       'char-santana',
       'char-wamuu',
       'char-esidisi',

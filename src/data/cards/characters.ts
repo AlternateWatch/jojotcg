@@ -353,6 +353,39 @@ export const CHARACTER_CARDS: CharacterCard[] = [
 
   // ===================== PART 2: BATTLE TENDENCY =====================
   {
+    id: 'char-straizo-vampiro',
+    name: 'Straizo (Vampiro)',
+    type: 'CHARACTER',
+    part: 2,
+    imageId: 'straizo-vampiro',
+    assetFolder: 'official',
+    categories: ['HAMON_USER', 'VAMPIRE'],
+    maxHp: 130,
+    dg: null,
+    signatureAbility: {
+      id: 'VAMPIRE_REGEN',
+      name: 'REGENERACIÓN VAMPÍRICA',
+      text: 'Si no ha recibido daños al final del turno, se regenera 10 puntos de vida.',
+      trigger: 'ON_END_TURN',
+    },
+    attacks: [
+      {
+        id: 'atk-satiporoja-beetle-cloth',
+        name: 'Satiporoja Beetle Cloth',
+        energyCost: ['METAL'],
+        baseDamage: 30,
+        damageLabel: '30',
+      },
+      {
+        id: 'atk-straizo-space-ripper-stingy-eyes',
+        name: 'Space Ripper Stingy Eyes',
+        energyCost: ['ELECTRIC', 'ELECTRIC', 'ELECTRIC'],
+        baseDamage: 80,
+        damageLabel: '80',
+      },
+    ],
+  },
+  {
     id: 'char-joseph-joestar',
     name: 'Joseph Joestar',
     type: 'CHARACTER',

@@ -11,7 +11,7 @@ import { buildControlledBattleState, mustDispatch } from '../helpers/testFixture
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
   it('verifies all 69 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(72);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(73);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(14);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -946,5 +946,36 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       attackId: 'atk-zoom-punch',
     });
     expect(equipNonConvState.players.P2.active!.currentHp).toBe(140);
+  });
+
+  it('resolves Straizo (Vampiro) (130 HP, HAMON_USER + VAMPIRE): Clackers synergy (+20) and Regeneración Vampírica (+10 HP at end of turn if undamaged)', () => {
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-straizo-vampiro',
+      p1ActiveEnergies: ['METAL', 'ELECTRIC', 'ELECTRIC', 'ELECTRIC'],
+      p1ActiveItems: ['item-clackers'], // +20 to HAMON_USER!
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    state.players.P1.active!.currentHp = 100;
+
+    // Satiporoja Beetle Cloth: 30 + 20 (Clackers Hamon bonus) = 50 -> 160 - 50 = 110
+    // End of turn undamaged -> Vampire Regen +10 HP (100 -> 110)!
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-satiporoja-beetle-cloth',
+    });
+    expect(state.players.P2.active!.currentHp).toBe(110);
+    expect(state.players.P1.active!.currentHp).toBe(110);
+
+    // Next turn: Space Ripper Stingy Eyes: 80 + 20 (Clackers) = 100 -> 110 - 100 = 10 HP
+    state = mustDispatch(state, { type: 'END_TURN', playerId: 'P2' });
+    state = mustDispatch(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-straizo-space-ripper-stingy-eyes',
+    });
+    expect(state.players.P2.active!.currentHp).toBe(10);
   });
 });

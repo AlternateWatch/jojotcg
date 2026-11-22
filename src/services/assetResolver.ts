@@ -78,6 +78,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'star-platinum-the-world',
   'sticky-fingers',
   'straizo',
+  'straizo-vampiro',
   'stray-cat',
   'tarkus',
   'the-fool',
