@@ -101,6 +101,7 @@ export interface PlayerState {
   /** Temporary extra energy attachments granted by items this turn */
   bonusEnergyAttachmentsThisTurn: number;
   evolutionsPlayedThisTurn: number;
+  itemsPlayedThisTurn: number;
   extraCombatActionsRemaining: number;
   usedOncePerTurnKeys: string[];
   /** Caesar Zeppeli's Last Hamon bonus waiting for next attack */

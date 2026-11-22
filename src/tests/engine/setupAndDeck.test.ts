@@ -375,26 +375,47 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     expect(state.players.P2.deck).toHaveLength(33);
   });
 
-  it('enforces Energía de Stand rules: max 8 copies in deck, Stand Users only, pays any cost for Stand attacks only', () => {
-    // 9 copies of energy-stand -> illegal
+  it('enforces Energía de Stand rules (max 4 copies, Stand Users only, pays any Stand cost) and max 1 Item per turn', () => {
+    // 5 copies of energy-stand -> illegal
     const tooManyStandEnergy = [
       'char-hol-horse',
       'stand-emperor',
-      ...Array.from({ length: 9 }, () => 'energy-stand'),
-      ...Array.from({ length: 35 }, () => 'energy-psychic'),
+      ...Array.from({ length: 5 }, () => 'energy-stand'),
+      ...Array.from({ length: 39 }, () => 'energy-psychic'),
     ];
     const invalidRes = validateDeck(tooManyStandEnergy);
     expect(invalidRes.valid).toBe(false);
     expect(invalidRes.errors.some((e) => e.code === 'COPY_LIMIT_EXCEEDED' && e.cardId === 'energy-stand')).toBe(true);
 
-    // 8 copies -> strictly legal!
+    // 4 copies -> strictly legal!
     const validStandEnergy = [
       'char-hol-horse',
       'stand-emperor',
-      ...Array.from({ length: 8 }, () => 'energy-stand'),
-      ...Array.from({ length: 36 }, () => 'energy-psychic'),
+      ...Array.from({ length: 4 }, () => 'energy-stand'),
+      ...Array.from({ length: 40 }, () => 'energy-psychic'),
     ];
     expect(validateDeck(validStandEnergy).valid).toBe(true);
+
+    // Max 1 Item per turn: first Item succeeds, second Item in same turn is rejected
+    let itemState = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar',
+      p1Hand: ['item-pluck', 'item-suministros-speedwagon'],
+      p2ActiveId: 'char-dio-brando',
+      phase: 'PREPARATION',
+    });
+    itemState = mustDispatch(itemState, {
+      type: 'PLAY_ITEM',
+      playerId: 'P1',
+      handIndex: 0,
+      targetInstanceId: itemState.players.P1.active!.instanceId,
+    });
+    expect(itemState.players.P1.itemsPlayedThisTurn).toBe(1);
+    const secondItem = dispatchAction(itemState, {
+      type: 'PLAY_ITEM',
+      playerId: 'P1',
+      handIndex: 0,
+    });
+    expect(secondItem.ok).toBe(false);
 
     // Cannot attach Energía de Stand to a non-Stand character (Jonathan Joestar)
     const nonStandState = buildControlledBattleState({

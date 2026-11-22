@@ -53,6 +53,7 @@ export function startNextTurn(
   player.energyAttachedThisTurn = 0;
   player.bonusEnergyAttachmentsThisTurn = 0;
   player.evolutionsPlayedThisTurn = 0;
+  player.itemsPlayedThisTurn = 0;
   player.extraCombatActionsRemaining = 0;
   player.usedOncePerTurnKeys = [];
 

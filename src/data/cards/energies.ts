@@ -90,6 +90,6 @@ export const ENERGY_CARDS: EnergyCard[] = [
     assetFolder: 'energies',
     energyType: 'STAND',
     description:
-      'Energía especial (máx. 8 por mazo). Solo puede unirse a Usuarios de Stand y paga cualquier tipo de energía en ataques de Stand.',
+      'Energía especial (máx. 4 por mazo). Solo puede unirse a Usuarios de Stand y paga cualquier tipo de energía en ataques de Stand.',
   },
 ];

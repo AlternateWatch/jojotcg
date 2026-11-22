@@ -224,6 +224,7 @@ function createPlayerState(
     energyAttachedThisTurn: 0,
     bonusEnergyAttachmentsThisTurn: 0,
     evolutionsPlayedThisTurn: 0,
+    itemsPlayedThisTurn: 0,
     extraCombatActionsRemaining: 0,
     usedOncePerTurnKeys: [],
     pendingNextAttackBonus: 0,

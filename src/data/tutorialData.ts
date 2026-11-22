@@ -111,9 +111,9 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
         ...rep('item-suministros-speedwagon', 2),
       ],
       [
-        ['energy-stand', 8],
-        ['energy-psychic', 16],
-        ['energy-fire', 8],
+        ['energy-stand', 4],
+        ['energy-psychic', 18],
+        ['energy-fire', 10],
       ],
     ),
     opponentDeckIds: buildTutorialDeck(
@@ -126,7 +126,7 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
     concepts: [
       'Equipar un Stand desde la mano es gratis y otorga Resonancia (+1 energía ese turno)',
       '⚡ Llamar Stand invoca un Stand compatible aleatorio del mazo (y termina el turno)',
-      'Energía de Stand (máx. 8) paga cualquier coste elemental en ataques de Stand',
+      'Energía de Stand (máx. 4) paga cualquier coste elemental en ataques de Stand',
     ],
     focusTip:
       'Equipa tu Stand haciendo clic en él y luego en tu Usuario, o pulsa «⚡ Llamar Stand» si no tienes ninguno en mano. Usa Energía de Stand para pagar cualquier color.',
@@ -185,7 +185,7 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
     accentHex: '#e6194b',
     mentorName: 'Robert E.O. Speedwagon',
     mentorQuote:
-      '¡Los Objetos son ilimitados por turno! Equipa (P)luck para pegar más fuerte y usa Comida de Tonio para curar tanto al Activo como a tu Banca.',
+      '¡Puedes usar 1 Objeto por turno! Equipa (P)luck para pegar más fuerte o usa Comida de Tonio para curar tanto al Activo como a tu Banca.',
     featuredCardId: 'item-comida-de-tonio',
     opponentName: 'Bruford (Práctica)',
     difficulty: 'EASY',
@@ -215,7 +215,7 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
       ],
     ),
     concepts: [
-      'Puedes jugar tantos Objetos como quieras en Preparación (máx. 1 copia de cada equipable por personaje)',
+      'Puedes usar 1 Objeto por turno en Preparación (máx. 1 copia de cada equipable por personaje)',
       'Comida de Tonio cura +40 HP a cualquier aliado (Activo o Banca) y limpia Quemado',
       '¡Atracción entre usuarios de Stand! busca hasta 2 Energías de tu mazo',
     ],
@@ -254,10 +254,10 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
         ...rep('item-suministros-speedwagon', 2),
       ],
       [
-        ['energy-stand', 8],
-        ['energy-fire', 12],
-        ['energy-metal', 6],
-        ['energy-light', 5],
+        ['energy-stand', 4],
+        ['energy-fire', 14],
+        ['energy-metal', 7],
+        ['energy-light', 6],
       ],
     ),
     opponentDeckIds: buildTutorialDeck(
@@ -311,8 +311,8 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
         ...rep('item-suministros-speedwagon', 2),
       ],
       [
-        ['energy-stand', 8],
-        ['energy-psychic', 17],
+        ['energy-stand', 4],
+        ['energy-psychic', 21],
       ],
     ),
     opponentDeckIds: buildTutorialDeck(
@@ -328,8 +328,8 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
         ...rep('item-suministros-speedwagon', 2),
       ],
       [
-        ['energy-stand', 6],
-        ['energy-psychic', 20],
+        ['energy-stand', 4],
+        ['energy-psychic', 22],
         ['energy-metal', 10],
       ],
     ),

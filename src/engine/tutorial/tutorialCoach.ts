@@ -235,7 +235,7 @@ function computeTutorialStepRaw(
       if (legalStandalone || legalTargeted) {
         return {
           stepLabel: 'USA UN OBJETO TÁCTICO',
-          text: `Los Objetos no tienen límite por turno: haz clic en «${card.name}» en tu mano para jugarlo o equiparlo en un aliado.`,
+          text: `Puedes usar 1 Objeto por turno: haz clic en «${card.name}» en tu mano para jugarlo o equiparlo en un aliado.`,
           allowedActionTypes: ['PLAY_ITEM'],
           requiredCardType: 'ITEM',
           blockReason: `Entrenador: en esta lección juega primero «${card.name}» desde tu mano.`,

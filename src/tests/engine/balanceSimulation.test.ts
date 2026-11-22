@@ -234,7 +234,8 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     expect(res.ok).toBe(true);
     expect(res.state.players.P2.active!.statuses.burn?.active).toBe(true);
 
-    // Equip Máscara de Piedra on Jonathan -> grants +10 permanent attack damage
+    // Equip Máscara de Piedra on Jonathan next turn (max 1 item/turn) -> grants +10 permanent attack damage
+    res.state.players.P1.itemsPlayedThisTurn = 0;
     const maskIdx = res.state.players.P1.hand.indexOf('item-mascara-de-piedra');
     res = dispatchAction(
       res.state,
@@ -280,9 +281,11 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     expect(res.state.players.P1.active!.currentHp).toBe(120);
     expect(res.state.players.P1.active!.statuses.burn).toBeNull();
 
-    // Equip (P)luck (+10) & Clackers (+20 for HAMON_USER) + attach 1 Energy
+    // Equip (P)luck (+10) & Clackers (+20 for HAMON_USER) across turns + attach 1 Energy
+    res.state.players.P1.itemsPlayedThisTurn = 0;
     const pluckIdx = res.state.players.P1.hand.indexOf('item-pluck');
     res = dispatchAction(res.state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: pluckIdx, targetInstanceId: activeId }, rng);
+    res.state.players.P1.itemsPlayedThisTurn = 0;
     const clackersIdx = res.state.players.P1.hand.indexOf('item-clackers');
     res = dispatchAction(res.state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: clackersIdx, targetInstanceId: activeId }, rng);
     const energyIdx = res.state.players.P1.hand.indexOf('energy-electric');
@@ -328,7 +331,8 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     );
     expect(res.ok).toBe(true);
 
-    // 2. Try equipping 2nd Clackers onto Jonathan (same character) -> REJECTED!
+    // 2. Try equipping 2nd Clackers onto Jonathan (same character, next turn) -> REJECTED!
+    res.state.players.P1.itemsPlayedThisTurn = 0;
     const dupClackers = dispatchAction(
       res.state,
       { type: 'PLAY_ITEM', playerId: 'P1', handIndex: res.state.players.P1.hand.indexOf('item-clackers'), targetInstanceId: activeId },
@@ -344,13 +348,15 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     );
     expect(res.ok).toBe(true);
 
-    // 4. Equip Máscara de Piedra + (P)luck onto Jonathan (different items on same character) -> OK!
+    // 4. Equip Máscara de Piedra + (P)luck onto Jonathan (different items across turns) -> OK!
+    res.state.players.P1.itemsPlayedThisTurn = 0;
     res = dispatchAction(
       res.state,
       { type: 'PLAY_ITEM', playerId: 'P1', handIndex: res.state.players.P1.hand.indexOf('item-mascara-de-piedra'), targetInstanceId: activeId },
       rng,
     );
     expect(res.ok).toBe(true);
+    res.state.players.P1.itemsPlayedThisTurn = 0;
     res = dispatchAction(
       res.state,
       { type: 'PLAY_ITEM', playerId: 'P1', handIndex: res.state.players.P1.hand.indexOf('item-pluck'), targetInstanceId: activeId },
@@ -359,6 +365,7 @@ describe('Balance, Tactical Items & Energy Consistency', () => {
     expect(res.ok).toBe(true);
 
     // 5. Try equipping 2nd Máscara de Piedra onto Jonathan -> REJECTED!
+    res.state.players.P1.itemsPlayedThisTurn = 0;
     const dupMask = dispatchAction(
       res.state,
       { type: 'PLAY_ITEM', playerId: 'P1', handIndex: res.state.players.P1.hand.indexOf('item-mascara-de-piedra'), targetInstanceId: activeId },

@@ -64,7 +64,7 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
               Mazo y Setup Inicial
             </h3>
             <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
-              <li>• Mazo de <strong>46 cartas</strong> (máx. 1 Personaje/Stand/Evo, 3 Objeto, <strong>8 Energía de Stand</strong>, Energías básicas libres).</li>
+              <li>• Mazo de <strong>46 cartas</strong> (máx. 1 Personaje/Stand/Evo, 3 Objeto, <strong>4 Energía de Stand</strong>, Energías básicas libres).</li>
               <li>• Al empezar, se separan <strong>6 Cartas de Premio boca abajo</strong> (protegiendo tu titular de Turno 1 y evitando apartar cartas de Stand).</li>
               <li>• <strong>Condiciones de victoria</strong>: robar tus <strong>6 Cartas de Premio</strong> (robas 1 por cada personaje rival eliminado), dejar al rival sin personajes en campo/banca o sin cartas en el mazo.</li>
               <li>• Mano inicial de <strong>7 cartas</strong>; banca de hasta <strong>3 personajes</strong> (puedes colocar personajes en banca gratis durante la colocación inicial).</li>
@@ -82,7 +82,7 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
               <li>• Orden: <strong>Robo → Preparación → Combate → Fin de Turno</strong>.</li>
               <li>• Equipar Stand compatible (Activo o Banca): <strong>Gratis</strong> y otorga <strong>Resonancia (+1 energía adjuntable ese turno, máx. 1/turno)</strong>. Si el usuario es eliminado, su Stand <strong>vuelve barajado al mazo</strong>.</li>
               <li>• <strong>Llamada de Stand</strong>: en Preparación puedes elegir un Usuario en campo sin Stand para invocar y equipar automáticamente un <strong>Stand compatible aleatorio</strong> de tu mazo; <strong>finaliza el turno inmediatamente</strong> (como gestionar la banca).</li>
-              <li>• Energías: <strong>1 por turno</strong>. Objetos: <strong>ilimitados</strong> (máx. <strong>1 copia de cada equipable por personaje</strong>). Evoluciones: <strong>1 por turno</strong>.</li>
+              <li>• Energías: <strong>1 por turno</strong>. Objetos: <strong>1 por turno</strong> (máx. <strong>1 copia de cada equipable por personaje</strong>). Evoluciones: <strong>1 por turno</strong>.</li>
               <li>• Cualquier acción de banca (bajar / cambiar / retirar) <strong>finaliza el turno inmediatamente</strong> (salvo promoción tras KO o <em>Nigerundayo</em>).</li>
             </ul>
           </div>

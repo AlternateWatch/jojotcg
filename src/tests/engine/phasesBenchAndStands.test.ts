@@ -133,13 +133,23 @@ describe('Turn Phases, Bench Management, Stands & Energy Rules', () => {
     });
     expect(secondEnergy.ok).toBe(false);
 
-    // Play BOTH equippable items in the same turn (unlimited items!)
+    // Play 1st equippable item -> OK; 2nd item in the SAME turn -> rejected (max 1 item/turn)
     state = mustDispatch(state, {
       type: 'PLAY_ITEM',
       playerId: 'P1',
       handIndex: 1, // mascara
       targetInstanceId: state.players.P1.active!.instanceId,
     });
+    const secondItemSameTurn = dispatchAction(state, {
+      type: 'PLAY_ITEM',
+      playerId: 'P1',
+      handIndex: 1, // piedra roja
+      targetInstanceId: state.players.P1.active!.instanceId,
+    });
+    expect(secondItemSameTurn.ok).toBe(false);
+
+    // Next turn: 2nd equippable item -> OK!
+    state.players.P1.itemsPlayedThisTurn = 0;
     state = mustDispatch(state, {
       type: 'PLAY_ITEM',
       playerId: 'P1',

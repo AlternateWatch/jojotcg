@@ -426,6 +426,15 @@ export function validatePlayItem(
     return { ok: false, reason: 'Solo puedes jugar Objetos en tu Fase de Preparación.' };
   }
   const player = state.players[playerId];
+  if (
+    state.rules.maxItemsPerTurn !== null &&
+    player.itemsPlayedThisTurn >= state.rules.maxItemsPerTurn
+  ) {
+    return {
+      ok: false,
+      reason: `Solo puedes usar ${state.rules.maxItemsPerTurn} objeto(s) por turno.`,
+    };
+  }
   const cardId = player.hand[handIndex];
   if (!cardId) return { ok: false, reason: 'Carta no encontrada en mano.' };
 
@@ -547,6 +556,7 @@ export function applyPlayItem(
   const player = state.players[playerId];
   const cardId = player.hand.splice(handIndex, 1)[0]!;
   const item = getItemCard(cardId)!;
+  player.itemsPlayedThisTurn += 1;
 
   pushEvent(state, eventsOut, {
     type: 'ITEM_PLAYED',

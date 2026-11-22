@@ -1044,6 +1044,13 @@ export function BattleView() {
                       </span>
                       <span className="text-zinc-600">|</span>
                       <span className="text-zinc-400">
+                        Obj:{' '}
+                        <strong className="text-[#00e599]">
+                          {myPlayer.itemsPlayedThisTurn}/{gameState.rules.maxItemsPerTurn ?? '∞'}
+                        </strong>
+                      </span>
+                      <span className="text-zinc-600">|</span>
+                      <span className="text-zinc-400">
                         Evo:{' '}
                         <strong className="text-[#f2c12e]">
                           {myPlayer.evolutionsPlayedThisTurn}/
