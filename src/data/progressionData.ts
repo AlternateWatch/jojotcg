@@ -142,6 +142,7 @@ export const CARD_RARITY_MAP: Record<string, CardRarity> = {
   'item-piedra-roja-de-aja': 'RARE',
   'item-cinta-de-caesar': 'RARE',
   'item-mechero-de-polpo': 'RARE',
+  'item-estilo-de-combate-ogre-street': 'RARE',
   'char-bruford': 'RARE',
   'char-tarkus': 'RARE',
 
@@ -271,6 +272,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'item-pluck',
       'item-ataud-de-dio',
       'item-muerte-de-danny',
+      'item-estilo-de-combate-ogre-street',
     ],
   },
   {
@@ -470,6 +472,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'item-flecha-de-stand',
       'item-comida-de-tonio',
       'item-suministros-speedwagon',
+      'item-estilo-de-combate-ogre-street',
     ],
   },
   {
@@ -521,6 +524,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'item-cinta-de-caesar',
       'item-comida-de-tonio',
       'item-suministros-speedwagon',
+      'item-estilo-de-combate-ogre-street',
     ],
   },
   {
@@ -661,6 +665,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'item-mechero-de-polpo',
       'item-ataud-de-dio',
       'item-muerte-de-danny',
+      'item-estilo-de-combate-ogre-street',
       'char-robert-e-o-speedwagon',
       'char-shigekiyo-yangu',
     ],

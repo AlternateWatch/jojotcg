@@ -1230,7 +1230,9 @@ export function validatePromptResponse(
               ? card.type === 'STAND'
               : prompt.filter === 'STAND_EVOLUTION'
                 ? card.type === 'EVOLUTION' && card.evolutionTarget === 'STAND'
-                : card.type === 'CHARACTER' || card.type === 'STAND';
+                : prompt.filter === 'CONVENTIONAL_FIGHTER'
+                  ? card.type === 'CHARACTER' && card.categories.includes('CONVENTIONAL_FIGHTER')
+                  : card.type === 'CHARACTER' || card.type === 'STAND';
         if (!matches) {
           return {
             ok: false,

@@ -12,7 +12,7 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
   it('verifies all 69 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
     expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(72);
-    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(13);
+    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(14);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
       const filePath = path.join(projectRoot, 'public', 'assets', 'cards', 'official', `${imageId}.png`);
@@ -859,5 +859,92 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(koState.players.P2.active!.cardId).toBe('char-dio-brando');
     expect(koState.players.P2.active!.wangChanHpBonus).toBe(20);
     expect(koState.players.P2.active!.currentHp).toBe(160);
+  });
+
+  it('resolves ¡Estilo de combate de Ogre Street! (standalone search Conventional Fighter / fizzles if none; equipped +20 dmg to Conventional Fighter only)', () => {
+    // 1. Standalone with a Conventional Fighter in deck -> searches and adds to hand
+    let searchState = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar',
+      p1Hand: ['item-estilo-de-combate-ogre-street'],
+      p1Deck: ['energy-electric', 'char-tarkus', 'char-will-a-zeppeli'],
+      p2ActiveId: 'char-dio',
+      phase: 'PREPARATION',
+    });
+    searchState = mustDispatch(searchState, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: 0 });
+    expect(searchState.pendingPrompt?.kind).toBe('SEARCH_DECK_CARDS');
+    if (searchState.pendingPrompt?.kind === 'SEARCH_DECK_CARDS') {
+      expect(searchState.pendingPrompt.filter).toBe('CONVENTIONAL_FIGHTER');
+    }
+    const tarkusIdx = searchState.players.P1.deck.indexOf('char-tarkus');
+    searchState = mustDispatch(searchState, {
+      type: 'RESPOND_PROMPT',
+      playerId: 'P1',
+      response: { kind: 'SEARCH_DECK_CARDS', deckIndices: [tarkusIdx] },
+    });
+    expect(searchState.players.P1.hand).toContain('char-tarkus');
+    expect(searchState.players.P1.discard).toContain('item-estilo-de-combate-ogre-street');
+
+    // 2. Standalone with NO Conventional Fighter in deck -> fizzles cleanly ("no hace nada")
+    let emptySearchState = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar',
+      p1Hand: ['item-estilo-de-combate-ogre-street'],
+      p1Deck: ['energy-electric', 'char-will-a-zeppeli'],
+      p2ActiveId: 'char-dio',
+      phase: 'PREPARATION',
+    });
+    emptySearchState = mustDispatch(emptySearchState, {
+      type: 'PLAY_ITEM',
+      playerId: 'P1',
+      handIndex: 0,
+    });
+    expect(emptySearchState.pendingPrompt).toBeNull();
+    expect(emptySearchState.players.P1.discard).toContain('item-estilo-de-combate-ogre-street');
+
+    // 3. Equipped onto a Conventional Fighter (Tarkus) -> +20 permanent damage (40 + 20 = 60 -> 160 - 60 = 100)
+    let equipConvState = buildControlledBattleState({
+      p1ActiveId: 'char-tarkus',
+      p1ActiveEnergies: ['METAL', 'METAL'],
+      p1Hand: ['item-estilo-de-combate-ogre-street'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'PREPARATION',
+    });
+    equipConvState = mustDispatch(equipConvState, {
+      type: 'PLAY_ITEM',
+      playerId: 'P1',
+      handIndex: 0,
+      targetInstanceId: equipConvState.players.P1.active!.instanceId,
+    });
+    equipConvState = mustDispatch(equipConvState, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    equipConvState = mustDispatch(equipConvState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-hell-heaven-snake-kill',
+    });
+    expect(equipConvState.players.P2.active!.currentHp).toBe(100);
+
+    // 4. Equipped onto a non-Conventional Fighter (Jonathan, HAMON_USER) -> +0 bonus (Zoom Punch = 20 -> 160 - 20 = 140)
+    let equipNonConvState = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar',
+      p1ActiveEnergies: ['COLORLESS'],
+      p1Hand: ['item-estilo-de-combate-ogre-street'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'PREPARATION',
+    });
+    equipNonConvState = mustDispatch(equipNonConvState, {
+      type: 'PLAY_ITEM',
+      playerId: 'P1',
+      handIndex: 0,
+      targetInstanceId: equipNonConvState.players.P1.active!.instanceId,
+    });
+    equipNonConvState = mustDispatch(equipNonConvState, {
+      type: 'ENTER_COMBAT_PHASE',
+      playerId: 'P1',
+    });
+    equipNonConvState = mustDispatch(equipNonConvState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-zoom-punch',
+    });
+    expect(equipNonConvState.players.P2.active!.currentHp).toBe(140);
   });
 });

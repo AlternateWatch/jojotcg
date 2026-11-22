@@ -71,6 +71,27 @@ export const ITEM_CARDS: ItemCard[] = [
     tags: ['official', 'damage', 'burst'],
   },
   {
+    id: 'item-estilo-de-combate-ogre-street',
+    name: '¡Estilo de combate de Ogre Street!',
+    type: 'ITEM',
+    part: 1,
+    imageId: 'estilo-de-combate-ogre-street',
+    assetFolder: 'items',
+    itemKind: 'EQUIPPABLE',
+    targetScope: 'ANY_ALLY',
+    description:
+      'Al entrar a una de las calles más peligrosas de Londres, estás cavando tu propia tumba. Al jugar por su cuenta: Busca en tu mazo un personaje Luchador Convencional, y añádelo a tu mano. Si no tienes, esta carta no hace nada. Al jugarla junto a un personaje: Si el personaje es un Luchador Convencional, añade 20 puntos de daño extra permanentes.',
+    effects: [
+      { kind: 'SEARCH_DECK', filter: 'CONVENTIONAL_FIGHTER', maxCount: 1 },
+      {
+        kind: 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS',
+        category: 'CONVENTIONAL_FIGHTER',
+        bonusDamage: 20,
+      },
+    ],
+    tags: ['official', 'equippable', 'search', 'conventional', 'damage'],
+  },
+  {
     id: 'item-piedra-roja-de-aja',
     name: 'Piedra Roja de Aja',
     type: 'ITEM',

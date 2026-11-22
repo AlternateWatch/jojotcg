@@ -483,6 +483,15 @@ function buildPromptResponse(
           const maxAtk = Math.max(0, ...card.attacks.map(getAttackNominalMaxDamage));
           candidates.push({ idx: i, score: 100 + maxAtk });
         }
+      } else if (prompt.filter === 'CONVENTIONAL_FIGHTER') {
+        for (let i = 0; i < player.deck.length; i++) {
+          const card = getCardById(player.deck[i]!);
+          if (!card || card.type !== 'CHARACTER' || !card.categories.includes('CONVENTIONAL_FIGHTER')) {
+            continue;
+          }
+          const maxAtk = Math.max(0, ...card.attacks.map(getAttackNominalMaxDamage));
+          candidates.push({ idx: i, score: card.maxHp * 0.5 + maxAtk });
+        }
       } else {
         // STAND or CHARACTER_OR_STAND: prioritize a compatible Stand for an unequipped Stand User on board!
         const unequippedUsers = boardChars.filter((ch) => {
@@ -680,6 +689,42 @@ export function chooseAiAction(
             playerId: aiPlayerId,
             handIndex: i,
           };
+          if (validateAction(state, act).ok) return act;
+        }
+      } else if (
+        item.itemKind === 'EQUIPPABLE' &&
+        item.effects.some((e) => e.kind === 'SEARCH_DECK')
+      ) {
+        // Dual-mode equippable + search item (¡Estilo de combate de Ogre Street!):
+        // Prefer equipping onto an unequipped Conventional Fighter on board (+20 dmg); otherwise search deck!
+        const boardChars = [...(player.active ? [player.active] : []), ...player.bench];
+        const catBonusEff = item.effects.find(
+          (e): e is Extract<typeof e, { kind: 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS' }> =>
+            e.kind === 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS',
+        );
+        const targetChar = catBonusEff
+          ? boardChars.find(
+              (ch) =>
+                !ch.attachedItems.some((it) => it.cardId === item.id) &&
+                getEffectiveCharacterProfile(ch).categories.includes(catBonusEff.category),
+            )
+          : undefined;
+        if (targetChar) {
+          const act: GameAction = {
+            type: 'PLAY_ITEM',
+            playerId: aiPlayerId,
+            handIndex: i,
+            targetInstanceId: targetChar.instanceId,
+          };
+          if (validateAction(state, act).ok) return act;
+        } else if (
+          player.deck.length > 7 &&
+          player.deck.some((id) => {
+            const c = getCharacterCard(id);
+            return Boolean(c && c.categories.includes('CONVENTIONAL_FIGHTER'));
+          })
+        ) {
+          const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
           if (validateAction(state, act).ok) return act;
         }
       } else if (item.itemKind === 'EQUIPPABLE' && player.active) {

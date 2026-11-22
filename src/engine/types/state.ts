@@ -193,7 +193,7 @@ export type PlayerPrompt =
   | {
       kind: 'SEARCH_DECK_CARDS';
       playerId: PlayerId;
-      filter: 'ENERGY' | 'STAND' | 'STAND_EVOLUTION' | 'CHARACTER_OR_STAND';
+      filter: 'ENERGY' | 'STAND' | 'STAND_EVOLUTION' | 'CHARACTER_OR_STAND' | 'CONVENTIONAL_FIGHTER';
       maxPickCount: number;
       sourceLabel: string;
     }

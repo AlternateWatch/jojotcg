@@ -147,6 +147,48 @@ export function HandActionRibbon({
         );
       }
 
+      const hasDualModeSearch =
+        card.itemKind === 'EQUIPPABLE' && card.effects.some((e) => e.kind === 'SEARCH_DECK');
+      if (hasDualModeSearch) {
+        const searchAction: GameAction = {
+          type: 'PLAY_ITEM',
+          playerId,
+          handIndex,
+        };
+        const searchCheck = validateAction(gameState, searchAction);
+
+        const equipAction: GameAction = {
+          type: 'PLAY_ITEM',
+          playerId,
+          handIndex,
+          targetInstanceId: player.active?.instanceId,
+        };
+        const equipCheck = validateAction(gameState, equipAction);
+
+        return (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              disabled={!searchCheck.ok}
+              onClick={() => onDispatch(searchAction)}
+              className="jojo-btn-crimson px-3 py-1 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-40"
+            >
+              {searchCheck.ok ? 'Buscar Luchador Convencional (Por su cuenta)' : searchCheck.reason}
+            </button>
+            {player.active && (
+              <button
+                type="button"
+                disabled={!equipCheck.ok}
+                onClick={() => onDispatch(equipAction)}
+                className="jojo-btn-primary px-3 py-1 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-40"
+              >
+                Equipar al Activo (+20 daño o clic en banca)
+              </button>
+            )}
+          </div>
+        );
+      }
+
       if (card.itemKind === 'CONSUMABLE' && card.targetScope === 'ANY_ALLY') {
         const candidates = [
           ...(player.active ? [{ ch: player.active, zoneLabel: 'Activo' }] : []),

@@ -462,6 +462,13 @@ export function validatePlayItem(
     return { ok: true };
   }
 
+  // Dual-mode item (¡Estilo de combate de Ogre Street!): standalone (!targetInstanceId) searches deck (fizzles cleanly if none)
+  const hasDualModeSearch =
+    item.itemKind === 'EQUIPPABLE' && item.effects.some((e) => e.kind === 'SEARCH_DECK');
+  if (hasDualModeSearch && !targetInstanceId) {
+    return { ok: true };
+  }
+
   if (item.targetScope === 'ACTIVE_ALLY') {
     if (!player.active) return { ok: false, reason: 'No tienes personaje activo.' };
     if (targetInstanceId && targetInstanceId !== player.active.instanceId) {
@@ -498,6 +505,8 @@ export function validatePlayItem(
   // Validate item-specific requirements (search targets / bench swap)
   for (const eff of item.effects) {
     if (eff.kind === 'SEARCH_DECK') {
+      // If an equippable dual-mode item is being equipped onto a character, skip deck search validation
+      if (item.itemKind === 'EQUIPPABLE' && targetInstanceId) continue;
       const hasMatch = player.deck.some((id) => {
         const c = getCardById(id);
         if (!c) return false;
@@ -505,6 +514,9 @@ export function validatePlayItem(
         if (eff.filter === 'STAND') return c.type === 'STAND';
         if (eff.filter === 'STAND_EVOLUTION') {
           return c.type === 'EVOLUTION' && c.evolutionTarget === 'STAND';
+        }
+        if (eff.filter === 'CONVENTIONAL_FIGHTER') {
+          return c.type === 'CHARACTER' && c.categories.includes('CONVENTIONAL_FIGHTER');
         }
         return c.type === 'CHARACTER' || c.type === 'STAND';
       });
@@ -518,7 +530,9 @@ export function validatePlayItem(
                 ? 'No quedan cartas de Stand en tu mazo.'
                 : eff.filter === 'STAND_EVOLUTION'
                   ? 'No quedan cartas de evolución de Stand en tu mazo.'
-                  : 'No quedan cartas de Personaje ni Stand en tu mazo.',
+                  : eff.filter === 'CONVENTIONAL_FIGHTER'
+                    ? 'No quedan Luchadores Convencionales en tu mazo.'
+                    : 'No quedan cartas de Personaje ni Stand en tu mazo.',
         };
       }
     } else if (eff.kind === 'FREE_BENCH_SWAP') {
@@ -582,6 +596,47 @@ export function applyPlayItem(
         'BURN',
         item.name,
       );
+    }
+    player.discard.push(item.id);
+    return;
+  }
+
+  // Dual-mode equippable + search item (¡Estilo de combate de Ogre Street!) played standalone (!targetInstanceId)
+  const standaloneSearchEff =
+    item.itemKind === 'EQUIPPABLE' && !targetInstanceId
+      ? item.effects.find(
+          (e): e is Extract<typeof e, { kind: 'SEARCH_DECK' }> => e.kind === 'SEARCH_DECK',
+        )
+      : undefined;
+  if (standaloneSearchEff) {
+    const hasMatch = player.deck.some((id) => {
+      const c = getCardById(id);
+      if (!c) return false;
+      if (standaloneSearchEff.filter === 'CONVENTIONAL_FIGHTER') {
+        return c.type === 'CHARACTER' && c.categories.includes('CONVENTIONAL_FIGHTER');
+      }
+      if (standaloneSearchEff.filter === 'ENERGY') return c.type === 'ENERGY';
+      if (standaloneSearchEff.filter === 'STAND') return c.type === 'STAND';
+      if (standaloneSearchEff.filter === 'STAND_EVOLUTION') {
+        return c.type === 'EVOLUTION' && c.evolutionTarget === 'STAND';
+      }
+      return c.type === 'CHARACTER' || c.type === 'STAND';
+    });
+    if (hasMatch) {
+      enqueuePrompt(state, {
+        kind: 'SEARCH_DECK_CARDS',
+        playerId,
+        filter: standaloneSearchEff.filter,
+        maxPickCount: standaloneSearchEff.maxCount,
+        sourceLabel: item.name,
+      });
+    } else {
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: item.name,
+        message: `${item.name}: no hay Luchadores Convencionales en el mazo de ${player.name}, la carta no tiene efecto.`,
+      });
     }
     player.discard.push(item.id);
     return;

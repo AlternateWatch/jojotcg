@@ -170,10 +170,14 @@ const PART_1_STAGES: CampaignStageDef[] = [
     isBoss: false,
     opponentDeckIds: buildPart1Deck(
       ['char-robert-e-o-speedwagon', 'char-jonathan-joestar'],
-      [...rep('item-suministros-speedwagon', 2), 'item-pluck'],
+      [
+        ...rep('item-suministros-speedwagon', 2),
+        ...rep('item-estilo-de-combate-ogre-street', 2),
+        'item-pluck',
+      ],
       [
         ['energy-electric', 16],
-        ['energy-colorless', 19],
+        ['energy-colorless', 17],
       ],
     ),
     storyDeckName: STORY_DECK_EARLY_NAME,
