@@ -3,10 +3,13 @@ import { motion, AnimatePresence, useAnimationControls } from 'framer-motion';
 import {
   AlertCircle,
   BookOpen,
+  Copy,
   Eye,
   Flag,
   Gauge,
+  Loader2,
   LogOut,
+  MessageSquare,
   Palette,
   Pause,
   Play,
@@ -42,6 +45,7 @@ import { CombatLog } from '../components/battlefield/CombatLog';
 import { CombatMovePlates } from '../components/battlefield/CombatMovePlates';
 import { HandActionRibbon } from '../components/battlefield/HandActionRibbon';
 import { LiveActionFeed } from '../components/battlefield/LiveActionFeed';
+import { OnlineChatPanel } from '../components/battlefield/OnlineChatPanel';
 import { PhysicalDeckPiles } from '../components/battlefield/PhysicalDeckPiles';
 import { PileViewerModal } from '../components/battlefield/PileViewerModal';
 import { PromptOverlay } from '../components/battlefield/PromptOverlay';
@@ -112,8 +116,12 @@ export function BattleView() {
   const setCampaignPackReward = useBattleStore((s) => s.setCampaignPackReward);
   const onlineRoomCode = useBattleStore((s) => s.onlineRoomCode);
   const onlineRole = useBattleStore((s) => s.onlineRole);
+  const onlineChatMessages = useBattleStore((s) => s.onlineChatMessages);
+  const onlineSpectatorCount = useBattleStore((s) => s.onlineSpectatorCount);
+  const setOnlineChatMessages = useBattleStore((s) => s.setOnlineChatMessages);
   const applyRemoteOnlineRoom = useBattleStore((s) => s.applyRemoteOnlineRoom);
 
+  const authUser = useAppStore((s) => s.authUser);
   const settings = useAppStore((s) => s.settings);
   const awardBattleReward = useAppStore((s) => s.awardBattleReward);
   const completeCampaignStage = useAppStore((s) => s.completeCampaignStage);
@@ -124,11 +132,32 @@ export function BattleView() {
   const setScreen = useAppStore((s) => s.setScreen);
 
   const [showLog, setShowLog] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [lastSeenChatCount, setLastSeenChatCount] = useState(0);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [showCampaignPacks, setShowCampaignPacks] = useState(false);
   const [pileModal, setPileModal] = useState<{ title: string; cardIds: string[] } | null>(null);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const tabletopControls = useAnimationControls();
+
+  const isSpectator = mode === 'ONLINE' && onlineRole === 'SPECTATOR';
+  const unreadChatCount = showChat
+    ? 0
+    : Math.max(0, onlineChatMessages.length - lastSeenChatCount);
+
+  useEffect(() => {
+    if (showChat) {
+      setLastSeenChatCount(onlineChatMessages.length);
+    }
+  }, [showChat, onlineChatMessages.length]);
+
+  const copyOnlineCode = () => {
+    if (!onlineRoomCode || !navigator.clipboard?.writeText) return;
+    void navigator.clipboard.writeText(onlineRoomCode);
+    setCodeCopied(true);
+    window.setTimeout(() => setCodeCopied(false), 1800);
+  };
 
   // Tactile tabletop screen-shake on heavy impacts, KO, Time Stop & Evolution
   useEffect(() => {
@@ -177,10 +206,17 @@ export function BattleView() {
 
   // Award coins / campaign one-time pickup rewards exactly once when a battle finishes
   useEffect(() => {
-    if (!gameState || gameState.phase !== 'GAME_OVER' || !gameState.winnerId || battleRewardClaimed) {
+    if (
+      !gameState ||
+      gameState.phase !== 'GAME_OVER' ||
+      !gameState.winnerId ||
+      battleRewardClaimed ||
+      isSpectator
+    ) {
       return;
     }
-    const localPlayerId = mode === 'ONLINE' && onlineRole ? onlineRole : 'P1';
+    const localPlayerId =
+      mode === 'ONLINE' && (onlineRole === 'P1' || onlineRole === 'P2') ? onlineRole : 'P1';
     const didWin = gameState.winnerId === localPlayerId;
 
     if (activeCampaignStageId) {
@@ -301,6 +337,70 @@ export function BattleView() {
   }, [coinShowcase, dismissCoinShowcase, pileModal, showThemePicker, selectedHandIndex, setSelectedHandIndex]);
 
   if (!gameState) {
+    if (isSpectator && onlineRoomCode) {
+      return (
+        <div className="relative flex min-h-screen flex-col items-center justify-center gap-5 bg-[#0b090e] p-6">
+          <div className="jojo-panel max-w-lg space-y-4 p-7 text-center">
+            <div className="inline-flex items-center gap-2 -skew-x-8 border-2 border-[#060508] bg-[#00b87c] px-3 py-1 font-jojo-heading text-xs tracking-widest text-[#0b090e] uppercase shadow-[2px_2px_0_#060508]">
+              <span className="inline-flex skew-x-8 items-center gap-1.5">
+                <Eye size={14} /> MODO ESPECTADOR · SALA {onlineRoomCode}
+              </span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-[#f2c12e]">
+              <Loader2 size={22} className="animate-spin" />
+              <h2 className="font-jojo-display text-2xl uppercase">
+                ESPERANDO INICIO DEL DUELO...
+              </h2>
+            </div>
+            <p className="text-xs text-zinc-300">
+              La sala existe y está esperando a que ambos jugadores entren e inicien el combate.
+              La retransmisión comenzará automáticamente en cuanto empiece.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowChat((v) => !v)}
+                className="jojo-btn-primary inline-flex items-center gap-1.5 px-4 py-2 font-jojo-heading text-xs tracking-widest uppercase"
+              >
+                <MessageSquare size={14} /> Chat ({onlineChatMessages.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  resetBattle();
+                  setScreen('BATTLE_SETUP');
+                }}
+                className="jojo-btn-crimson inline-flex items-center gap-1.5 px-4 py-2 font-jojo-heading text-xs tracking-widest uppercase"
+              >
+                <LogOut size={14} /> Salir
+              </button>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {showChat && (
+              <motion.aside
+                initial={{ x: 320, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 320, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed top-4 right-4 bottom-4 z-40 w-[320px] max-w-[calc(100vw-2rem)]"
+              >
+                <OnlineChatPanel
+                  roomCode={onlineRoomCode}
+                  senderName={authUser?.username ?? 'Espectador'}
+                  messages={onlineChatMessages}
+                  spectatorCount={onlineSpectatorCount}
+                  onMessagesUpdated={setOnlineChatMessages}
+                  onClose={() => setShowChat(false)}
+                />
+              </motion.aside>
+            )}
+          </AnimatePresence>
+        </div>
+      );
+    }
+
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0b090e] p-6">
         <p className="text-zinc-300">No hay ninguna partida en curso.</p>
@@ -322,6 +422,7 @@ export function BattleView() {
   const enemyPlayer = gameState.players[enemyId];
 
   const isHumanTurn =
+    !isSpectator &&
     !myPlayer.isAi &&
     gameState.phase !== 'GAME_OVER' &&
     !gameState.pendingPrompt &&
@@ -486,12 +587,32 @@ export function BattleView() {
                 IA {aiDifficulty === 'EASY' ? 'Fácil' : aiDifficulty === 'HARD' ? 'Difícil' : 'Normal'}
               </span>
             )}
-            {mode === 'ONLINE' && (
-              <span className="border border-[#060508] bg-[#00b87c] px-2 py-0.5 font-mono text-[10px] font-black text-[#0b090e] uppercase">
-                ONLINE · SALA {onlineRoomCode}
+            {mode === 'ONLINE' && onlineRoomCode && (
+              <button
+                type="button"
+                onClick={copyOnlineCode}
+                title="Copiar código de sala para invitar espectadores"
+                className="inline-flex items-center gap-1 border border-[#060508] bg-[#00b87c] px-2 py-0.5 font-mono text-[10px] font-black text-[#0b090e] uppercase hover:bg-[#00e599]"
+              >
+                <Copy size={10} />
+                {codeCopied ? '¡CÓDIGO COPIADO!' : `SALA ${onlineRoomCode}`}
+              </button>
+            )}
+            {isSpectator && (
+              <span className="inline-flex items-center gap-1 border border-[#060508] bg-[#f2c12e] px-2 py-0.5 font-mono text-[10px] font-black text-[#0b090e] uppercase">
+                <Eye size={11} /> ESPECTADOR
+              </span>
+            )}
+            {mode === 'ONLINE' && onlineSpectatorCount > 0 && (
+              <span
+                title={`${onlineSpectatorCount} espectador(es) viendo esta partida`}
+                className="inline-flex items-center gap-1 border border-[#060508] bg-[#1d1728] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[#00e599]"
+              >
+                <Eye size={11} /> {onlineSpectatorCount}
               </span>
             )}
             {mode === 'ONLINE' &&
+              !isSpectator &&
               gameState.phase !== 'GAME_OVER' &&
               ((gameState.pendingPrompt && gameState.pendingPrompt.playerId !== myId) ||
                 (!gameState.pendingPrompt &&
@@ -581,16 +702,44 @@ export function BattleView() {
           >
             <Palette size={13} />
           </button>
+          {mode === 'ONLINE' && onlineRoomCode && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowChat((v) => {
+                  const next = !v;
+                  if (next) setShowLog(false);
+                  return next;
+                });
+              }}
+              className={`relative flex items-center gap-1 px-2 py-1 text-[11px] font-bold uppercase ${
+                showChat ? 'jojo-btn-primary' : 'jojo-btn-ink'
+              }`}
+            >
+              <MessageSquare size={13} /> Chat
+              {unreadChatCount > 0 && (
+                <span className="ml-0.5 border border-[#060508] bg-[#e6194b] px-1 font-mono text-[9px] font-black text-white">
+                  {unreadChatCount}
+                </span>
+              )}
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => setShowLog((v) => !v)}
+            onClick={() => {
+              setShowLog((v) => {
+                const next = !v;
+                if (next) setShowChat(false);
+                return next;
+              });
+            }}
             className={`flex items-center gap-1 px-2 py-1 text-[11px] font-bold uppercase ${
               showLog ? 'jojo-btn-primary' : 'jojo-btn-ink'
             }`}
           >
             <ScrollText size={13} /> ({gameState.eventLog.length})
           </button>
-          {gameState.phase !== 'GAME_OVER' && (
+          {gameState.phase !== 'GAME_OVER' && !isSpectator && (
             <button
               type="button"
               onClick={() => handleDispatch({ type: 'CONCEDE', playerId: myId })}
@@ -749,35 +898,59 @@ export function BattleView() {
               </div>
             </div>
 
-            {/* Enemy Hand Preview */}
+            {/* Enemy Hand Preview (Full face-up hand for Spectators!) */}
             <div className="flex flex-col items-center gap-1">
-              <div className="flex items-center justify-center">
-                {enemyPlayer.hand.slice(0, 6).map((cid, i) => {
-                  if (enemyPlayer.handRevealedToOpponent) {
-                    const c = getCardById(cid);
-                    return c ? (
-                      <div key={`${cid}-${i}`} style={{ marginLeft: i === 0 ? 0 : -18 }}>
-                        <CardView card={c} size="xs" />
-                      </div>
-                    ) : null;
-                  }
-                  return (
-                    <div
-                      key={`eb-${i}`}
-                      style={{ marginLeft: i === 0 ? 0 : -16 }}
-                      className="h-14 w-10 overflow-hidden rounded-[4px] border-2 border-[#060508] shadow-[2px_2px_0_#060508]"
-                    >
-                      <div
-                        className="h-full w-full bg-cover bg-center"
-                        style={{ backgroundImage: `url(${CARD_BACK_PATTERN_URL})` }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-              <span className="font-mono text-[10px] font-bold text-zinc-400">
-                MANO RIVAL: {enemyPlayer.hand.length}
-              </span>
+              {isSpectator ? (
+                <>
+                  <span className="border border-[#060508] bg-[#e6194b] px-2 py-0.5 font-mono text-[10px] font-black text-white uppercase">
+                    MANO DE {enemyPlayer.name} ({enemyPlayer.hand.length})
+                  </span>
+                  <div className="flex max-w-[360px] flex-wrap items-center justify-center gap-1 pt-1">
+                    {enemyPlayer.hand.map((cid, i) => {
+                      const c = getCardById(cid);
+                      return c ? (
+                        <motion.div
+                          key={`spec-eh-${cid}-${i}`}
+                          whileHover={{ scale: 1.35, y: 14, zIndex: 50 }}
+                          className="relative"
+                        >
+                          <CardView card={c} size="xs" />
+                        </motion.div>
+                      ) : null;
+                    })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-center">
+                    {enemyPlayer.hand.slice(0, 6).map((cid, i) => {
+                      if (enemyPlayer.handRevealedToOpponent) {
+                        const c = getCardById(cid);
+                        return c ? (
+                          <div key={`${cid}-${i}`} style={{ marginLeft: i === 0 ? 0 : -18 }}>
+                            <CardView card={c} size="xs" />
+                          </div>
+                        ) : null;
+                      }
+                      return (
+                        <div
+                          key={`eb-${i}`}
+                          style={{ marginLeft: i === 0 ? 0 : -16 }}
+                          className="h-14 w-10 overflow-hidden rounded-[4px] border-2 border-[#060508] shadow-[2px_2px_0_#060508]"
+                        >
+                          <div
+                            className="h-full w-full bg-cover bg-center"
+                            style={{ backgroundImage: `url(${CARD_BACK_PATTERN_URL})` }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <span className="font-mono text-[10px] font-bold text-zinc-400">
+                    MANO RIVAL: {enemyPlayer.hand.length}
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -891,6 +1064,18 @@ export function BattleView() {
               <div className="h-[2px] flex-1 bg-gradient-to-l from-transparent via-[#f2c12e]/50 to-[#e6194b]" />
             </div>
 
+            {isSpectator &&
+              (gameState.phase === 'SETUP_MULLIGAN' ||
+                gameState.phase === 'SETUP_ACTIVE' ||
+                Boolean(gameState.pendingPrompt)) && (
+                <div className="mx-auto inline-flex items-center gap-2 border-2 border-[#060508] bg-[#14101c] px-3 py-1 font-mono text-[11px] font-bold text-[#00e599] shadow-[3px_3px_0_#060508]">
+                  <Eye size={13} />
+                  {gameState.pendingPrompt
+                    ? `${gameState.players[gameState.pendingPrompt.playerId].name} está resolviendo una decisión...`
+                    : 'Los jugadores están preparando su mano y personaje activo inicial...'}
+                </div>
+              )}
+
             {gameState.phase === 'PREPARATION' &&
               isHumanTurn &&
               !enterCombatCheck.ok &&
@@ -917,7 +1102,7 @@ export function BattleView() {
               {/* Player Active */}
               <div className="flex flex-col items-center">
                 <span className="mb-1.5 font-jojo-heading text-[11px] tracking-[0.2em] text-[#f2c12e] uppercase">
-                  Tu Puesto Activo
+                  {isSpectator ? `Activo — ${myPlayer.name}` : 'Tu Puesto Activo'}
                 </span>
                 {myPlayer.active ? (
                   <CharacterSlot
@@ -946,7 +1131,9 @@ export function BattleView() {
               {/* Player Bench */}
               <div className="flex flex-col items-center">
                 <span className="mb-1.5 font-jojo-heading text-[11px] tracking-[0.2em] text-zinc-300 uppercase">
-                  Tu Banca ({myPlayer.bench.length}/{gameState.rules.maxBenchSize})
+                  {isSpectator
+                    ? `Banca — ${myPlayer.name} (${myPlayer.bench.length}/${gameState.rules.maxBenchSize})`
+                    : `Tu Banca (${myPlayer.bench.length}/${gameState.rules.maxBenchSize})`}
                 </span>
                 <div className="flex flex-wrap items-start justify-center gap-2.5">
                   {myPlayer.bench.map((b) => {
@@ -1017,6 +1204,11 @@ export function BattleView() {
 
         {/* ============ SELECTED CARD RIBBON + INTERACTIVE CARD FAN ============ */}
         <div className="relative mt-2 flex flex-col items-center">
+          {isSpectator && (
+            <span className="mb-1 border border-[#060508] bg-[#f2c12e] px-2.5 py-0.5 font-mono text-[10px] font-black text-[#0b090e] uppercase">
+              MANO DE {myPlayer.name} ({myPlayer.hand.length})
+            </span>
+          )}
           <AnimatePresence>
             {isHumanTurn &&
               gameState.phase === 'PREPARATION' &&
@@ -1106,11 +1298,38 @@ export function BattleView() {
         )}
       </AnimatePresence>
 
+      {/* SLIDE-OVER ONLINE CHAT */}
+      <AnimatePresence>
+        {showChat && mode === 'ONLINE' && onlineRoomCode && (
+          <motion.aside
+            initial={{ x: 320, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 320, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-12 right-3 bottom-3 z-30 w-[320px] max-w-[calc(100vw-1.5rem)]"
+          >
+            <OnlineChatPanel
+              roomCode={onlineRoomCode}
+              senderName={
+                isSpectator
+                  ? authUser?.username ?? 'Espectador'
+                  : myPlayer.name
+              }
+              messages={onlineChatMessages}
+              spectatorCount={onlineSpectatorCount}
+              onMessagesUpdated={setOnlineChatMessages}
+              onClose={() => setShowChat(false)}
+            />
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
       {/* SETUP, HOTSEAT & GAME OVER MODALS */}
       <BattleModals
         gameState={gameState}
         mode={mode}
         myId={myId}
+        isSpectator={isSpectator}
         hotseatHandoffTo={hotseatHandoffTo}
         battleReward={lastBattleReward}
         isCampaign={Boolean(activeCampaignStageId)}
@@ -1151,7 +1370,8 @@ export function BattleView() {
 
       {/* INTERACTIVE PENDING PROMPT */}
       <AnimatePresence>
-        {gameState.pendingPrompt &&
+        {!isSpectator &&
+          gameState.pendingPrompt &&
           !gameState.players[gameState.pendingPrompt.playerId].isAi &&
           (mode !== 'ONLINE' || gameState.pendingPrompt.playerId === myId) &&
           !hotseatHandoffTo && (

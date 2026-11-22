@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
   ArrowRight,
   Copy,
+  Eye,
   Globe,
   KeyRound,
   Loader2,
@@ -42,6 +43,7 @@ export function BattleSetupView() {
   const setScreen = useAppStore((s) => s.setScreen);
   const startBattle = useBattleStore((s) => s.startBattle);
   const startOnlineBattle = useBattleStore((s) => s.startOnlineBattle);
+  const startSpectatorBattle = useBattleStore((s) => s.startSpectatorBattle);
 
   const [mode, setMode] = useState<BattleMode>(preferredMode);
   const [p1Name, setP1Name] = useState(authUser?.username ?? 'Jotaro (J1)');
@@ -68,6 +70,7 @@ export function BattleSetupView() {
   // Online Lobby State
   const [waitingRoom, setWaitingRoom] = useState<OnlineRoomSnapshot | null>(null);
   const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [spectateCodeInput, setSpectateCodeInput] = useState('');
   const [onlineError, setOnlineError] = useState<string | null>(null);
   const [onlineBusy, setOnlineBusy] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
@@ -213,6 +216,24 @@ export function BattleSetupView() {
       return;
     }
     await startOnlineBattle(res.room);
+    setScreen('BATTLE');
+  };
+
+  const handleSpectateRoom = async () => {
+    const code = spectateCodeInput.trim().toUpperCase();
+    if (code.length < 4) {
+      setOnlineError('Introduce el código de la sala que quieres ver.');
+      return;
+    }
+    setOnlineError(null);
+    setOnlineBusy(true);
+    const res = await onlineService.spectateRoom(code, p1Name.trim() || 'Espectador');
+    setOnlineBusy(false);
+    if (!res.ok) {
+      setOnlineError(res.error);
+      return;
+    }
+    startSpectatorBattle(res.room);
     setScreen('BATTLE');
   };
 
@@ -539,6 +560,40 @@ export function BattleSetupView() {
                           className="jojo-btn-crimson px-5 py-2 font-jojo-heading text-sm tracking-widest uppercase disabled:opacity-35"
                         >
                           Unirse
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Option 3: Spectator Mode */}
+                    <div className="border-2 border-[#060508] bg-[#0e0b14] p-4 space-y-2.5">
+                      <div className="flex items-center gap-2 font-jojo-heading text-sm tracking-wider text-[#00e599] uppercase">
+                        <Eye size={15} /> Modo Espectador (Ver Partida en Vivo)
+                      </div>
+                      <p className="text-xs text-zinc-400">
+                        Introduce el código de cualquier sala online activa para ver el combate en
+                        directo, incluyendo las manos de ambos jugadores y el chat.
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          maxLength={8}
+                          value={spectateCodeInput}
+                          onChange={(e) => setSpectateCodeInput(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && spectateCodeInput.trim().length >= 4 && !onlineBusy) {
+                              void handleSpectateRoom();
+                            }
+                          }}
+                          placeholder="CÓDIGO DE SALA"
+                          className="flex-1 border-2 border-[#060508] bg-[#14101c] px-3 py-2 font-mono text-sm font-black tracking-widest text-[#f5efe0] uppercase focus:border-[#00e599] focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          disabled={onlineBusy || spectateCodeInput.trim().length < 4}
+                          onClick={handleSpectateRoom}
+                          className="jojo-btn-ink inline-flex items-center gap-1.5 border-[#00b87c] px-4 py-2 font-jojo-heading text-sm tracking-widest text-[#00e599] uppercase disabled:opacity-35"
+                        >
+                          <Eye size={15} /> Ver
                         </button>
                       </div>
                     </div>

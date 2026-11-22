@@ -7,7 +7,12 @@ import { createSystemRng, type CoinResult, type RngProvider } from '../engine/rn
 import type { GameAction } from '../engine/types/actions';
 import type { CombatEvent } from '../engine/types/events';
 import type { GameState, PlayerId } from '../engine/types/state';
-import { onlineService, type OnlineRoomSnapshot } from '../services/onlineService';
+import {
+  onlineService,
+  type OnlineChatMessage,
+  type OnlineRole,
+  type OnlineRoomSnapshot,
+} from '../services/onlineService';
 import type { OpenPackOutcome } from '../services/progressionService';
 import {
   extractAttackingPlayerId,
@@ -74,12 +79,17 @@ interface BattleStoreState {
   activeCampaignStageId: string | null;
   campaignPackReward: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null;
   onlineRoomCode: string | null;
-  onlineRole: PlayerId | null;
+  onlineRole: OnlineRole | null;
   onlineVersion: number;
+  onlineRoomStatus: 'WAITING' | 'PLAYING' | 'FINISHED' | null;
+  onlineChatMessages: OnlineChatMessage[];
+  onlineSpectatorCount: number;
 
   startBattle: (config: StartBattleConfig, usePrivacyCurtain: boolean) => void;
   startOnlineBattle: (room: OnlineRoomSnapshot) => Promise<void>;
+  startSpectatorBattle: (room: OnlineRoomSnapshot) => void;
   applyRemoteOnlineRoom: (room: OnlineRoomSnapshot) => void;
+  setOnlineChatMessages: (messages: OnlineChatMessage[]) => void;
   rematch: (usePrivacyCurtain: boolean) => void;
   dispatch: (action: GameAction, usePrivacyCurtain?: boolean) => boolean;
   stepAiIfNeeded: () => void;
@@ -102,7 +112,7 @@ interface BattleStoreState {
 export function getControllingPlayerId(
   state: GameState,
   mode: BattleMode,
-  onlineRole?: PlayerId | null,
+  onlineRole?: OnlineRole | null,
 ): PlayerId {
   // In VS_AI mode, the tabletop perspective must ALWAYS remain on the human player (P1),
   // even while the AI resolves setup steps or pending prompts (e.g. deck search, bench promote).
@@ -110,7 +120,7 @@ export function getControllingPlayerId(
     return 'P1';
   }
   if (mode === 'ONLINE' && onlineRole) {
-    return onlineRole;
+    return onlineRole === 'SPECTATOR' ? 'P1' : onlineRole;
   }
 
   if (state.pendingPrompt) return state.pendingPrompt.playerId;
@@ -292,6 +302,9 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   onlineRoomCode: null,
   onlineRole: null,
   onlineVersion: 0,
+  onlineRoomStatus: null,
+  onlineChatMessages: [],
+  onlineSpectatorCount: 0,
 
   startBattle: (config, _usePrivacyCurtain) => {
     const rng = createSystemRng();
@@ -332,6 +345,9 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       onlineRoomCode: null,
       onlineRole: null,
       onlineVersion: 0,
+      onlineRoomStatus: null,
+      onlineChatMessages: [],
+      onlineSpectatorCount: 0,
     });
   },
 
@@ -369,6 +385,9 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       onlineRoomCode: room.roomCode,
       onlineRole: room.role,
       onlineVersion: nextVersion,
+      onlineRoomStatus: room.status,
+      onlineChatMessages: Array.isArray(room.chatMessages) ? room.chatMessages : [],
+      onlineSpectatorCount: room.spectatorCount ?? 0,
       rng,
       lastError: null,
       coinShowcase: null,
@@ -388,26 +407,93 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
     });
   },
 
-  applyRemoteOnlineRoom: (room) => {
-    const { gameState: prevGameState, onlineVersion, onlineRole, recentTicker } = get();
-    if (!room.gameState) return;
-    if (prevGameState && room.version <= onlineVersion) return;
+  startSpectatorBattle: (room) => {
+    set({
+      gameState: room.gameState,
+      mode: 'ONLINE',
+      onlineRoomCode: room.roomCode,
+      onlineRole: 'SPECTATOR',
+      onlineVersion: room.version,
+      onlineRoomStatus: room.status,
+      onlineChatMessages: Array.isArray(room.chatMessages) ? room.chatMessages : [],
+      onlineSpectatorCount: room.spectatorCount ?? 1,
+      rng: createSystemRng(),
+      lastError: null,
+      coinShowcase: null,
+      impactBanner: null,
+      vfxCue: null,
+      cardPopups: [],
+      attackingPlayerId: null,
+      turnSplash: null,
+      recentTicker: [],
+      aiPaused: false,
+      extraAiDelayMs: 0,
+      hotseatHandoffTo: null,
+      selectedHandIndex: null,
+      isAiThinking: false,
+      battleRewardClaimed: true,
+      lastBattleReward: null,
+      activeCampaignStageId: null,
+      campaignPackReward: null,
+    });
+  },
 
-    const viewerId: PlayerId = onlineRole ?? room.role;
+  setOnlineChatMessages: (onlineChatMessages) => set({ onlineChatMessages }),
+
+  applyRemoteOnlineRoom: (room) => {
+    const {
+      gameState: prevGameState,
+      onlineVersion,
+      onlineRole,
+      recentTicker,
+      onlineChatMessages: prevChat,
+      onlineSpectatorCount: prevSpectators,
+      onlineRoomStatus: prevStatus,
+    } = get();
+
+    const incomingChat = Array.isArray(room.chatMessages) ? room.chatMessages : prevChat;
+    const chatChanged =
+      incomingChat.length !== prevChat.length ||
+      incomingChat[incomingChat.length - 1]?.id !== prevChat[prevChat.length - 1]?.id;
+    const nextSpectators =
+      typeof room.spectatorCount === 'number' ? room.spectatorCount : prevSpectators;
+    const metaChanged =
+      chatChanged || nextSpectators !== prevSpectators || room.status !== prevStatus;
+
+    const shouldUpdateGame =
+      Boolean(room.gameState) && (!prevGameState || room.version > onlineVersion);
+
+    if (!shouldUpdateGame) {
+      if (metaChanged) {
+        set({
+          onlineChatMessages: chatChanged ? incomingChat : prevChat,
+          onlineSpectatorCount: nextSpectators,
+          onlineRoomStatus: room.status,
+        });
+      }
+      return;
+    }
+
+    const nextGameState = room.gameState!;
+    const effectiveRole = onlineRole ?? room.role;
+    const viewerId: PlayerId = effectiveRole === 'P2' ? 'P2' : 'P1';
     const events: CombatEvent[] = Array.isArray(room.lastEvents) ? room.lastEvents : [];
     const coinShowcase = extractCoinEvent(events) ?? get().coinShowcase;
     const impactBanner = extractImpactBanner(events);
     const vfxCue = extractThreeVfxCue(events, viewerId);
     const cardPopups = extractCardPopups(events);
     const attackingPlayerId = extractAttackingPlayerId(events);
-    const turnSplash = prevGameState ? extractTurnSplash(prevGameState, room.gameState) : null;
-    const addedTicker = formatActionTickerEntries(events, room.gameState);
+    const turnSplash = prevGameState ? extractTurnSplash(prevGameState, nextGameState) : null;
+    const addedTicker = formatActionTickerEntries(events, nextGameState);
     const nextTicker =
       addedTicker.length > 0 ? [...recentTicker, ...addedTicker].slice(-5) : recentTicker;
 
     set({
-      gameState: room.gameState,
+      gameState: nextGameState,
       onlineVersion: room.version,
+      onlineRoomStatus: room.status,
+      onlineChatMessages: chatChanged ? incomingChat : prevChat,
+      onlineSpectatorCount: nextSpectators,
       coinShowcase,
       impactBanner: impactBanner ?? get().impactBanner,
       vfxCue: vfxCue ?? get().vfxCue,
@@ -429,6 +515,10 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   dispatch: (action, usePrivacyCurtain = true) => {
     const { gameState, rng, mode, recentTicker, onlineRoomCode, onlineRole } = get();
     if (!gameState) return false;
+
+    if (mode === 'ONLINE' && onlineRole === 'SPECTATOR') {
+      return false;
+    }
 
     if (mode === 'ONLINE' && onlineRole && action.playerId !== onlineRole) {
       set({ lastError: 'Espera a que tu rival online realice su acción.' });
@@ -589,6 +679,9 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       onlineRoomCode: null,
       onlineRole: null,
       onlineVersion: 0,
+      onlineRoomStatus: null,
+      onlineChatMessages: [],
+      onlineSpectatorCount: 0,
     });
   },
 }));

@@ -17,6 +17,7 @@ interface BattleModalsProps {
   gameState: GameState;
   mode: BattleMode;
   myId: PlayerId;
+  isSpectator?: boolean;
   hotseatHandoffTo: PlayerId | null;
   battleReward?: { coins: number; label: string } | null;
   isCampaign?: boolean;
@@ -34,6 +35,7 @@ export function BattleModals({
   gameState,
   mode,
   myId,
+  isSpectator = false,
   hotseatHandoffTo,
   battleReward,
   isCampaign = false,
@@ -55,7 +57,10 @@ export function BattleModals({
   return (
     <AnimatePresence>
       {/* SETUP MULLIGAN */}
-      {gameState.phase === 'SETUP_MULLIGAN' && !myPlayer.isAi && !myPlayer.mulliganConfirmed && (
+      {!isSpectator &&
+        gameState.phase === 'SETUP_MULLIGAN' &&
+        !myPlayer.isAi &&
+        !myPlayer.mulliganConfirmed && (
         <motion.div
           key="modal-mulligan"
           role="dialog"
@@ -125,6 +130,7 @@ export function BattleModals({
 
       {/* ONLINE WAITING FOR OPPONENT SETUP */}
       {mode === 'ONLINE' &&
+        !isSpectator &&
         ((gameState.phase === 'SETUP_MULLIGAN' && myPlayer.mulliganConfirmed) ||
           (gameState.phase === 'SETUP_ACTIVE' && myPlayer.setupActiveChosen)) && (
           <motion.div
@@ -147,7 +153,10 @@ export function BattleModals({
         )}
 
       {/* SETUP STARTING ACTIVE */}
-      {gameState.phase === 'SETUP_ACTIVE' && !myPlayer.isAi && !myPlayer.setupActiveChosen && (
+      {!isSpectator &&
+        gameState.phase === 'SETUP_ACTIVE' &&
+        !myPlayer.isAi &&
+        !myPlayer.setupActiveChosen && (
         <motion.div
           key="modal-setup-active"
           role="dialog"

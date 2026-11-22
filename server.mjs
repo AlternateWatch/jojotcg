@@ -179,6 +179,39 @@ function safeParseJson(raw, fallback) {
   }
 }
 
+const SPECTATOR_TTL_MS = 60_000;
+
+function pruneRoomSpectators(room) {
+  if (!room.spectators) {
+    room.spectators = new Map();
+    return;
+  }
+  const now = Date.now();
+  for (const [token, info] of room.spectators.entries()) {
+    if (now - info.lastSeen > SPECTATOR_TTL_MS) {
+      room.spectators.delete(token);
+    }
+  }
+}
+
+function serializeOnlineRoom(room, role) {
+  pruneRoomSpectators(room);
+  return {
+    roomCode: room.code,
+    role,
+    status: room.status,
+    isPrivate: room.isPrivate,
+    p1: room.p1 ? { name: room.p1.name, deckIds: room.p1.deckIds } : null,
+    p2: room.p2 ? { name: room.p2.name, deckIds: room.p2.deckIds } : null,
+    firstPlayerId: room.firstPlayerId,
+    gameState: room.gameState,
+    lastEvents: room.lastEvents,
+    version: room.version,
+    chatMessages: Array.isArray(room.chatMessages) ? room.chatMessages : [],
+    spectatorCount: room.spectators ? room.spectators.size : 0,
+  };
+}
+
 async function handleApiRequest(req, res, pathname) {
   try {
     // ===================== ONLINE MULTIPLAYER ENDPOINTS =====================
@@ -213,18 +246,7 @@ async function handleApiRequest(req, res, pathname) {
           room.version += 1;
           room.updatedAt = Date.now();
 
-          sendJson(res, 200, {
-            roomCode: room.code,
-            role: 'P2',
-            status: room.status,
-            isPrivate: false,
-            p1: { name: room.p1.name, deckIds: room.p1.deckIds },
-            p2: { name: room.p2.name, deckIds: room.p2.deckIds },
-            firstPlayerId: room.firstPlayerId,
-            gameState: room.gameState,
-            lastEvents: room.lastEvents,
-            version: room.version,
-          });
+          sendJson(res, 200, serializeOnlineRoom(room, 'P2'));
           return;
         }
       }
@@ -240,24 +262,15 @@ async function handleApiRequest(req, res, pathname) {
         firstPlayerId: 'P1',
         gameState: null,
         lastEvents: [],
+        chatMessages: [],
+        spectators: new Map(),
         version: 1,
         updatedAt: Date.now(),
       };
       onlineRooms.set(code, newRoom);
       matchmakingQueue.push(code);
 
-      sendJson(res, 200, {
-        roomCode: code,
-        role: 'P1',
-        status: 'WAITING',
-        isPrivate: false,
-        p1: { name: newRoom.p1.name, deckIds: newRoom.p1.deckIds },
-        p2: null,
-        firstPlayerId: newRoom.firstPlayerId,
-        gameState: null,
-        lastEvents: [],
-        version: 1,
-      });
+      sendJson(res, 200, serializeOnlineRoom(newRoom, 'P1'));
       return;
     }
 
@@ -282,23 +295,14 @@ async function handleApiRequest(req, res, pathname) {
         firstPlayerId: Math.random() < 0.5 ? 'P1' : 'P2',
         gameState: null,
         lastEvents: [],
+        chatMessages: [],
+        spectators: new Map(),
         version: 1,
         updatedAt: Date.now(),
       };
       onlineRooms.set(code, newRoom);
 
-      sendJson(res, 200, {
-        roomCode: code,
-        role: 'P1',
-        status: 'WAITING',
-        isPrivate: true,
-        p1: { name: newRoom.p1.name, deckIds: newRoom.p1.deckIds },
-        p2: null,
-        firstPlayerId: newRoom.firstPlayerId,
-        gameState: null,
-        lastEvents: [],
-        version: 1,
-      });
+      sendJson(res, 200, serializeOnlineRoom(newRoom, 'P1'));
       return;
     }
 
@@ -334,17 +338,100 @@ async function handleApiRequest(req, res, pathname) {
       room.version += 1;
       room.updatedAt = Date.now();
 
+      sendJson(res, 200, serializeOnlineRoom(room, 'P2'));
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/online/spectate') {
+      const body = await readJsonBody(req);
+      const code = String(body.roomCode || '').trim().toUpperCase();
+      const playerToken = String(body.playerToken || '').trim();
+      const playerName = String(body.playerName || 'Espectador').trim().slice(0, 24) || 'Espectador';
+
+      if (!playerToken || !code) {
+        sendJson(res, 400, { error: 'Código de sala y token requeridos.' });
+        return;
+      }
+
+      const room = onlineRooms.get(code);
+      if (!room) {
+        sendJson(res, 404, { error: `No existe ninguna sala activa con el código "${code}".` });
+        return;
+      }
+
+      if (room.p1?.token === playerToken || room.p2?.token === playerToken) {
+        sendJson(res, 400, { error: 'Ya estás participando como jugador en esta sala.' });
+        return;
+      }
+
+      if (!room.spectators) {
+        room.spectators = new Map();
+      }
+      room.spectators.set(playerToken, { name: playerName, lastSeen: Date.now() });
+      room.updatedAt = Date.now();
+
+      sendJson(res, 200, serializeOnlineRoom(room, 'SPECTATOR'));
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/online/chat') {
+      const body = await readJsonBody(req);
+      const code = String(body.roomCode || '').trim().toUpperCase();
+      const playerToken = String(body.playerToken || '').trim();
+      const rawText = String(body.text || '').replace(/\s+/g, ' ').trim();
+
+      if (!rawText) {
+        sendJson(res, 400, { error: 'El mensaje no puede estar vacío.' });
+        return;
+      }
+
+      const room = onlineRooms.get(code);
+      if (!room) {
+        sendJson(res, 404, { error: 'La sala ya no existe.' });
+        return;
+      }
+
+      let senderRole = null;
+      let senderName = String(body.senderName || '').trim().slice(0, 24);
+      if (room.p1?.token === playerToken) {
+        senderRole = 'P1';
+        senderName = room.p1.name;
+      } else if (room.p2?.token === playerToken) {
+        senderRole = 'P2';
+        senderName = room.p2.name;
+      } else if (room.spectators?.has(playerToken)) {
+        senderRole = 'SPECTATOR';
+        const spec = room.spectators.get(playerToken);
+        spec.lastSeen = Date.now();
+        senderName = spec.name || senderName || 'Espectador';
+      }
+
+      if (!senderRole) {
+        sendJson(res, 403, { error: 'No perteneces a esta sala.' });
+        return;
+      }
+
+      if (!Array.isArray(room.chatMessages)) {
+        room.chatMessages = [];
+      }
+
+      const message = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        senderName: senderName || 'Jugador',
+        senderRole,
+        text: rawText.slice(0, 240),
+        sentAt: Date.now(),
+      };
+      room.chatMessages.push(message);
+      if (room.chatMessages.length > 100) {
+        room.chatMessages = room.chatMessages.slice(-100);
+      }
+      room.updatedAt = Date.now();
+
       sendJson(res, 200, {
-        roomCode: room.code,
-        role: 'P2',
-        status: room.status,
-        isPrivate: room.isPrivate,
-        p1: { name: room.p1.name, deckIds: room.p1.deckIds },
-        p2: { name: room.p2.name, deckIds: room.p2.deckIds },
-        firstPlayerId: room.firstPlayerId,
-        gameState: room.gameState,
-        lastEvents: room.lastEvents,
-        version: room.version,
+        ok: true,
+        message,
+        chatMessages: room.chatMessages,
       });
       return;
     }
@@ -360,25 +447,23 @@ async function handleApiRequest(req, res, pathname) {
         return;
       }
 
-      const role =
-        room.p1?.token === playerToken ? 'P1' : room.p2?.token === playerToken ? 'P2' : null;
+      let role = null;
+      if (room.p1?.token === playerToken) {
+        role = 'P1';
+      } else if (room.p2?.token === playerToken) {
+        role = 'P2';
+      } else if (room.spectators?.has(playerToken)) {
+        role = 'SPECTATOR';
+        const spec = room.spectators.get(playerToken);
+        if (spec) spec.lastSeen = Date.now();
+      }
+
       if (!role) {
         sendJson(res, 403, { error: 'No perteneces a esta sala.' });
         return;
       }
 
-      sendJson(res, 200, {
-        roomCode: room.code,
-        role,
-        status: room.status,
-        isPrivate: room.isPrivate,
-        p1: room.p1 ? { name: room.p1.name, deckIds: room.p1.deckIds } : null,
-        p2: room.p2 ? { name: room.p2.name, deckIds: room.p2.deckIds } : null,
-        firstPlayerId: room.firstPlayerId,
-        gameState: room.gameState,
-        lastEvents: room.lastEvents,
-        version: room.version,
-      });
+      sendJson(res, 200, serializeOnlineRoom(room, role));
       return;
     }
 
@@ -491,6 +576,11 @@ async function handleApiRequest(req, res, pathname) {
       const playerToken = String(body.playerToken || '').trim();
 
       const room = onlineRooms.get(code);
+      if (room?.spectators?.has(playerToken)) {
+        room.spectators.delete(playerToken);
+        sendJson(res, 200, { ok: true });
+        return;
+      }
       if (room && (room.p1?.token === playerToken || room.p2?.token === playerToken)) {
         const qIdx = matchmakingQueue.indexOf(code);
         if (qIdx !== -1) matchmakingQueue.splice(qIdx, 1);

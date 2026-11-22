@@ -1,6 +1,16 @@
 import type { CombatEvent } from '../engine/types/events';
 import type { GameState, PlayerId } from '../engine/types/state';
 
+export type OnlineRole = PlayerId | 'SPECTATOR';
+
+export interface OnlineChatMessage {
+  id: string;
+  senderName: string;
+  senderRole: OnlineRole;
+  text: string;
+  sentAt: number;
+}
+
 export interface OnlinePlayerInfo {
   name: string;
   deckIds: string[];
@@ -8,7 +18,7 @@ export interface OnlinePlayerInfo {
 
 export interface OnlineRoomSnapshot {
   roomCode: string;
-  role: PlayerId;
+  role: OnlineRole;
   status: 'WAITING' | 'PLAYING' | 'FINISHED';
   isPrivate: boolean;
   p1: OnlinePlayerInfo | null;
@@ -17,6 +27,8 @@ export interface OnlineRoomSnapshot {
   gameState: GameState | null;
   lastEvents: CombatEvent[];
   version: number;
+  chatMessages?: OnlineChatMessage[];
+  spectatorCount?: number;
 }
 
 let cachedPlayerToken: string | null = null;
@@ -114,6 +126,68 @@ export const onlineService = {
       return { ok: true, room: json };
     } catch {
       return { ok: false, error: 'No se pudo conectar con el servidor.' };
+    }
+  },
+
+  async spectateRoom(
+    roomCode: string,
+    playerName: string,
+  ): Promise<{ ok: true; room: OnlineRoomSnapshot } | { ok: false; error: string }> {
+    try {
+      const res = await fetch('/api/online/spectate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: roomCode.trim().toUpperCase(),
+          playerToken: getOnlinePlayerToken(),
+          playerName,
+        }),
+      });
+      const json = (await res.json()) as OnlineRoomSnapshot & { error?: string };
+      if (!res.ok) {
+        return { ok: false, error: json.error ?? 'No se pudo entrar como espectador.' };
+      }
+      return { ok: true, room: json };
+    } catch {
+      return { ok: false, error: 'No se pudo conectar con el servidor.' };
+    }
+  },
+
+  async sendChatMessage(
+    roomCode: string,
+    senderName: string,
+    text: string,
+  ): Promise<
+    | { ok: true; message: OnlineChatMessage; chatMessages: OnlineChatMessage[] }
+    | { ok: false; error: string }
+  > {
+    try {
+      const res = await fetch('/api/online/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: roomCode.trim().toUpperCase(),
+          playerToken: getOnlinePlayerToken(),
+          senderName,
+          text,
+        }),
+      });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        message?: OnlineChatMessage;
+        chatMessages?: OnlineChatMessage[];
+        error?: string;
+      };
+      if (!res.ok || !json.message) {
+        return { ok: false, error: json.error ?? 'No se pudo enviar el mensaje.' };
+      }
+      return {
+        ok: true,
+        message: json.message,
+        chatMessages: Array.isArray(json.chatMessages) ? json.chatMessages : [json.message],
+      };
+    } catch {
+      return { ok: false, error: 'Error de red al enviar el mensaje.' };
     }
   },
 
