@@ -31,7 +31,7 @@ export function validateMulliganAction(
   const effectiveMaxDg = hasAnyTurnOneEligibleCharacter([...player.hand, ...player.deck])
     ? 4
     : null;
-  const validHand = hasValidStartingHand(player.hand, effectiveMaxDg);
+  const validHand = hasValidStartingHand(player.hand, effectiveMaxDg, player.deck);
   if (actionType === 'PERFORM_MULLIGAN') {
     if (validHand) {
       return {
@@ -159,7 +159,7 @@ export function applyPerformMulligan(
   const effectiveMaxDg = hasAnyTurnOneEligibleCharacter([...player.hand, ...player.deck])
     ? 4
     : null;
-  if (player.mulliganCount >= 3 && !hasValidStartingHand(player.hand, effectiveMaxDg)) {
+  if (player.mulliganCount >= 3 && !hasValidStartingHand(player.hand, effectiveMaxDg, player.deck)) {
     const pool = rng.shuffle([...player.hand, ...player.deck]);
     const built = buildGuaranteedValidStartingHand(
       pool,

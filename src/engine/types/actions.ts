@@ -15,7 +15,8 @@ export type PromptResponsePayload =
   | { kind: 'RECOVER_ENERGY_FROM_DISCARD'; discardIndex: number }
   | { kind: 'CHOOSE_ALLY_BENCH_HEAL'; benchInstanceId: string }
   | { kind: 'PEEK_TOP_DECK'; target: 'SELF' | 'OPPONENT' }
-  | { kind: 'CHOOSE_PRIZE_CARD'; prizeIndex: number };
+  | { kind: 'CHOOSE_PRIZE_CARD'; prizeIndex: number }
+  | { kind: 'CHOOSE_STAND_FROM_DECK'; standCardId: string };
 
 export type GameAction =
   | { type: 'PERFORM_MULLIGAN'; playerId: PlayerId }
@@ -27,6 +28,12 @@ export type GameAction =
       benchHandIndices?: number[];
     }
   | { type: 'EQUIP_STAND'; playerId: PlayerId; handIndex: number; targetInstanceId: string }
+  | {
+      type: 'SUMMON_STAND_FROM_DECK';
+      playerId: PlayerId;
+      targetInstanceId: string;
+      standCardId?: string;
+    }
   | { type: 'ATTACH_ENERGY'; playerId: PlayerId; handIndex: number; targetInstanceId: string }
   | { type: 'PLAY_ITEM'; playerId: PlayerId; handIndex: number; targetInstanceId?: string }
   | { type: 'EVOLVE_CARD'; playerId: PlayerId; handIndex: number }

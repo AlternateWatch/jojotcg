@@ -30,6 +30,7 @@ import {
   triggerOnMoveToActiveAbility,
   triggerOpponentExtraDrawReaction,
 } from '../effects/effectPipeline';
+import { attachSummonedStandFromDeck } from '../rules/turnRules';
 import type { PromptResponsePayload } from '../types/actions';
 import type { CombatEvent } from '../types/events';
 import type { GameState, PlayerId, PlayerPrompt } from '../types/state';
@@ -1232,6 +1233,13 @@ export function validatePromptResponse(
       }
       return { ok: true };
     }
+    case 'CHOOSE_STAND_FROM_DECK': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_STAND_FROM_DECK' }>;
+      if (!prompt.eligibleStandCardIds.includes(r.standCardId) || !player.deck.includes(r.standCardId)) {
+        return { ok: false, reason: 'El Stand elegido no está disponible en tu mazo.' };
+      }
+      return { ok: true };
+    }
   }
 }
 
@@ -1511,6 +1519,18 @@ export function resolvePendingPrompt(
         );
         return;
       }
+      break;
+    }
+    case 'CHOOSE_STAND_FROM_DECK': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_STAND_FROM_DECK' }>;
+      attachSummonedStandFromDeck(
+        state,
+        eventsOut,
+        playerId,
+        prompt.targetInstanceId,
+        r.standCardId,
+        rng,
+      );
       break;
     }
   }

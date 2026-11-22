@@ -880,6 +880,40 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
             </div>
           );
         })()}
+
+        {/* 13. CHOOSE STAND FROM DECK (Llamada de Stand) */}
+        {prompt.kind === 'CHOOSE_STAND_FROM_DECK' && (
+          <div className="space-y-4 text-center">
+            <div className="inline-block -skew-x-10 border-2 border-[#060508] bg-[#00b87c] px-3 py-0.5 font-jojo-heading text-xs tracking-[0.2em] text-[#0b090e] uppercase">
+              <span className="inline-block skew-x-10">{prompt.sourceLabel}</span>
+            </div>
+            <h3 className="font-jojo-display text-2xl text-[#f5efe0] uppercase">
+              Elige el Stand a Invocar desde tu Mazo
+            </h3>
+            <p className="text-xs text-zinc-300">
+              Se equipará directamente al Usuario seleccionado y te otorgará{' '}
+              <strong className="text-[#00e599]">+1 energía adjuntable</strong> este turno.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {prompt.eligibleStandCardIds.map((standId) => {
+                const card = getCardById(standId);
+                if (!card) return null;
+                return (
+                  <CardView
+                    key={standId}
+                    card={card}
+                    size="sm"
+                    highlighted
+                    badgeText="INVOCAR"
+                    onClick={() =>
+                      onRespond({ kind: 'CHOOSE_STAND_FROM_DECK', standCardId: standId })
+                    }
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );

@@ -28,6 +28,7 @@ import {
   applyEvolveCard,
   applyPlayItem,
   applyPlayToBench,
+  applySummonStandFromDeck,
   applySwapOrRetreat,
   applyUsePrepAbility,
   validateAttachEnergy,
@@ -36,6 +37,7 @@ import {
   validateEvolveCard,
   validatePlayItem,
   validatePlayToBench,
+  validateSummonStandFromDeck,
   validateSwapOrRetreat,
   validateUseAttack,
   validateUsePrepAbility,
@@ -324,6 +326,14 @@ export function validateAction(state: GameState, action: GameAction): Validation
     case 'EQUIP_STAND':
       return validateEquipStand(state, action.playerId, action.handIndex, action.targetInstanceId);
 
+    case 'SUMMON_STAND_FROM_DECK':
+      return validateSummonStandFromDeck(
+        state,
+        action.playerId,
+        action.targetInstanceId,
+        action.standCardId,
+      );
+
     case 'ATTACH_ENERGY':
       return validateAttachEnergy(state, action.playerId, action.handIndex, action.targetInstanceId);
 
@@ -408,6 +418,17 @@ export function dispatchAction(
 
     case 'EQUIP_STAND':
       applyEquipStand(state, events, action.playerId, action.handIndex, action.targetInstanceId);
+      break;
+
+    case 'SUMMON_STAND_FROM_DECK':
+      applySummonStandFromDeck(
+        state,
+        events,
+        action.playerId,
+        action.targetInstanceId,
+        rng,
+        action.standCardId,
+      );
       break;
 
     case 'ATTACH_ENERGY':
@@ -556,6 +577,7 @@ export function getLegalActions(state: GameState, playerId: PlayerId): GameActio
     }
 
     for (const ch of boardChars) {
+      tryAdd({ type: 'SUMMON_STAND_FROM_DECK', playerId, targetInstanceId: ch.instanceId });
       tryAdd({ type: 'USE_PREP_ABILITY', playerId, sourceInstanceId: ch.instanceId });
     }
 

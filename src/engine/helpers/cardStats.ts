@@ -288,11 +288,13 @@ export function hasAnyTurnOneEligibleCharacter(cardIds: readonly string[]): bool
  * Confirmed Starting Hand / Mulligan rule:
  * Valid if hand contains a Turn-1-eligible character (dg === null or dg <= maxInitialDg):
  *  - A self-sufficient character with own attacks (VAMPIRE, PILLAR_MAN, HAMON_USER, or CONVENTIONAL_FIGHTER), OR
- *  - A STAND_USER character + a compatible STAND card in hand (user DG >= stand requiredDg).
+ *  - A STAND_USER character + a compatible STAND card in hand (or in deck when `deckCardIds` is provided,
+ *    since Llamada de Stand lets a Stand User summon a compatible Stand from the deck on Turn 1).
  */
 export function hasValidStartingHand(
   handCardIds: readonly string[],
   maxInitialDg: number | null = 4,
+  deckCardIds?: readonly string[],
 ): boolean {
   const standUsers: { id: string; dg: number }[] = [];
   const stands: StandCard[] = [];
@@ -311,6 +313,15 @@ export function hasValidStartingHand(
       }
     } else if (card.type === 'STAND') {
       stands.push(card);
+    }
+  }
+
+  if (deckCardIds) {
+    for (const id of deckCardIds) {
+      const card = getCardById(id);
+      if (card?.type === 'STAND') {
+        stands.push(card);
+      }
     }
   }
 

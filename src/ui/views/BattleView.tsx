@@ -502,6 +502,18 @@ export function BattleView() {
         )
       : [];
 
+  const summonableStandUsers =
+    isHumanTurn && gameState.phase === 'PREPARATION'
+      ? [...(myPlayer.active ? [myPlayer.active] : []), ...myPlayer.bench].filter(
+          (ch) =>
+            validateAction(gameState, {
+              type: 'SUMMON_STAND_FROM_DECK',
+              playerId: myId,
+              targetInstanceId: ch.instanceId,
+            }).ok,
+        )
+      : [];
+
   const handleDispatch = (action: Parameters<typeof dispatch>[0]) => {
     dispatch(action, settings.hotseatPrivacyScreen);
   };
@@ -995,6 +1007,27 @@ export function BattleView() {
 
                     {isHumanTurn && (
                       <>
+                        {summonableStandUsers.map((ch) => {
+                          const prof = getEffectiveCharacterProfile(ch);
+                          return (
+                            <button
+                              key={`summon-${ch.instanceId}`}
+                              type="button"
+                              title="Llamada de Stand (1/turno): invoca un Stand compatible desde tu mazo y gana +1 energía adjuntable este turno"
+                              onClick={() =>
+                                handleDispatch({
+                                  type: 'SUMMON_STAND_FROM_DECK',
+                                  playerId: myId,
+                                  targetInstanceId: ch.instanceId,
+                                })
+                              }
+                              className="border-2 border-[#060508] bg-[#00b87c] px-3 py-1.5 font-jojo-heading text-xs tracking-widest text-[#0b090e] uppercase shadow-[3px_3px_0_#060508] hover:bg-[#00e599]"
+                            >
+                              ⚡ Invocar Stand ({prof.name.split(' ')[0]})
+                            </button>
+                          );
+                        })}
+
                         {usablePrepAbilities.map((ch) => {
                           const prof = getEffectiveCharacterProfile(ch);
                           return (

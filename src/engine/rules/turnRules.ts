@@ -219,12 +219,145 @@ export function applyEquipStand(
 
   const charProfile = getEffectiveCharacterProfile(character);
   const zoneLabel = target.zone === 'ACTIVE' ? 'Puesto Activo' : 'Banca';
+  let resonanceText = '';
+  if (!player.usedOncePerTurnKeys.includes('STAND_RESONANCE_ENERGY')) {
+    player.usedOncePerTurnKeys.push('STAND_RESONANCE_ENERGY');
+    player.bonusEnergyAttachmentsThisTurn += 1;
+    resonanceText = ' · Resonancia (+1 energía este turno)';
+  }
   pushEvent(state, eventsOut, {
     type: 'STAND_EQUIPPED',
     playerId,
     standCardId: standCard.id,
     characterCardId: charProfile.currentCardId,
-    message: `${player.name} equipa a ${standCard.name} en ${charProfile.name} (${zoneLabel}, acción gratuita).`,
+    message: `${player.name} equipa a ${standCard.name} en ${charProfile.name} (${zoneLabel}, acción gratuita${resonanceText}).`,
+  });
+}
+
+export function getCompatibleDeckStandsForCharacter(
+  state: GameState,
+  playerId: PlayerId,
+  character: CharacterInstance,
+): string[] {
+  const player = state.players[playerId];
+  const eligible: string[] = [];
+  for (const cid of player.deck) {
+    const stand = getStandCard(cid);
+    if (!stand) continue;
+    if (isStandCompatibleWithCharacter(stand, character).ok && !eligible.includes(stand.id)) {
+      eligible.push(stand.id);
+    }
+  }
+  return eligible;
+}
+
+export function validateSummonStandFromDeck(
+  state: GameState,
+  playerId: PlayerId,
+  targetInstanceId: string,
+  standCardId?: string,
+): { ok: boolean; reason?: string } {
+  if (state.phase !== 'PREPARATION' || state.activePlayerId !== playerId) {
+    return { ok: false, reason: 'Solo puedes usar Llamada de Stand en tu Fase de Preparación.' };
+  }
+  const player = state.players[playerId];
+  if (player.usedOncePerTurnKeys.includes('SUMMON_STAND_FROM_DECK')) {
+    return { ok: false, reason: 'Ya usaste Llamada de Stand este turno (máx. 1 por turno).' };
+  }
+  const target = findCharacterOnBoard(state, playerId, targetInstanceId);
+  if (!target) {
+    return { ok: false, reason: 'El Usuario de Stand objetivo debe estar en tu campo.' };
+  }
+  const eligible = getCompatibleDeckStandsForCharacter(state, playerId, target.character);
+  if (eligible.length === 0) {
+    return { ok: false, reason: 'No tienes ningún Stand compatible en tu mazo para este usuario.' };
+  }
+  if (standCardId && !eligible.includes(standCardId)) {
+    return { ok: false, reason: 'El Stand seleccionado no es compatible o no está en tu mazo.' };
+  }
+  return { ok: true };
+}
+
+export function attachSummonedStandFromDeck(
+  state: GameState,
+  eventsOut: CombatEvent[],
+  playerId: PlayerId,
+  targetInstanceId: string,
+  standCardId: string,
+  rng: RngProvider,
+): void {
+  const player = state.players[playerId];
+  const deckIdx = player.deck.indexOf(standCardId);
+  if (deckIdx === -1) return;
+  const target = findCharacterOnBoard(state, playerId, targetInstanceId);
+  if (!target) return;
+  const standCard = getStandCard(standCardId);
+  if (!standCard) return;
+
+  player.deck.splice(deckIdx, 1);
+  player.deck = rng.shuffle(player.deck);
+
+  const character = target.character;
+  const prevMax = computeEffectiveMaxHp(state, playerId, character);
+  character.attachedStand = {
+    instanceId: nextEntityId(state, 'std'),
+    cardId: standCard.id,
+    evolvedCardIds: [],
+    permanentDamageBonus: 0,
+    damageDebuff: 0,
+  };
+  const newMax = computeEffectiveMaxHp(state, playerId, character);
+  if (newMax > prevMax) {
+    character.currentHp += newMax - prevMax;
+  }
+
+  if (!player.usedOncePerTurnKeys.includes('SUMMON_STAND_FROM_DECK')) {
+    player.usedOncePerTurnKeys.push('SUMMON_STAND_FROM_DECK');
+  }
+  let resonanceText = '';
+  if (!player.usedOncePerTurnKeys.includes('STAND_RESONANCE_ENERGY')) {
+    player.usedOncePerTurnKeys.push('STAND_RESONANCE_ENERGY');
+    player.bonusEnergyAttachmentsThisTurn += 1;
+    resonanceText = ' · Resonancia (+1 energía este turno)';
+  }
+
+  const charProfile = getEffectiveCharacterProfile(character);
+  const zoneLabel = target.zone === 'ACTIVE' ? 'Puesto Activo' : 'Banca';
+  pushEvent(state, eventsOut, {
+    type: 'STAND_EQUIPPED',
+    playerId,
+    standCardId: standCard.id,
+    characterCardId: charProfile.currentCardId,
+    message: `¡Llamada de Stand! ${player.name} invoca a ${standCard.name} desde su mazo en ${charProfile.name} (${zoneLabel}${resonanceText}).`,
+  });
+}
+
+export function applySummonStandFromDeck(
+  state: GameState,
+  eventsOut: CombatEvent[],
+  playerId: PlayerId,
+  targetInstanceId: string,
+  rng: RngProvider,
+  standCardId?: string,
+): void {
+  const target = findCharacterOnBoard(state, playerId, targetInstanceId)!;
+  const eligible = getCompatibleDeckStandsForCharacter(state, playerId, target.character);
+
+  if (standCardId && eligible.includes(standCardId)) {
+    attachSummonedStandFromDeck(state, eventsOut, playerId, targetInstanceId, standCardId, rng);
+    return;
+  }
+  if (eligible.length === 1) {
+    attachSummonedStandFromDeck(state, eventsOut, playerId, targetInstanceId, eligible[0]!, rng);
+    return;
+  }
+
+  enqueuePrompt(state, {
+    kind: 'CHOOSE_STAND_FROM_DECK',
+    playerId,
+    targetInstanceId,
+    eligibleStandCardIds: eligible,
+    sourceLabel: 'Llamada de Stand',
   });
 }
 

@@ -432,6 +432,16 @@ function buildPromptResponse(
         prizeIndex: 0,
       };
     }
+    case 'CHOOSE_STAND_FROM_DECK': {
+      const sorted = [...prompt.eligibleStandCardIds].sort((a, b) => {
+        const sA = getStandCard(a);
+        const sB = getStandCard(b);
+        const scoreA = (sA?.requiredDg ?? 0) * 20 + Math.max(0, ...(sA?.attacks.map(getAttackNominalMaxDamage) ?? [0]));
+        const scoreB = (sB?.requiredDg ?? 0) * 20 + Math.max(0, ...(sB?.attacks.map(getAttackNominalMaxDamage) ?? [0]));
+        return scoreB - scoreA;
+      });
+      return { kind: 'CHOOSE_STAND_FROM_DECK', standCardId: sorted[0] ?? prompt.eligibleStandCardIds[0]! };
+    }
     case 'SEARCH_DECK_CARDS': {
       const boardChars = [...(player.active ? [player.active] : []), ...player.bench];
       const candidates: { idx: number; score: number }[] = [];
@@ -529,10 +539,12 @@ export function chooseAiAction(
     return confirm ?? legal.find((a) => a.type === 'PERFORM_MULLIGAN') ?? null;
   }
 
-  // 3. Setup Starting Active: prefer self-sufficient or Stand User with compatible Stand in hand
+  // 3. Setup Starting Active: prefer self-sufficient or Stand User with compatible Stand in hand or deck
   if (state.phase === 'SETUP_ACTIVE') {
     const player = state.players[aiPlayerId];
-    const handStands = player.hand.map(getStandCard).filter((s): s is NonNullable<typeof s> => !!s);
+    const availableStands = [...player.hand, ...player.deck]
+      .map(getStandCard)
+      .filter((s): s is NonNullable<typeof s> => !!s);
     const activeChoices = legal.filter(
       (a): a is Extract<GameAction, { type: 'CHOOSE_STARTING_ACTIVE' }> =>
         a.type === 'CHOOSE_STARTING_ACTIVE',
@@ -543,7 +555,16 @@ export function chooseAiAction(
       const score = (c: typeof cA) => {
         let s = c.maxHp;
         if (c.attacks.length > 0) s += 85;
-        if (c.dg !== null && handStands.some((st) => c.dg! >= st.requiredDg)) s += 115;
+        if (
+          c.dg !== null &&
+          availableStands.some(
+            (st) =>
+              c.dg! >= st.requiredDg &&
+              (!st.compatibleCharacterIds || st.compatibleCharacterIds.includes(c.id)),
+          )
+        ) {
+          s += 115;
+        }
         if (player.guaranteedOpeningCardId && c.id === player.guaranteedOpeningCardId) s += 35;
         return s;
       };
@@ -593,6 +614,20 @@ export function chooseAiAction(
         return bIsActive - aIsActive;
       });
       return equipActions[0]!;
+    }
+
+    // 4a-bis. Llamada de Stand (1/turn: summon compatible Stand directly from deck onto Active or Bench!)
+    const summonActions = legal.filter(
+      (a): a is Extract<GameAction, { type: 'SUMMON_STAND_FROM_DECK' }> =>
+        a.type === 'SUMMON_STAND_FROM_DECK',
+    );
+    if (summonActions.length > 0) {
+      summonActions.sort((a, b) => {
+        const aIsActive = player.active?.instanceId === a.targetInstanceId ? 1 : 0;
+        const bIsActive = player.active?.instanceId === b.targetInstanceId ? 1 : 0;
+        return bIsActive - aIsActive;
+      });
+      return summonActions[0]!;
     }
 
     // 4b. Evolve if possible (EASY skips evolution ~25% of the time for a Turn)

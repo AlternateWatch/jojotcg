@@ -61,7 +61,7 @@ export function BattleModals({
   const initialMaxDg = hasAnyTurnOneEligibleCharacter([...myPlayer.hand, ...myPlayer.deck])
     ? 4
     : null;
-  const startingHandValid = hasValidStartingHand(myPlayer.hand, initialMaxDg);
+  const startingHandValid = hasValidStartingHand(myPlayer.hand, initialMaxDg, myPlayer.deck);
 
   return (
     <AnimatePresence>
@@ -196,7 +196,7 @@ export function BattleModals({
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               {(() => {
-                const handStands = myPlayer.hand
+                const availableStands = [...myPlayer.hand, ...myPlayer.deck]
                   .map(getStandCard)
                   .filter((s): s is NonNullable<typeof s> => Boolean(s));
                 return myPlayer.hand.map((cid, idx) => {
@@ -213,7 +213,7 @@ export function BattleModals({
                     activeDgAllowed &&
                     (c.attacks.length > 0 ||
                       (c.dg !== null &&
-                        handStands.some(
+                        availableStands.some(
                           (st) =>
                             c.dg! >= st.requiredDg &&
                             (!st.compatibleCharacterIds || st.compatibleCharacterIds.includes(c.id)),

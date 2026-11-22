@@ -216,6 +216,13 @@ export type PlayerPrompt =
       kind: 'CHOOSE_PRIZE_CARD';
       playerId: PlayerId;
       reason: string;
+    }
+  | {
+      kind: 'CHOOSE_STAND_FROM_DECK';
+      playerId: PlayerId;
+      targetInstanceId: string;
+      eligibleStandCardIds: string[];
+      sourceLabel: string;
     };
 
 export interface GameState {
