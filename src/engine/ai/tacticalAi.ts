@@ -602,6 +602,13 @@ export function chooseAiAction(
           if (validateAction(state, act).ok) return act;
         }
       } else if (item.itemKind === 'EQUIPPABLE' && player.active) {
+        // Human-like imperfection: even HARD occasionally holds an equippable item for a turn instead of dumping everything Turn 1
+        if (
+          (difficulty === 'HARD' && deterministicRoll(state, 19 + i) < 0.2) ||
+          (difficulty === 'EASY' && deterministicRoll(state, 19 + i) < 0.35)
+        ) {
+          continue;
+        }
         const boardChars = [player.active, ...player.bench];
         const catBonusEff = item.effects.find(
           (e): e is Extract<typeof e, { kind: 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS' }> =>
@@ -687,7 +694,10 @@ export function chooseAiAction(
         }
       } else if (item.effects.some((e) => e.kind === 'DRAW_CARDS')) {
         // Avoid deck-out suicide: only play draw items when deck has plenty of cards left
-        if (player.deck.length >= 10) {
+        // Also occasionally hold draw items when hand is already comfortable so HARD feels more human
+        const holdDraw =
+          difficulty === 'HARD' && player.hand.length >= 4 && deterministicRoll(state, 29 + i) < 0.22;
+        if (player.deck.length >= 10 && !holdDraw) {
           const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
           if (validateAction(state, act).ok) return act;
         }
@@ -744,7 +754,16 @@ export function chooseAiAction(
           return scoreB - scoreA;
         });
         const chosen = energyIndices[0]!;
-        const targetId = chooseEnergyTarget(state, aiPlayerId, chosen.card.energyType);
+        let targetId = chooseEnergyTarget(state, aiPlayerId, chosen.card.energyType);
+        // Human-like opening: occasionally invest energy into a bench character when active can already attack
+        if (
+          difficulty === 'HARD' &&
+          activeCanAttackNow &&
+          player.bench.length > 0 &&
+          deterministicRoll(state, 37) < 0.16
+        ) {
+          targetId = player.bench[0]!.instanceId;
+        }
         if (targetId) {
           const act: GameAction = {
             type: 'ATTACH_ENERGY',
@@ -841,7 +860,13 @@ export function chooseAiAction(
           player.bench.length === 1 &&
           !canScoreKoNow &&
           bestPayableDamage < 60 &&
-          (activeHpRatio <= 0.45 || bestBench.isSynergy));
+          (activeHpRatio <= 0.45 || bestBench.isSynergy)) ||
+        // Occasional greedy bench setup on HARD (gives the player a turn of breathing room without throwing lethal)
+        (difficulty === 'HARD' &&
+          !canScoreKoNow &&
+          activeHpRatio >= 0.75 &&
+          player.bench.length < 2 &&
+          deterministicRoll(state, 41) < 0.12);
 
       if (shouldBuildBench) {
         return bestBench.action;
@@ -888,13 +913,17 @@ export function chooseAiAction(
         })
         .sort((a, b) => b.score - a.score);
 
-      // EASY occasionally picks a slightly suboptimal non-lethal move so beginners have breathing room
+      // EASY / NORMAL / HARD occasionally pick a slightly suboptimal non-lethal move so fights feel human rather than pure RNG
       if (difficulty === 'EASY' && scored.length > 1 && scored[0]!.score < 170) {
         if (deterministicRoll(state, 47) < 0.32 && scored[1]!.score > 0) {
           return scored[1]!.action;
         }
       } else if (difficulty === 'NORMAL' && scored.length > 1 && scored[0]!.score < 170) {
         if (deterministicRoll(state, 53) < 0.1 && scored[1]!.score >= scored[0]!.score - 15) {
+          return scored[1]!.action;
+        }
+      } else if (difficulty === 'HARD' && scored.length > 1 && scored[0]!.score < 170) {
+        if (deterministicRoll(state, 59) < 0.14 && scored[1]!.score > 0) {
           return scored[1]!.action;
         }
       }
