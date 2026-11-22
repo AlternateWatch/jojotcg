@@ -150,7 +150,7 @@ function computeTutorialStepRaw(
       const targetZone = me.active?.instanceId === validTarget.instanceId ? 'Personaje Activo' : 'aliado en Banca';
       return {
         stepLabel: 'EQUIPA TU STAND (GRATIS)',
-        text: `Haz clic en «${card.name}» en tu mano y luego en tu ${targetZone}. Equipar Stand es gratis y activa Resonancia (+1 energía este turno).`,
+        text: `Haz clic en «${card.name}» en tu mano y luego en tu ${targetZone}. Equipar un Stand desde la mano es gratis y no termina tu turno.`,
         allowedActionTypes: ['EQUIP_STAND'],
         requiredCardType: 'STAND',
         blockReason: `Entrenador: primero equipa «${card.name}» desde tu mano en tu ${targetZone}.`,

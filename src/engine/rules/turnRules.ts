@@ -219,18 +219,12 @@ export function applyEquipStand(
 
   const charProfile = getEffectiveCharacterProfile(character);
   const zoneLabel = target.zone === 'ACTIVE' ? 'Puesto Activo' : 'Banca';
-  let resonanceText = '';
-  if (!player.usedOncePerTurnKeys.includes('STAND_RESONANCE_ENERGY')) {
-    player.usedOncePerTurnKeys.push('STAND_RESONANCE_ENERGY');
-    player.bonusEnergyAttachmentsThisTurn += 1;
-    resonanceText = ' · Resonancia (+1 energía este turno)';
-  }
   pushEvent(state, eventsOut, {
     type: 'STAND_EQUIPPED',
     playerId,
     standCardId: standCard.id,
     characterCardId: charProfile.currentCardId,
-    message: `${player.name} equipa a ${standCard.name} en ${charProfile.name} (${zoneLabel}, acción gratuita${resonanceText}).`,
+    message: `${player.name} equipa a ${standCard.name} en ${charProfile.name} (${zoneLabel}, acción gratuita).`,
   });
 }
 
@@ -314,12 +308,6 @@ export function attachSummonedStandFromDeck(
   if (!player.usedOncePerTurnKeys.includes('SUMMON_STAND_FROM_DECK')) {
     player.usedOncePerTurnKeys.push('SUMMON_STAND_FROM_DECK');
   }
-  let resonanceText = '';
-  if (!player.usedOncePerTurnKeys.includes('STAND_RESONANCE_ENERGY')) {
-    player.usedOncePerTurnKeys.push('STAND_RESONANCE_ENERGY');
-    player.bonusEnergyAttachmentsThisTurn += 1;
-    resonanceText = ' · Resonancia (+1 energía este turno)';
-  }
 
   const charProfile = getEffectiveCharacterProfile(character);
   const zoneLabel = target.zone === 'ACTIVE' ? 'Puesto Activo' : 'Banca';
@@ -328,7 +316,7 @@ export function attachSummonedStandFromDeck(
     playerId,
     standCardId: standCard.id,
     characterCardId: charProfile.currentCardId,
-    message: `¡Llamada de Stand! ${player.name} invoca a ${standCard.name} desde su mazo en ${charProfile.name} (${zoneLabel}${resonanceText}).`,
+    message: `¡Llamada de Stand! ${player.name} invoca a ${standCard.name} desde su mazo en ${charProfile.name} (${zoneLabel}).`,
   });
 }
 

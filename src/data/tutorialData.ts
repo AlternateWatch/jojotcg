@@ -85,7 +85,7 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
     id: 'tut-2',
     lessonNumber: 2,
     title: 'Stands, Llamada de Stand y Energía de Stand',
-    subtitle: 'Domina el vínculo Usuario + Stand, la Resonancia (+1 energía) y la Energía de Stand.',
+    subtitle: 'Domina el vínculo Usuario + Stand, la Llamada de Stand y la Energía de Stand.',
     badge: 'LECCIÓN 02',
     accentHex: '#00b87c',
     mentorName: 'Jean Pierre Polnareff',
@@ -124,7 +124,7 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
       ],
     ),
     concepts: [
-      'Equipar un Stand desde la mano es gratis y otorga Resonancia (+1 energía ese turno)',
+      'Equipar un Stand desde la mano es gratis y no termina tu turno',
       '⚡ Llamar Stand invoca un Stand compatible aleatorio del mazo (y termina el turno)',
       'Energía de Stand (máx. 4) paga cualquier coste elemental en ataques de Stand',
     ],
