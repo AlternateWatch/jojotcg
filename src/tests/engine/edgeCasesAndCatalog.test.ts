@@ -11,7 +11,7 @@ import { buildControlledBattleState, mustDispatch } from '../helpers/testFixture
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
   it('verifies all 69 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(70);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(71);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(12);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -716,5 +716,33 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     );
     expect(afterDanseHeads.players.P2.active!.currentHp).toBe(80);
     expect(afterDanseHeads.players.P2.active!.statuses.bleedStacks).toHaveLength(0);
+  });
+
+  it('resolves Tarkus (150 HP, Metal): Fuerza Sobrehumana gains permanent +10 dmg on end-of-turn HEADS while Active', () => {
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-tarkus',
+      p1ActiveEnergies: ['METAL', 'METAL'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'PREPARATION',
+    });
+
+    // End P1 turn with HEADS -> Tarkus gains +10 permanent damage!
+    const headsRng = { ...createSeededRng(1), flipCoin: () => 'HEADS' as const };
+    const tailsRng = { ...createSeededRng(1), flipCoin: () => 'TAILS' as const };
+
+    state = mustDispatch(state, { type: 'END_TURN', playerId: 'P1' }, headsRng);
+    expect(state.players.P1.active!.tarkusDamageBonus).toBe(10);
+
+    // P2 ends turn -> back to P1 -> Hell Heaven Snake Kill deals 40 + 10 = 50 dmg (160 -> 110)
+    // and at end of P1 turn with TAILS -> bonus stays 10!
+    state = mustDispatch(state, { type: 'END_TURN', playerId: 'P2' }, tailsRng);
+    state = mustDispatch(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' }, tailsRng);
+    state = mustDispatch(
+      state,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-hell-heaven-snake-kill' },
+      tailsRng,
+    );
+    expect(state.players.P2.active!.currentHp).toBe(110);
+    expect(state.players.P1.active!.tarkusDamageBonus).toBe(10);
   });
 });

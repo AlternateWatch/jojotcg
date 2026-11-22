@@ -79,6 +79,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'sticky-fingers',
   'straizo',
   'stray-cat',
+  'tarkus',
   'the-fool',
   'the-hand',
   'the-world',

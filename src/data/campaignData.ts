@@ -330,6 +330,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
     opponentDeckIds: buildPart1Deck(
       [
         'char-bruford',
+        'char-tarkus',
         'char-dio-brando',
         'char-robert-e-o-speedwagon',
       ],
@@ -339,9 +340,9 @@ const PART_1_STAGES: CampaignStageDef[] = [
         ...rep('item-suministros-speedwagon', 3),
       ],
       [
-        ['energy-metal', 17],
-        ['energy-electric', 10],
-        ['energy-water', 8],
+        ['energy-metal', 18],
+        ['energy-electric', 9],
+        ['energy-water', 7],
       ],
     ),
     storyDeckName: STORY_DECK_FINALE_NAME,
@@ -353,16 +354,16 @@ const PART_1_STAGES: CampaignStageDef[] = [
     id: 'p1-s9',
     part: 1,
     stageNumber: 9,
-    title: 'Asalto al Castillo de Dio',
+    title: 'La Cadena de Tarkus en el Castillo',
     location: 'Castillo de Windknight’s Lot',
     storyText:
-      'A las puertas de la cámara del trono, Bruford y la guardia de Dio desatan la energía congelante y la Máscara de Piedra.',
-    opponentName: 'Guardia Oscura del Castillo',
-    featuredCardId: 'char-dio-brando',
+      'En la cámara de entrenamiento del castillo, Tarkus desata su Fuerza Sobrehumana junto a Bruford y la guardia oscura de Dio.',
+    opponentName: 'Tarkus · Caballero Gigante',
+    featuredCardId: 'char-tarkus',
     difficulty: 'NORMAL',
     isBoss: false,
     opponentDeckIds: buildPart1Deck(
-      ['char-dio-brando', 'char-bruford', 'char-robert-e-o-speedwagon'],
+      ['char-tarkus', 'char-bruford', 'char-dio-brando', 'char-robert-e-o-speedwagon'],
       [
         ...rep('item-mascara-de-piedra', 3),
         ...rep('item-pluck', 2),
@@ -370,9 +371,9 @@ const PART_1_STAGES: CampaignStageDef[] = [
         'item-ataud-de-dio',
       ],
       [
-        ['energy-electric', 14],
-        ['energy-water', 11],
-        ['energy-metal', 10],
+        ['energy-metal', 14],
+        ['energy-electric', 11],
+        ['energy-water', 9],
       ],
     ),
     storyDeckName: STORY_DECK_FINALE_NAME,
@@ -396,7 +397,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
       [
         'char-dio-brando',
         'char-bruford',
-        'char-will-a-zeppeli',
+        'char-tarkus',
         'char-robert-e-o-speedwagon',
       ],
       [

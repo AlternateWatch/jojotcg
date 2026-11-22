@@ -140,6 +140,7 @@ export type SignatureEffectId =
   | 'AFTERIMAGE_DIRE'
   | 'HAMON_SCHOLAR_STRAIZO'
   | 'KNIGHT_LOYALTY_BRUFORD'
+  | 'SUPERHUMAN_STRENGTH_TARKUS'
   | 'NONE';
 
 export interface SignatureAbilityDef {

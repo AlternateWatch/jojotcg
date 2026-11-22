@@ -251,6 +251,32 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     ],
   },
   {
+    id: 'char-tarkus',
+    name: 'Tarkus',
+    type: 'CHARACTER',
+    part: 1,
+    imageId: 'tarkus',
+    assetFolder: 'official',
+    categories: ['CONVENTIONAL_FIGHTER'],
+    maxHp: 150,
+    dg: null,
+    signatureAbility: {
+      id: 'SUPERHUMAN_STRENGTH_TARKUS',
+      name: 'FUERZA SOBREHUMANA',
+      text: 'Mientras Tarkus esté en el puesto activo, al acabar el turno tira una moneda. Si sale cara, gana 10 puntos de daño de forma permanente.',
+      trigger: 'ON_END_TURN',
+    },
+    attacks: [
+      {
+        id: 'atk-hell-heaven-snake-kill',
+        name: 'Hell Heaven Snake Kill',
+        energyCost: ['METAL', 'METAL'],
+        baseDamage: 40,
+        damageLabel: '40',
+      },
+    ],
+  },
+  {
     id: 'char-dio-brando',
     name: 'Dio Brando',
     type: 'CHARACTER',

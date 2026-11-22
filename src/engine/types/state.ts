@@ -81,6 +81,8 @@ export interface CharacterInstance {
   erinaNextAttackBonus?: boolean;
   /** Dire — Imagen Residual: +10 next attack after moving to Active with >1 energy attached */
   direAfterimageBonus?: boolean;
+  /** Tarkus — Fuerza Sobrehumana: permanent +10 damage stacks gained on end-of-turn HEADS while Active */
+  tarkusDamageBonus?: number;
 }
 
 export interface PlayerState {

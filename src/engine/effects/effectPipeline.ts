@@ -158,6 +158,9 @@ export function computeAttackDamageBonus(
     bonus += 10;
     consumedDireAfterimage = true;
   }
+  if (attackerInst.tarkusDamageBonus && attackerInst.tarkusDamageBonus > 0) {
+    bonus += attackerInst.tarkusDamageBonus;
+  }
 
   // 5. Horus — Caída de las Temperaturas (+10 per stack to WATER attacks)
   if (player.permanentWaterAttackBonus > 0 && attack.energyCost.includes('WATER')) {
@@ -775,6 +778,33 @@ export function resolveEndOfTurnEffects(
             }
           }
         }
+      }
+    }
+
+    // 3c. Tarkus — Fuerza Sobrehumana: while Active, flip a coin at end of turn; on HEADS gain permanent +10 damage!
+    if (
+      profile.signatureAbility.id === 'SUPERHUMAN_STRENGTH_TARKUS' &&
+      player.active?.instanceId === instId
+    ) {
+      const flip = rng.flipCoin();
+      pushEvent(state, eventsOut, {
+        type: 'COIN_FLIPPED',
+        playerId: endingPlayerId,
+        attackName: 'Fuerza Sobrehumana',
+        results: [flip],
+        message:
+          flip === 'HEADS'
+            ? `¡Fuerza Sobrehumana! ${profile.name} saca CARA y gana +10 de daño permanente.`
+            : `Fuerza Sobrehumana: ${profile.name} saca cruz (sin aumento esta ronda).`,
+      });
+      if (flip === 'HEADS') {
+        character.tarkusDamageBonus = (character.tarkusDamageBonus ?? 0) + 10;
+        pushEvent(state, eventsOut, {
+          type: 'ABILITY_TRIGGERED',
+          playerId: endingPlayerId,
+          abilityName: 'Fuerza Sobrehumana',
+          message: `${profile.name} acumula +${character.tarkusDamageBonus} de daño permanente con Fuerza Sobrehumana.`,
+        });
       }
     }
 
