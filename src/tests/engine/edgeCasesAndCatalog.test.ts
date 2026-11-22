@@ -11,7 +11,7 @@ import { buildControlledBattleState, mustDispatch } from '../helpers/testFixture
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
   it('verifies all 69 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(71);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(72);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(13);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -797,5 +797,67 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     });
     expect(standState.players.P2.active!.currentHp).toBe(80); // 160 - (60 + 20)
     expect(standState.players.P1.pendingNextAttackBonus).toBe(0);
+  });
+
+  it('resolves Wang Chan (90 HP): Lacayo de DIO (+20 HP to bench DIO on KO), Falsa Medicina (coin ±20 bench), and Garras Metálicas (20 dmg + Bleed on TAILS)', () => {
+    const headsRng = { ...createSeededRng(1), flipCoin: () => 'HEADS' as const };
+    const tailsRng = { ...createSeededRng(1), flipCoin: () => 'TAILS' as const };
+
+    // 1. Falsa Medicina (0 energy): HEADS heals bench ally +20, TAILS damages bench ally -20
+    let medState = buildControlledBattleState({
+      p1ActiveId: 'char-wang-chan',
+      p1BenchIds: ['char-bruford'],
+      p2ActiveId: 'char-jonathan-joestar',
+      phase: 'COMBAT',
+    });
+    medState.players.P1.bench[0]!.currentHp = 80; // 80/120
+
+    const afterMedHeads = mustDispatch(
+      medState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-falsa-medicina' },
+      headsRng,
+    );
+    expect(afterMedHeads.players.P1.bench[0]!.currentHp).toBe(100);
+
+    const afterMedTails = mustDispatch(
+      medState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-falsa-medicina' },
+      tailsRng,
+    );
+    expect(afterMedTails.players.P1.bench[0]!.currentHp).toBe(60);
+
+    // 2. Garras Metálicas (1 METAL, 20 dmg): TAILS inflicts Bleed
+    let clawState = buildControlledBattleState({
+      p1ActiveId: 'char-wang-chan',
+      p1ActiveEnergies: ['METAL'],
+      p1BenchIds: ['char-dio-brando'],
+      p2ActiveId: 'char-jonathan-joestar', // 130 HP
+      phase: 'COMBAT',
+    });
+    clawState = mustDispatch(
+      clawState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-garras-metalicas' },
+      tailsRng,
+    );
+    expect(clawState.players.P2.active!.currentHp).toBe(110); // 130 - 20
+    expect(clawState.players.P2.active!.statuses.bleedStacks).toHaveLength(1);
+
+    // 3. Lacayo de DIO: when Wang Chan is KO'd with Dio Brando on bench, Dio gains +20 HP (140 -> 160)
+    let koState = buildControlledBattleState({
+      p1ActiveId: 'char-dio-brando',
+      p1ActiveEnergies: ['ELECTRIC', 'ELECTRIC'],
+      p2ActiveId: 'char-wang-chan', // 90 HP
+      p2BenchIds: ['char-dio-brando'], // 140 HP
+      phase: 'COMBAT',
+    });
+    koState = mustDispatch(koState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-space-ripper-stingy-eyes', // guaranteed 90 dmg -> KOs Wang Chan!
+    });
+    // Dio Brando is auto-promoted from bench (only bench char) with +20 HP bonus!
+    expect(koState.players.P2.active!.cardId).toBe('char-dio-brando');
+    expect(koState.players.P2.active!.wangChanHpBonus).toBe(20);
+    expect(koState.players.P2.active!.currentHp).toBe(160);
   });
 });

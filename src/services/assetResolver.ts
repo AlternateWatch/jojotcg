@@ -86,6 +86,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'tonpetty',
   'vanilla-ice',
   'wamuu',
+  'wang-chan',
   'will-a-zeppeli',
   'yoshikage-kira',
   'yukako-yamagishi',

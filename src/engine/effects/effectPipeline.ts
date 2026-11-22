@@ -412,6 +412,26 @@ export function handleCharacterKo(
     });
   }
 
+  // 6b. Wang Chan ("Lacayo de DIO"): if DIO (Part 1 or Part 3) is on bench, increase DIO's HP by +20
+  if (profile.signatureAbility.id === 'DIO_LACKEY_WANG_CHAN') {
+    const benchDio = owner.bench.find((b) => {
+      const bId = getEffectiveCharacterProfile(b).currentCardId;
+      return bId === 'char-dio-brando' || bId === 'char-dio';
+    });
+    if (benchDio) {
+      benchDio.wangChanHpBonus = (benchDio.wangChanHpBonus ?? 0) + 20;
+      benchDio.currentHp += 20;
+      const dioProfile = getEffectiveCharacterProfile(benchDio);
+      const newMax = computeEffectiveMaxHp(state, ownerPlayerId, benchDio);
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId: ownerPlayerId,
+        abilityName: 'Lacayo de DIO',
+        message: `¡Lacayo de DIO! Al caer Wang Chan, ${dioProfile.name} en la banca aumenta su vida en +20 HP (${benchDio.currentHp}/${newMax} HP).`,
+      });
+    }
+  }
+
   pushEvent(state, eventsOut, {
     type: 'CHARACTER_KO',
     ownerPlayerId,

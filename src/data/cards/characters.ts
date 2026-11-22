@@ -277,6 +277,47 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     ],
   },
   {
+    id: 'char-wang-chan',
+    name: 'Wang Chan',
+    type: 'CHARACTER',
+    part: 1,
+    imageId: 'wang-chan',
+    assetFolder: 'official',
+    categories: ['CONVENTIONAL_FIGHTER'],
+    maxHp: 90,
+    dg: null,
+    signatureAbility: {
+      id: 'DIO_LACKEY_WANG_CHAN',
+      name: 'LACAYO DE DIO',
+      text: 'Al ser eliminado, si DIO está en la banca, aumenta en 20 los puntos de vida de DIO.',
+      trigger: 'ON_KO',
+    },
+    attacks: [
+      {
+        id: 'atk-falsa-medicina',
+        name: 'Falsa Medicina',
+        energyCost: [],
+        baseDamage: 0,
+        damageLabel: '0',
+        effectText:
+          'Elige un aliado en banca y tira una moneda. Si sale cara, le cura 20 puntos de vida; si sale cruz, le quita 20 puntos de vida.',
+        specialEffects: [{ kind: 'FALSE_MEDICINE_BENCH_COIN', amount: 20 }],
+      },
+      {
+        id: 'atk-garras-metalicas',
+        name: 'Garras Metálicas',
+        energyCost: ['METAL'],
+        baseDamage: 20,
+        damageLabel: '20',
+        effectText: 'Tira una moneda. Si sale cruz, el oponente pasa a tener sangrado.',
+        coinFlip: {
+          count: 1,
+          onTails: [{ kind: 'STATUS', status: 'BLEED', target: 'DEFENDER' }],
+        },
+      },
+    ],
+  },
+  {
     id: 'char-dio-brando',
     name: 'Dio Brando',
     type: 'CHARACTER',

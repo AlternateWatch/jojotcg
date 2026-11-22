@@ -83,6 +83,8 @@ export interface CharacterInstance {
   direAfterimageBonus?: boolean;
   /** Tarkus — Fuerza Sobrehumana: permanent +10 damage stacks gained on end-of-turn HEADS while Active */
   tarkusDamageBonus?: number;
+  /** Wang Chan — Lacayo de DIO: +20 max & current HP granted to bench DIO when Wang Chan is KO'd */
+  wangChanHpBonus?: number;
 }
 
 export interface PlayerState {
@@ -206,6 +208,8 @@ export type PlayerPrompt =
       playerId: PlayerId;
       eligibleInstanceIds: string[];
       healAmount: number;
+      /** When set (Wang Chan — Falsa Medicina), flips a coin: HEADS heals healAmount, TAILS deals coinFlipDamageAmount */
+      coinFlipDamageAmount?: number;
       sourceLabel: string;
     }
   | {

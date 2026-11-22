@@ -597,12 +597,23 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
         {prompt.kind === 'CHOOSE_ALLY_BENCH_HEAL' && (
           <div className="space-y-4">
             <h3 className="font-jojo-display text-2xl text-[#f5efe0] uppercase">
-              {prompt.sourceLabel} — Elegir Aliado para Curar
+              {prompt.sourceLabel} —{' '}
+              {prompt.coinFlipDamageAmount ? 'Elegir Aliado en Banca' : 'Elegir Aliado para Curar'}
             </h3>
             <p className="text-xs text-zinc-300">
-              Elige un aliado para curarle{' '}
-              <strong className="text-[#00e599]">+{prompt.healAmount} HP</strong> (también elimina
-              Quemadura).
+              {prompt.coinFlipDamageAmount ? (
+                <>
+                  Elige un aliado en banca y lanza una moneda:{' '}
+                  <strong className="text-[#00e599]">Cara +{prompt.healAmount} HP</strong> /{' '}
+                  <strong className="text-[#e6194b]">Cruz -{prompt.coinFlipDamageAmount} HP</strong>.
+                </>
+              ) : (
+                <>
+                  Elige un aliado para curarle{' '}
+                  <strong className="text-[#00e599]">+{prompt.healAmount} HP</strong> (también
+                  elimina Quemadura).
+                </>
+              )}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               {[
@@ -621,7 +632,11 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
                         card={card}
                         size="md"
                         highlighted
-                        badgeText={`+${prompt.healAmount} HP`}
+                        badgeText={
+                          prompt.coinFlipDamageAmount
+                            ? `±${prompt.healAmount} HP`
+                            : `+${prompt.healAmount} HP`
+                        }
                         onClick={() =>
                           onRespond({
                             kind: 'CHOOSE_ALLY_BENCH_HEAL',

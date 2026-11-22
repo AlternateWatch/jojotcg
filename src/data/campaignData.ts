@@ -245,15 +245,16 @@ const PART_1_STAGES: CampaignStageDef[] = [
     difficulty: 'HARD',
     isBoss: true,
     opponentDeckIds: buildPart1Deck(
-      ['char-dio-brando', 'char-robert-e-o-speedwagon', 'char-jonathan-joestar'],
+      ['char-dio-brando', 'char-wang-chan', 'char-robert-e-o-speedwagon', 'char-jonathan-joestar'],
       [
         ...rep('item-mascara-de-piedra', 3),
         ...rep('item-suministros-speedwagon', 3),
         ...rep('item-pluck', 2),
       ],
       [
-        ['energy-electric', 16],
-        ['energy-water', 13],
+        ['energy-electric', 14],
+        ['energy-water', 12],
+        ['energy-metal', 8],
       ],
     ),
     storyDeckName: STORY_DECK_MID_NAME,
@@ -302,18 +303,18 @@ const PART_1_STAGES: CampaignStageDef[] = [
     title: 'El Túnel de Windknight’s Lot',
     location: 'Túnel hacia Windknight’s Lot',
     storyText:
-      'La niebla envuelve el túnel donde acechan los sirvientes de Dio. Zeppeli y Speedwagon cubren la vanguardia.',
-    opponentName: 'Vanguardia de Windknight’s Lot',
-    featuredCardId: 'char-will-a-zeppeli',
+      'La niebla envuelve el túnel hacia Windknight’s Lot, donde Wang Chan y los sirvientes de Dio tienden una emboscada.',
+    opponentName: 'Wang Chan · Sirviente de Dio',
+    featuredCardId: 'char-wang-chan',
     difficulty: 'NORMAL',
     isBoss: false,
     opponentDeckIds: buildPart1Deck(
-      ['char-will-a-zeppeli', 'char-robert-e-o-speedwagon', 'char-dio-brando'],
+      ['char-wang-chan', 'char-dio-brando', 'char-robert-e-o-speedwagon'],
       [...rep('item-mascara-de-piedra', 2), ...rep('item-suministros-speedwagon', 3)],
       [
-        ['energy-electric', 17],
-        ['energy-water', 11],
-        ['energy-colorless', 4],
+        ['energy-metal', 14],
+        ['energy-electric', 12],
+        ['energy-water', 12],
       ],
     ),
     storyDeckName: STORY_DECK_MID_NAME,
@@ -402,9 +403,9 @@ const PART_1_STAGES: CampaignStageDef[] = [
     opponentDeckIds: buildPart1Deck(
       [
         'char-dio-brando',
+        'char-wang-chan',
         'char-bruford',
         'char-tarkus',
-        'char-robert-e-o-speedwagon',
       ],
       [
         ...rep('item-mascara-de-piedra', 3),

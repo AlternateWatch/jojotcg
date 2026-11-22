@@ -786,6 +786,48 @@ export function executeAttack(
         }
         break;
       }
+      case 'FALSE_MEDICINE_BENCH_COIN': {
+        if (player.bench.length === 1) {
+          const target = player.bench[0]!;
+          const flip = rng.flipCoin();
+          pushEvent(state, eventsOut, {
+            type: 'COIN_FLIPPED',
+            playerId,
+            attackName: attack.name,
+            results: [flip],
+            message: `${attack.name}: moneda → ${flip === 'HEADS' ? 'CARA (+20 HP)' : 'CRUZ (-20 HP)'}.`,
+          });
+          if (flip === 'HEADS') {
+            healCharacter(state, eventsOut, playerId, target.instanceId, eff.amount, attack.name);
+          } else {
+            dealDamageToCharacter(state, eventsOut, {
+              targetPlayerId: playerId,
+              targetInstanceId: target.instanceId,
+              amount: eff.amount,
+              source: 'RECOIL',
+              rng,
+              ignoreDodge: true,
+            });
+          }
+        } else if (player.bench.length > 1) {
+          enqueuePrompt(state, {
+            kind: 'CHOOSE_ALLY_BENCH_HEAL',
+            playerId,
+            eligibleInstanceIds: player.bench.map((b) => b.instanceId),
+            healAmount: eff.amount,
+            coinFlipDamageAmount: eff.amount,
+            sourceLabel: attack.name,
+          });
+        } else {
+          pushEvent(state, eventsOut, {
+            type: 'ABILITY_TRIGGERED',
+            playerId,
+            abilityName: attack.name,
+            message: `${player.name} no tiene aliados en banca para usar ${attack.name}.`,
+          });
+        }
+        break;
+      }
       case 'HEAL_SELF_OR_BENCH': {
         const eligibleIds = [
           ...(findCharacterOnBoard(state, playerId, attacker.instanceId) ? [attacker.instanceId] : []),
@@ -1477,14 +1519,48 @@ export function resolvePendingPrompt(
     }
     case 'CHOOSE_ALLY_BENCH_HEAL': {
       const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_ALLY_BENCH_HEAL' }>;
-      healCharacter(
-        state,
-        eventsOut,
-        playerId,
-        r.benchInstanceId,
-        prompt.healAmount,
-        prompt.sourceLabel,
-      );
+      if (prompt.coinFlipDamageAmount) {
+        const flip = rng.flipCoin();
+        pushEvent(state, eventsOut, {
+          type: 'COIN_FLIPPED',
+          playerId,
+          attackName: prompt.sourceLabel,
+          results: [flip],
+          message: `${prompt.sourceLabel}: moneda → ${
+            flip === 'HEADS'
+              ? `CARA (+${prompt.healAmount} HP)`
+              : `CRUZ (-${prompt.coinFlipDamageAmount} HP)`
+          }.`,
+        });
+        if (flip === 'HEADS') {
+          healCharacter(
+            state,
+            eventsOut,
+            playerId,
+            r.benchInstanceId,
+            prompt.healAmount,
+            prompt.sourceLabel,
+          );
+        } else {
+          dealDamageToCharacter(state, eventsOut, {
+            targetPlayerId: playerId,
+            targetInstanceId: r.benchInstanceId,
+            amount: prompt.coinFlipDamageAmount,
+            source: 'RECOIL',
+            rng,
+            ignoreDodge: true,
+          });
+        }
+      } else {
+        healCharacter(
+          state,
+          eventsOut,
+          playerId,
+          r.benchInstanceId,
+          prompt.healAmount,
+          prompt.sourceLabel,
+        );
+      }
       break;
     }
     case 'PEEK_TOP_DECK': {

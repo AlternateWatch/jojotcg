@@ -61,6 +61,7 @@ export type AttackSpecialEffect =
   | { kind: 'HEAL_SELF'; amount: number }
   | { kind: 'HEAL_DEFENDER'; amount: number }
   | { kind: 'HEAL_ALLY_BENCH'; amount: number }
+  | { kind: 'FALSE_MEDICINE_BENCH_COIN'; amount: number }
   | { kind: 'HEAL_SELF_OR_BENCH'; amount: number }
   | { kind: 'RETURN_TO_ZERO' }
   | { kind: 'RAPID_RELOAD_BUFF'; nextTurnDamage: number }
@@ -141,6 +142,7 @@ export type SignatureEffectId =
   | 'HAMON_SCHOLAR_STRAIZO'
   | 'KNIGHT_LOYALTY_BRUFORD'
   | 'SUPERHUMAN_STRENGTH_TARKUS'
+  | 'DIO_LACKEY_WANG_CHAN'
   | 'NONE';
 
 export interface SignatureAbilityDef {
