@@ -49,14 +49,14 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     state = mustDispatch(state, { type: 'EVOLVE_CARD', playerId: 'P1', handIndex: 0 });
     expect(state.players.P1.active!.currentHp).toBeGreaterThanOrEqual(200);
 
-    // Hamon del Sol: 100 base + 10 from Piedra Roja de Aja (LIGHT bonus) = 110 dmg + Burn!
+    // Hamon del Sol: 100 base + 10 Piedra Roja de Aja - 10 Stand Resistance (P2 has Hierophant Green vs non-Stand Kars) = 100 dmg + Burn!
     state = mustDispatch(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
     state = mustDispatch(state, {
       type: 'USE_ATTACK',
       playerId: 'P1',
       attackId: 'atk-hamon-del-sol',
     });
-    expect(state.players.P2.active!.currentHp).toBe(50); // 160 - 110
+    expect(state.players.P2.active!.currentHp).toBe(60); // 160 - 100
     expect(state.players.P2.active!.statuses.burn?.active).toBe(true);
 
     // P2 tries to Stun Kars Ultimate with Cuerpo Flexible -> blocked by Evolución Instantánea!
@@ -301,7 +301,8 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       playerId: 'P1',
       attackId: 'atk-return-to-zero',
     });
-    expect(gerState.players.P1.active!.currentHp).toBe(130);
+    // Return to Zero heals Giorno to effective max HP (130 base + 20 Stand Bond = 150)
+    expect(gerState.players.P1.active!.currentHp).toBe(150);
     expect(gerState.players.P1.active!.statuses.burn).toBeNull();
     expect(gerState.players.P1.active!.statuses.bleedStacks).toHaveLength(0);
     expect(gerState.players.P1.active!.attachedStand!.damageDebuff).toBe(0);

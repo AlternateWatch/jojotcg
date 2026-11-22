@@ -983,7 +983,7 @@ export function BattleView() {
                       </span>
                       <span className="text-zinc-600">|</span>
                       <span
-                        title="Límite de DG de personajes que puedes bajar este turno (T1: DG 3 · T2: DG 4 · T3: DG 5 · T4+: DG 6)"
+                        title="Límite de DG en el Activo este turno (T1: DG 4 · T2: DG 5 · T3+: DG 6 · Usuarios de Stand permitidos en banca desde T1)"
                         className="text-zinc-400"
                       >
                         DG máx:{' '}

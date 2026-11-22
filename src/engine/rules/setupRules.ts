@@ -29,7 +29,7 @@ export function validateMulliganAction(
   }
 
   const effectiveMaxDg = hasAnyTurnOneEligibleCharacter([...player.hand, ...player.deck])
-    ? 3
+    ? 4
     : null;
   const validHand = hasValidStartingHand(player.hand, effectiveMaxDg);
   if (actionType === 'PERFORM_MULLIGAN') {
@@ -47,7 +47,7 @@ export function validateMulliganAction(
     return {
       ok: false,
       reason:
-        'Tu mano no contiene un personaje inicial válido (sin DG o DG ≤ 3 autosuficiente, o Usuario DG ≤ 3 + Stand compatible). Debes hacer mulligan.',
+        'Tu mano no contiene un personaje inicial válido (sin DG o DG ≤ 4 autosuficiente, o Usuario DG ≤ 4 + Stand compatible). Debes hacer mulligan.',
     };
   }
   return { ok: true };
@@ -157,7 +157,7 @@ export function applyPerformMulligan(
   // Anti-brick pity rule: on the 3rd mulligan (or later), guarantee a valid starting hand
   let guaranteedApplied = false;
   const effectiveMaxDg = hasAnyTurnOneEligibleCharacter([...player.hand, ...player.deck])
-    ? 3
+    ? 4
     : null;
   if (player.mulliganCount >= 3 && !hasValidStartingHand(player.hand, effectiveMaxDg)) {
     const pool = rng.shuffle([...player.hand, ...player.deck]);
@@ -235,10 +235,10 @@ export function validateChooseStartingActive(
     return { ok: false, reason: 'Solo puedes colocar una carta de Personaje en el Puesto Activo.' };
   }
   const enforceInitialDgCap = hasAnyTurnOneEligibleCharacter([...player.hand, ...player.deck]);
-  if (enforceInitialDgCap && charCard.dg !== null && charCard.dg > 3) {
+  if (enforceInitialDgCap && charCard.dg !== null && charCard.dg > 4) {
     return {
       ok: false,
-      reason: `No puedes colocar a ${charCard.name} (DG ${charCard.dg}) en el Turno 1. Se desbloquea en el Turno ${getCharacterUnlockTurn(charCard.dg)} (límite inicial: DG 3).`,
+      reason: `No puedes colocar a ${charCard.name} (DG ${charCard.dg}) como Activo inicial en el Turno 1. Se desbloquea en el Turno ${getCharacterUnlockTurn(charCard.dg)} (límite inicial: DG 4; puedes bajarlo a la banca desde el Turno 1).`,
     };
   }
   return { ok: true };

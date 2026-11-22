@@ -50,7 +50,7 @@ export function BattleModals({
 }: BattleModalsProps) {
   const myPlayer = gameState.players[myId];
   const initialMaxDg = hasAnyTurnOneEligibleCharacter([...myPlayer.hand, ...myPlayer.deck])
-    ? 3
+    ? 4
     : null;
   const startingHandValid = hasValidStartingHand(myPlayer.hand, initialMaxDg);
 
@@ -94,8 +94,8 @@ export function BattleModals({
               }`}
             >
               {startingHandValid
-                ? 'MANO VÁLIDA — Tienes un personaje inicial válido (sin DG o DG ≤ 3) listo para empezar.'
-                : 'MANO INVÁLIDA — Necesitas un personaje inicial (sin DG o DG ≤ 3 autosuficiente, o Usuario DG ≤ 3 + Stand compatible). Debes hacer Mulligan.'}
+                ? 'MANO VÁLIDA — Tienes un personaje inicial válido (sin DG o DG ≤ 4) listo para empezar.'
+                : 'MANO INVÁLIDA — Necesitas un personaje inicial (sin DG o DG ≤ 4 autosuficiente, o Usuario DG ≤ 4 + Stand compatible). Debes hacer Mulligan.'}
             </div>
 
             <div className="flex flex-wrap justify-center gap-3">
@@ -182,8 +182,8 @@ export function BattleModals({
               Elige tu Personaje Activo
             </h2>
             <p className="text-xs text-zinc-400">
-              En el Turno 1 solo puedes empezar con personajes <strong className="text-[#f2c12e]">sin DG o DG ≤ 3</strong>{' '}
-              (DG 4 en T2 · DG 5 en T3 · DG 6 en T4). Prioriza uno <strong className="text-[#00e599]">LISTO</strong>.
+              En el Turno 1 solo puedes empezar en el Activo con personajes <strong className="text-[#f2c12e]">sin DG o DG ≤ 4</strong>{' '}
+              (DG 5 en T2 · DG 6 en T3; los Usuarios de Stand de DG alto sí pueden bajarse a la banca desde T1). Prioriza uno <strong className="text-[#00e599]">LISTO</strong>.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               {(() => {

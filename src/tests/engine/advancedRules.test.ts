@@ -73,8 +73,9 @@ describe('Advanced Official Card Abilities & Edge Cases', () => {
       playerId: 'P1',
       attackId: 'atk-fuera-la-armadura',
     });
-    expect(computeEffectiveMaxHp(state, 'P1', state.players.P1.active!)).toBe(120);
-    expect(state.players.P1.active!.currentHp).toBe(120);
+    // Polnareff 130 + Stand Bond 20 - 10 Fuera la Armadura = 140 max HP
+    expect(computeEffectiveMaxHp(state, 'P1', state.players.P1.active!)).toBe(140);
+    expect(state.players.P1.active!.currentHp).toBe(130);
     expect(state.players.P1.active!.attachedStand!.permanentDamageBonus).toBe(10);
 
     // Next P1 turn: Ráfaga de Acometidas (60 + 10 = 70 damage -> DIO 160 -> 90 HP)
@@ -177,7 +178,8 @@ describe('Advanced Official Card Abilities & Edge Cases', () => {
       playerId: 'P2',
       attackId: 'atk-zoom-punch',
     });
-    expect(creamState.players.P1.active!.currentHp).toBe(130); // dodged!
+    // Vanilla Ice 130 (+20 Stand Bond max 150) regens +10 at EOT -> 140, then dodges Zoom Punch!
+    expect(creamState.players.P1.active!.currentHp).toBe(140);
     expect(creamState.players.P1.active!.dodgeNextAttack).toBe(false);
 
     // 2. Caesar Bubble Lenses cancels on TAILS, deals 110 + Burn on HEADS

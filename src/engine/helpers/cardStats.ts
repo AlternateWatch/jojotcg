@@ -143,6 +143,11 @@ export function computeEffectiveMaxHp(
   const player = state.players[playerId];
   let maxHp = profile.baseMaxHp - inst.maxHpPenalty + (inst.erinaHpBonus ?? 0);
 
+  // Stand User + Stand Bond: +20 max HP while any Stand is equipped
+  if (inst.attachedStand) {
+    maxHp += 20;
+  }
+
   // Okuyasu + Josuke on bench: +20 max HP while Okuyasu is active
   if (
     profile.signatureAbility.id === 'OI_JOSUKE_OKUYASU' &&
@@ -252,22 +257,21 @@ export function getMaxEnergyAttachmentsThisTurn(state: GameState, playerId: Play
 }
 
 /**
- * Progressive DG unlock rule for placing characters on the field:
- * - Setup & Turn 1: max DG 3 (non-Stand characters with dg === null are always allowed)
- * - Turn 2: max DG 4
- * - Turn 3: max DG 5
- * - Turn 4+: max DG 6 (all unlocked)
+ * Progressive DG unlock rule for the Active slot:
+ * - Setup & Turn 1: max DG 4 (non-Stand characters with dg === null are always allowed;
+ *   Stand Users of higher DG can still be placed on the Bench from Turn 1)
+ * - Turn 2: max DG 5
+ * - Turn 3+: max DG 6 (all unlocked)
  */
 export function getMaxPlayableCharacterDg(turnNumber: number): number {
-  if (turnNumber <= 1) return 3;
-  if (turnNumber === 2) return 4;
-  if (turnNumber === 3) return 5;
+  if (turnNumber <= 1) return 4;
+  if (turnNumber === 2) return 5;
   return 6;
 }
 
 export function getCharacterUnlockTurn(dg: number | null): number {
-  if (dg === null || dg <= 3) return 1;
-  return Math.min(4, dg - 2);
+  if (dg === null || dg <= 4) return 1;
+  return Math.min(3, dg - 3);
 }
 
 export function isCharacterDgAllowedOnTurn(dg: number | null, turnNumber: number): boolean {
@@ -278,7 +282,7 @@ export function isCharacterDgAllowedOnTurn(dg: number | null, turnNumber: number
 export function hasAnyTurnOneEligibleCharacter(cardIds: readonly string[]): boolean {
   for (const id of cardIds) {
     const card = getCardById(id);
-    if (card?.type === 'CHARACTER' && (card.dg === null || card.dg <= 3)) {
+    if (card?.type === 'CHARACTER' && (card.dg === null || card.dg <= 4)) {
       return true;
     }
   }
@@ -293,7 +297,7 @@ export function hasAnyTurnOneEligibleCharacter(cardIds: readonly string[]): bool
  */
 export function hasValidStartingHand(
   handCardIds: readonly string[],
-  maxInitialDg: number | null = 3,
+  maxInitialDg: number | null = 4,
 ): boolean {
   const standUsers: { id: string; dg: number }[] = [];
   const stands: StandCard[] = [];

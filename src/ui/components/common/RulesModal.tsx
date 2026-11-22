@@ -65,11 +65,11 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
             </h3>
             <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
               <li>• Mazo de <strong>46 cartas</strong> (máx. 1 Personaje/Stand/Evo, 3 Objeto, Energías libres).</li>
-              <li>• Al empezar, se separan <strong>6 Cartas de Premio boca abajo</strong> (garantizando que siempre quede al menos 1 personaje jugable en Turno 1 en tu mazo).</li>
+              <li>• Al empezar, se separan <strong>6 Cartas de Premio boca abajo</strong> (protegiendo tu titular de Turno 1 y evitando apartar cartas de Stand).</li>
               <li>• <strong>Condiciones de victoria</strong>: robar tus <strong>6 Cartas de Premio</strong> (robas 1 por cada personaje rival eliminado), dejar al rival sin personajes en campo/banca o sin cartas en el mazo.</li>
               <li>• Mano inicial de 5 cartas; banca de hasta <strong>3 personajes</strong>.</li>
-              <li>• <strong>Mulligan</strong> si no tienes personaje inicial válido (sin DG o DG ≤ 3 autosuficiente, o Usuario DG ≤ 3 + Stand compatible); rival roba +1 y <strong>tras 3 mulligans se garantiza mano válida</strong>.</li>
-              <li>• <strong>Desbloqueo progresivo de DG</strong>: Turno 1 máx. <strong>DG 3</strong> (o sin DG), Turno 2 <strong>DG 4</strong>, Turno 3 <strong>DG 5</strong>, Turno 4+ <strong>DG 6</strong>.</li>
+              <li>• <strong>Mulligan</strong> si no tienes personaje inicial válido (sin DG o DG ≤ 4 autosuficiente, o Usuario DG ≤ 4 + Stand compatible); rival roba +1 y <strong>tras 3 mulligans se garantiza mano válida</strong>.</li>
+              <li>• <strong>Desbloqueo progresivo de DG</strong>: Activo inicial Turno 1 máx. <strong>DG 4</strong> (o sin DG), Turno 2 <strong>DG 5</strong>, Turno 3+ <strong>DG 6</strong>. Los <strong>Usuarios de Stand</strong> de DG alto sí pueden bajarse a la <strong>banca</strong> desde el Turno 1.</li>
               <li>• El primer jugador <strong>no puede atacar en el Turno 1</strong>.</li>
             </ul>
           </div>
@@ -80,7 +80,7 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
             </h3>
             <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
               <li>• Orden: <strong>Robo → Preparación → Combate → Fin de Turno</strong>.</li>
-              <li>• Equipar Stand compatible (Activo o Banca): <strong>Gratis</strong> (no sustituible salvo al revivir; nunca solo en banca).</li>
+              <li>• Equipar Stand compatible (Activo o Banca): <strong>Gratis</strong>, otorga <strong>+20 HP máximo/actual</strong> y <strong>roba 1 carta</strong> (<em>Despertar del Stand</em>). Además, un personaje con Stand recibe <strong>-10 daño</strong> de ataques de personajes sin Stand.</li>
               <li>• Energías: <strong>1 por turno</strong>. Objetos: <strong>ilimitados</strong> (máx. <strong>1 copia de cada equipable por personaje</strong>). Evoluciones: <strong>1 por turno</strong>.</li>
               <li>• Cualquier acción de banca (bajar / cambiar / retirar) <strong>finaliza el turno inmediatamente</strong> (salvo promoción tras KO o <em>Nigerundayo</em>).</li>
             </ul>

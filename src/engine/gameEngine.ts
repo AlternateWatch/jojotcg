@@ -127,7 +127,7 @@ function extractPrizeCardsSafely(
     return false;
   };
 
-  if (!protectStarter(3)) {
+  if (!protectStarter(4)) {
     protectStarter(null);
   }
 
@@ -136,9 +136,16 @@ function extractPrizeCardsSafely(
     Math.max(0, shuffledDeck.length - Math.max(initialHandSize, protectedIndices.size)),
   );
 
+  // Smart Prize distribution: avoid placing STAND cards into the 6 face-down Prizes
+  // whenever other non-protected cards are available, so Stand combos aren't orphaned.
   const prizeIndices = new Set<number>();
   for (let i = shuffledDeck.length - 1; i >= 0 && prizeIndices.size < actualPrizeCount; i--) {
-    if (!protectedIndices.has(i)) {
+    if (!protectedIndices.has(i) && getCardById(shuffledDeck[i]!)?.type !== 'STAND') {
+      prizeIndices.add(i);
+    }
+  }
+  for (let i = shuffledDeck.length - 1; i >= 0 && prizeIndices.size < actualPrizeCount; i--) {
+    if (!protectedIndices.has(i) && !prizeIndices.has(i)) {
       prizeIndices.add(i);
     }
   }
