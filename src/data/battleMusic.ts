@@ -57,6 +57,43 @@ export const BATTLE_PLAYLIST: BattleTrack[] = [
     part: 2,
     src: '/assets/music/battle/p2-elephant-talk-1.ogg',
   },
+  {
+    id: 'p2-kigai-kappo',
+    title: 'Kigai Kappo (鬼街闊歩)',
+    jpTitle: '鬼街闊歩',
+    part: 2,
+    src: '/assets/music/battle/p2-kigai-kappo.ogg',
+  },
+  {
+    id: 'p2-shissou',
+    title: 'Shissou',
+    part: 2,
+    src: '/assets/music/battle/p2-shissou.ogg',
+  },
+  {
+    id: 'p2-hyoutekiwo-toraero',
+    title: 'Hyoutekiwo Toraero',
+    part: 2,
+    src: '/assets/music/battle/p2-hyoutekiwo-toraero.ogg',
+  },
+  {
+    id: 'p2-senritsuno-kishi',
+    title: 'Senritsuno Kishi',
+    part: 2,
+    src: '/assets/music/battle/p2-senritsuno-kishi.ogg',
+  },
+  {
+    id: 'p2-kizame-sono-hamon',
+    title: 'Kizame Sono Hamon',
+    part: 2,
+    src: '/assets/music/battle/p2-kizame-sono-hamon.ogg',
+  },
+  {
+    id: 'p2-aoi-kurayamino-soko',
+    title: 'Aoi Kurayamino Soko',
+    part: 2,
+    src: '/assets/music/battle/p2-aoi-kurayamino-soko.ogg',
+  },
 ];
 
 export function getBattleTracksByPart(
