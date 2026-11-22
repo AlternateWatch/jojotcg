@@ -18,6 +18,20 @@ export const BATTLE_PLAYLIST: BattleTrack[] = [
     part: 1,
     src: '/assets/music/battle/p1-chojin-saisei.ogg',
   },
+  {
+    id: 'p1-ketsui',
+    title: 'Determination (決意)',
+    jpTitle: '決意',
+    part: 1,
+    src: '/assets/music/battle/p1-ketsui.ogg',
+  },
+  {
+    id: 'p1-yuki-rendan',
+    title: 'Courageous Barrage (勇気連弾)',
+    jpTitle: '勇気連弾',
+    part: 1,
+    src: '/assets/music/battle/p1-yuki-rendan.ogg',
+  },
 ];
 
 export function getBattleTracksByPart(part: JoJoPart): BattleTrack[] {
