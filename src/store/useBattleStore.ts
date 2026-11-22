@@ -56,6 +56,7 @@ export interface StartBattleConfig {
   campaignStageId?: string;
   tutorialLessonId?: string;
   p2GuaranteedOpeningCardId?: string;
+  battleTrackId?: string | null;
 }
 
 interface BattleStoreState {
@@ -81,6 +82,7 @@ interface BattleStoreState {
   lastBattleReward: { coins: number; label: string } | null;
   activeCampaignStageId: string | null;
   activeTutorialLessonId: string | null;
+  activeBattleTrackId: string | null;
   campaignPackReward: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null;
   onlineRoomCode: string | null;
   onlineRole: OnlineRole | null;
@@ -90,8 +92,8 @@ interface BattleStoreState {
   onlineSpectatorCount: number;
 
   startBattle: (config: StartBattleConfig, usePrivacyCurtain: boolean) => void;
-  startOnlineBattle: (room: OnlineRoomSnapshot) => Promise<void>;
-  startSpectatorBattle: (room: OnlineRoomSnapshot) => void;
+  startOnlineBattle: (room: OnlineRoomSnapshot, battleTrackId?: string | null) => Promise<void>;
+  startSpectatorBattle: (room: OnlineRoomSnapshot, battleTrackId?: string | null) => void;
   applyRemoteOnlineRoom: (room: OnlineRoomSnapshot) => void;
   setOnlineChatMessages: (messages: OnlineChatMessage[]) => void;
   rematch: (usePrivacyCurtain: boolean) => void;
@@ -303,6 +305,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   lastBattleReward: null,
   activeCampaignStageId: null,
   activeTutorialLessonId: null,
+  activeBattleTrackId: null,
   campaignPackReward: null,
   onlineRoomCode: null,
   onlineRole: null,
@@ -347,6 +350,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       lastBattleReward: null,
       activeCampaignStageId: config.campaignStageId ?? null,
       activeTutorialLessonId: config.tutorialLessonId ?? null,
+      activeBattleTrackId: config.battleTrackId ?? null,
       campaignPackReward: null,
       onlineRoomCode: null,
       onlineRole: null,
@@ -357,7 +361,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
     });
   },
 
-  startOnlineBattle: async (room) => {
+  startOnlineBattle: async (room, battleTrackId = null) => {
     const rng = createSystemRng();
     let initialState = room.gameState;
     let nextVersion = room.version;
@@ -410,10 +414,11 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       isAiThinking: false,
       battleRewardClaimed: false,
       lastBattleReward: null,
+      activeBattleTrackId: battleTrackId ?? null,
     });
   },
 
-  startSpectatorBattle: (room) => {
+  startSpectatorBattle: (room, battleTrackId = null) => {
     set({
       gameState: room.gameState,
       mode: 'ONLINE',
@@ -441,6 +446,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       lastBattleReward: null,
       activeCampaignStageId: null,
       activeTutorialLessonId: null,
+      activeBattleTrackId: battleTrackId ?? null,
       campaignPackReward: null,
     });
   },

@@ -8,11 +8,17 @@ import {
   KeyRound,
   Loader2,
   Lock,
+  Music,
   Search,
   ShoppingBag,
   Users,
   X,
 } from 'lucide-react';
+import {
+  BATTLE_PLAYLIST,
+  resolveBattleTrackChoice,
+  type BattleMusicChoice,
+} from '../../data/battleMusic';
 import { getCardById } from '../../data/cardRegistry';
 import { STARTER_DECK_ID } from '../../data/progressionData';
 import { ENERGY_META, type EnergyType } from '../../data/schemas/cardTypes';
@@ -66,6 +72,7 @@ export function BattleSetupView() {
       ? settings.selectedOpponentDeckId
       : defaultP2DeckId;
   const [starter, setStarter] = useState<'P1' | 'P2' | 'RANDOM'>('P1');
+  const [battleMusicChoice, setBattleMusicChoice] = useState<BattleMusicChoice>('RANDOM');
 
   // Online Lobby State
   const [waitingRoom, setWaitingRoom] = useState<OnlineRoomSnapshot | null>(null);
@@ -110,7 +117,7 @@ export function BattleSetupView() {
       if (res.room.status === 'PLAYING' && res.room.p1 && res.room.p2) {
         cancelled = true;
         window.clearInterval(timer);
-        await startOnlineBattle(res.room);
+        await startOnlineBattle(res.room, resolveBattleTrackChoice(battleMusicChoice));
         setWaitingRoom(null);
         setScreen('BATTLE');
       }
@@ -120,7 +127,7 @@ export function BattleSetupView() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [waitingRoom, startOnlineBattle, setScreen]);
+  }, [waitingRoom, startOnlineBattle, setScreen, battleMusicChoice]);
 
   const cancelOnlineWaiting = async () => {
     if (waitingRoom) {
@@ -153,6 +160,7 @@ export function BattleSetupView() {
         p2DeckIds: p2Deck.cardIds,
         firstPlayerId,
         aiDifficulty: settings.aiDifficulty,
+        battleTrackId: resolveBattleTrackChoice(battleMusicChoice),
       },
       settings.hotseatPrivacyScreen,
     );
@@ -173,7 +181,7 @@ export function BattleSetupView() {
       return;
     }
     if (res.room.status === 'PLAYING' && res.room.p1 && res.room.p2) {
-      await startOnlineBattle(res.room);
+      await startOnlineBattle(res.room, resolveBattleTrackChoice(battleMusicChoice));
       setScreen('BATTLE');
     } else {
       setWaitingRoom(res.room);
@@ -215,7 +223,7 @@ export function BattleSetupView() {
       setOnlineError(res.error);
       return;
     }
-    await startOnlineBattle(res.room);
+    await startOnlineBattle(res.room, resolveBattleTrackChoice(battleMusicChoice));
     setScreen('BATTLE');
   };
 
@@ -233,7 +241,7 @@ export function BattleSetupView() {
       setOnlineError(res.error);
       return;
     }
-    startSpectatorBattle(res.room);
+    startSpectatorBattle(res.room, resolveBattleTrackChoice(battleMusicChoice));
     setScreen('BATTLE');
   };
 
@@ -703,6 +711,34 @@ export function BattleSetupView() {
               )}
             </motion.div>
           )}
+        </div>
+
+        {/* Battle Music Selector (applies to Online, VS AI & Local 1v1) */}
+        <div className="jojo-panel flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Music size={16} className="text-[#f2c12e]" />
+            <div>
+              <div className="font-jojo-heading text-xs tracking-widest text-[#f2c12e] uppercase">
+                Música de Combate
+              </div>
+              <div className="text-[11px] text-zinc-400">
+                Elige el tema musical que sonará durante tu partida
+              </div>
+            </div>
+          </div>
+          <select
+            value={battleMusicChoice}
+            onChange={(e) => setBattleMusicChoice(e.target.value)}
+            className="min-w-[260px] border-2 border-[#060508] bg-[#0b090e] px-3 py-1.5 text-xs font-bold text-[#f5efe0] outline-none focus:border-[#f2c12e]"
+          >
+            <option value="RANDOM">Aleatoria (Pool de Batalla)</option>
+            <option value="NONE">Sin música</option>
+            {BATTLE_PLAYLIST.map((track) => (
+              <option key={track.id} value={track.id}>
+                [Parte {track.part}] {track.title}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Bottom Launch Bar for VS_AI and HOTSEAT */}

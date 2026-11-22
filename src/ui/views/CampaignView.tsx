@@ -13,6 +13,7 @@ import {
   Skull,
   Swords,
 } from 'lucide-react';
+import { pickRandomBattleTrack } from '../../data/battleMusic';
 import {
   CAMPAIGN_PARTS,
   isCampaignStageUnlocked,
@@ -118,6 +119,8 @@ export function CampaignView() {
         ? playerCustomDeck.cardIds
         : selectedStage.storyDeckIds;
 
+    const randomPartTrack = pickRandomBattleTrack(selectedStage.part);
+
     startBattle(
       {
         mode: 'VS_AI',
@@ -129,6 +132,7 @@ export function CampaignView() {
         aiDifficulty: selectedStage.difficulty,
         campaignStageId: selectedStage.id,
         p2GuaranteedOpeningCardId: selectedStage.featuredCardId,
+        battleTrackId: randomPartTrack?.id ?? null,
       },
       settings.hotseatPrivacyScreen,
     );

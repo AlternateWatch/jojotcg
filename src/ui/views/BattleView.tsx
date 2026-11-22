@@ -41,6 +41,7 @@ import {
 } from '../../store/useBattleStore';
 import { BattleEffectsOverlay } from '../components/battlefield/BattleEffectsOverlay';
 import { BattleModals } from '../components/battlefield/BattleModals';
+import { BattleMusicController } from '../components/battlefield/BattleMusicController';
 import { CharacterSlot } from '../components/battlefield/CharacterSlot';
 import { CoinFlipOverlay } from '../components/battlefield/CoinFlipOverlay';
 import { CombatLog } from '../components/battlefield/CombatLog';
@@ -116,6 +117,7 @@ export function BattleView() {
   const claimBattleReward = useBattleStore((s) => s.claimBattleReward);
   const activeCampaignStageId = useBattleStore((s) => s.activeCampaignStageId);
   const activeTutorialLessonId = useBattleStore((s) => s.activeTutorialLessonId);
+  const activeBattleTrackId = useBattleStore((s) => s.activeBattleTrackId);
   const campaignPackReward = useBattleStore((s) => s.campaignPackReward);
   const setCampaignPackReward = useBattleStore((s) => s.setCampaignPackReward);
   const onlineRoomCode = useBattleStore((s) => s.onlineRoomCode);
@@ -737,6 +739,8 @@ export function BattleView() {
               </button>
             </>
           )}
+
+          <BattleMusicController trackId={activeBattleTrackId} />
 
           <button
             type="button"
