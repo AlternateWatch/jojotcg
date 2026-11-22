@@ -44,13 +44,6 @@ export function HomeView() {
 
   const menuEntries = [
     {
-      index: '00',
-      title: `TUTORIAL GUIADO (${tutorialCleared}/${TUTORIAL_LESSONS.length})`,
-      sub: 'Aprende paso a paso en 6 lecciones prácticas · gana monedas básicas y 2 sobres',
-      accent: 'bg-[#00b87c] text-[#0b090e]',
-      onClick: () => setScreen('TUTORIAL'),
-    },
-    {
       index: '01',
       title: `MODO CAMPAÑA (${campaignCleared}/${campaignTotal})`,
       sub: 'Mapas por Partes contra la IA con mazos historia, jefes y sobres de recompensa',
@@ -114,6 +107,13 @@ export function HomeView() {
           ? 'bg-[#f2c12e] text-[#0b090e]'
           : 'bg-[#1d1727] text-[#f5efe0]',
       onClick: () => setScreen('MILESTONES'),
+    },
+    {
+      index: '09',
+      title: `TUTORIAL GUIADO (${tutorialCleared}/${TUTORIAL_LESSONS.length})`,
+      sub: 'Aprende paso a paso en 6 lecciones prácticas · gana monedas básicas y 2 sobres',
+      accent: 'bg-[#1d1727] text-[#f5efe0]',
+      onClick: () => setScreen('TUTORIAL'),
     },
   ];
 
