@@ -6,6 +6,10 @@ export interface BattleTrack {
   jpTitle?: string;
   part: JoJoPart;
   src: string;
+  /** When true, excluded from the random Campaign pool (e.g. Final Boss exclusive theme) */
+  excludeFromCampaignPool?: boolean;
+  /** Dedicated campaign stage ID where this track always plays */
+  exclusiveStageId?: string;
 }
 
 export type BattleMusicChoice = 'RANDOM' | 'NONE' | string;
@@ -32,10 +36,24 @@ export const BATTLE_PLAYLIST: BattleTrack[] = [
     part: 1,
     src: '/assets/music/battle/p1-yuki-rendan.ogg',
   },
+  {
+    id: 'p1-fukutsu-final-boss',
+    title: 'Indomitable ~Cry of Selflessness~ (不屈～無心の叫び～) [Jefe Final]',
+    jpTitle: '不屈～無心の叫び～',
+    part: 1,
+    src: '/assets/music/battle/p1-fukutsu-final-boss.ogg',
+    excludeFromCampaignPool: true,
+    exclusiveStageId: 'p1-s20',
+  },
 ];
 
-export function getBattleTracksByPart(part: JoJoPart): BattleTrack[] {
-  return BATTLE_PLAYLIST.filter((t) => t.part === part);
+export function getBattleTracksByPart(
+  part: JoJoPart,
+  options?: { includeExclusive?: boolean },
+): BattleTrack[] {
+  return BATTLE_PLAYLIST.filter(
+    (t) => t.part === part && (options?.includeExclusive || !t.excludeFromCampaignPool),
+  );
 }
 
 export function getBattleTrackById(trackId: string | null | undefined): BattleTrack | undefined {
@@ -44,10 +62,21 @@ export function getBattleTrackById(trackId: string | null | undefined): BattleTr
 }
 
 export function pickRandomBattleTrack(part?: JoJoPart): BattleTrack | null {
-  const pool = part ? getBattleTracksByPart(part) : BATTLE_PLAYLIST;
+  const pool = part
+    ? getBattleTracksByPart(part, { includeExclusive: false })
+    : BATTLE_PLAYLIST.filter((t) => !t.excludeFromCampaignPool);
   if (pool.length === 0) return null;
   const idx = Math.floor(Math.random() * pool.length);
   return pool[idx] ?? pool[0] ?? null;
+}
+
+export function getBattleTrackForCampaignStage(
+  stageId: string,
+  part: JoJoPart,
+): BattleTrack | null {
+  const exclusive = BATTLE_PLAYLIST.find((t) => t.exclusiveStageId === stageId);
+  if (exclusive) return exclusive;
+  return pickRandomBattleTrack(part);
 }
 
 export function resolveBattleTrackChoice(

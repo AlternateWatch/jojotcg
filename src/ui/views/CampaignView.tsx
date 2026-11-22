@@ -13,7 +13,7 @@ import {
   Skull,
   Swords,
 } from 'lucide-react';
-import { pickRandomBattleTrack } from '../../data/battleMusic';
+import { getBattleTrackForCampaignStage } from '../../data/battleMusic';
 import {
   CAMPAIGN_PARTS,
   isCampaignStageUnlocked,
@@ -119,7 +119,7 @@ export function CampaignView() {
         ? playerCustomDeck.cardIds
         : selectedStage.storyDeckIds;
 
-    const randomPartTrack = pickRandomBattleTrack(selectedStage.part);
+    const stageTrack = getBattleTrackForCampaignStage(selectedStage.id, selectedStage.part);
 
     startBattle(
       {
@@ -132,7 +132,7 @@ export function CampaignView() {
         aiDifficulty: selectedStage.difficulty,
         campaignStageId: selectedStage.id,
         p2GuaranteedOpeningCardId: selectedStage.featuredCardId,
-        battleTrackId: randomPartTrack?.id ?? null,
+        battleTrackId: stageTrack?.id ?? null,
       },
       settings.hotseatPrivacyScreen,
     );
