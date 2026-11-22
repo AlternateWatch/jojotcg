@@ -45,6 +45,12 @@ export const BATTLE_PLAYLIST: BattleTrack[] = [
     excludeFromCampaignPool: true,
     exclusiveStageId: 'p1-s20',
   },
+  {
+    id: 'p2-take-cover',
+    title: 'Take Cover',
+    part: 2,
+    src: '/assets/music/battle/p2-take-cover.ogg',
+  },
 ];
 
 export function getBattleTracksByPart(
