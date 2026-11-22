@@ -334,12 +334,20 @@ export function handleCharacterKo(
     owner.bench.splice(benchIndex, 1);
   }
 
-  // 3. Dispose attached Stand & Energies to owner's discard (reviving later starts without Stand)
+  // 3. Return attached Stand (and Stand evolutions) to owner's shuffled deck on KO; Energies go to discard
   if (character.attachedStand) {
-    owner.discard.push(character.attachedStand.cardId);
+    const standProfile = getEffectiveStandProfile(character.attachedStand);
+    owner.deck.push(character.attachedStand.cardId);
     for (const evoId of character.attachedStand.evolvedCardIds) {
-      owner.discard.push(evoId);
+      owner.deck.push(evoId);
     }
+    owner.deck = rng.shuffle(owner.deck);
+    pushEvent(state, eventsOut, {
+      type: 'ABILITY_TRIGGERED',
+      playerId: ownerPlayerId,
+      abilityName: 'Regreso de Stand',
+      message: `${standProfile.name} regresa al mazo de ${owner.name} tras caer ${profile.name}.`,
+    });
   }
   for (const energy of character.attachedEnergies) {
     owner.discard.push(`energy-${energy.toLowerCase()}`);

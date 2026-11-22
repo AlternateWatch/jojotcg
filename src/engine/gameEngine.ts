@@ -314,7 +314,12 @@ export function validateAction(state: GameState, action: GameAction): Validation
       return validateMulliganAction(state, action.playerId, action.type);
 
     case 'CHOOSE_STARTING_ACTIVE':
-      return validateChooseStartingActive(state, action.playerId, action.handIndex);
+      return validateChooseStartingActive(
+        state,
+        action.playerId,
+        action.handIndex,
+        action.benchHandIndices,
+      );
 
     case 'EQUIP_STAND':
       return validateEquipStand(state, action.playerId, action.handIndex, action.targetInstanceId);
@@ -392,7 +397,13 @@ export function dispatchAction(
       break;
 
     case 'CHOOSE_STARTING_ACTIVE':
-      applyChooseStartingActive(state, events, action.playerId, action.handIndex);
+      applyChooseStartingActive(
+        state,
+        events,
+        action.playerId,
+        action.handIndex,
+        action.benchHandIndices,
+      );
       break;
 
     case 'EQUIP_STAND':

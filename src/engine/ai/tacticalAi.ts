@@ -549,7 +549,32 @@ export function chooseAiAction(
       };
       return score(cB) - score(cA);
     });
-    return activeChoices[0] ?? null;
+    const bestActive = activeChoices[0];
+    if (!bestActive) return null;
+
+    // Also place up to maxBenchSize additional eligible Characters onto the starting Bench (Pokémon TCG setup)
+    const benchCandidates: { idx: number; score: number }[] = [];
+    for (let i = 0; i < player.hand.length; i++) {
+      if (i === bestActive.handIndex) continue;
+      const c = getCharacterCard(player.hand[i]!);
+      if (!c) continue;
+      // Stand Users of any DG and non-Stand characters are eligible for starting bench
+      if (!c.categories.includes('STAND_USER') && c.dg !== null && c.dg > 4) continue;
+      let bScore = c.maxHp;
+      if (c.signatureAbility.id === 'HAMON_MASTER_BENCH') bScore += 90;
+      if (c.categories.includes('STAND_USER') && (c.dg ?? 0) >= 5) bScore += 55;
+      if (c.attacks.length > 0) bScore += 30;
+      benchCandidates.push({ idx: i, score: bScore });
+    }
+    benchCandidates.sort((a, b) => b.score - a.score);
+    const benchHandIndices = benchCandidates
+      .slice(0, state.rules.maxBenchSize)
+      .map((b) => b.idx);
+
+    return {
+      ...bestActive,
+      benchHandIndices: benchHandIndices.length > 0 ? benchHandIndices : undefined,
+    };
   }
 
   // 4. Preparation Phase

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Coins, Gift, Map, RefreshCw, ShoppingBag } from 'lucide-react';
 import { getCardById, getStandCard } from '../../../data/cardRegistry';
@@ -48,6 +49,14 @@ export function BattleModals({
   onOpenShop,
   onExitToMenu,
 }: BattleModalsProps) {
+  const [setupActiveIdx, setSetupActiveIdx] = useState<number | null>(null);
+  const [setupBenchIndices, setSetupBenchIndices] = useState<number[]>([]);
+
+  useEffect(() => {
+    setSetupActiveIdx(null);
+    setSetupBenchIndices([]);
+  }, [gameState.phase, myId]);
+
   const myPlayer = gameState.players[myId];
   const initialMaxDg = hasAnyTurnOneEligibleCharacter([...myPlayer.hand, ...myPlayer.deck])
     ? 4
@@ -179,11 +188,11 @@ export function BattleModals({
               <span className="inline-block skew-x-10">Colocación Inicial — {myPlayer.name}</span>
             </div>
             <h2 className="font-jojo-display text-3xl text-[#f5efe0] uppercase">
-              Elige tu Personaje Activo
+              Elige tu Activo y Banca Inicial
             </h2>
             <p className="text-xs text-zinc-400">
-              En el Turno 1 solo puedes empezar en el Activo con personajes <strong className="text-[#f2c12e]">sin DG o DG ≤ 4</strong>{' '}
-              (DG 5 en T2 · DG 6 en T3; los Usuarios de Stand de DG alto sí pueden bajarse a la banca desde T1). Prioriza uno <strong className="text-[#00e599]">LISTO</strong>.
+              1.º Haz clic en tu <strong className="text-[#f2c12e]">Personaje Activo</strong> (sin DG o DG ≤ 4).
+              2.º Opcionalmente marca hasta <strong className="text-[#00e599]">{gameState.rules.maxBenchSize} personajes</strong> adicionales para empezar en tu <strong className="text-[#00e599]">Banca</strong> gratis (incluidos Usuarios de Stand de DG 5–6).
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               {(() => {
@@ -194,10 +203,14 @@ export function BattleModals({
                   const c = getCardById(cid);
                   if (!c) return null;
                   const isChar = c.type === 'CHARACTER';
-                  const dgAllowed =
+                  const activeDgAllowed =
                     isChar && (initialMaxDg === null || c.dg === null || c.dg <= initialMaxDg);
+                  const benchAllowed =
+                    isChar && (c.categories.includes('STAND_USER') || activeDgAllowed);
+                  const isSelectedActive = setupActiveIdx === idx;
+                  const isSelectedBench = setupBenchIndices.includes(idx);
                   const isReady =
-                    dgAllowed &&
+                    activeDgAllowed &&
                     (c.attacks.length > 0 ||
                       (c.dg !== null &&
                         handStands.some(
@@ -205,35 +218,82 @@ export function BattleModals({
                             c.dg! >= st.requiredDg &&
                             (!st.compatibleCharacterIds || st.compatibleCharacterIds.includes(c.id)),
                         )));
-                  const badgeText = !isChar
-                    ? undefined
-                    : !dgAllowed
-                      ? `TURNO ${getCharacterUnlockTurn(c.dg)} (DG${c.dg})`
-                      : isReady
-                        ? 'LISTO'
-                        : 'SIN STAND';
+
+                  const canClick =
+                    isSelectedActive ||
+                    isSelectedBench ||
+                    (setupActiveIdx === null
+                      ? activeDgAllowed
+                      : benchAllowed && setupBenchIndices.length < gameState.rules.maxBenchSize);
+
+                  const badgeText = isSelectedActive
+                    ? 'ACTIVO'
+                    : isSelectedBench
+                      ? 'BANCA'
+                      : !isChar
+                        ? undefined
+                        : !activeDgAllowed
+                          ? benchAllowed
+                            ? 'SOLO BANCA (T1)'
+                            : `TURNO ${getCharacterUnlockTurn(c.dg)} (DG${c.dg})`
+                          : isReady
+                            ? 'LISTO'
+                            : 'SIN STAND';
+
+                  const handleCardClick = () => {
+                    if (isSelectedActive) {
+                      setSetupActiveIdx(null);
+                      return;
+                    }
+                    if (isSelectedBench) {
+                      setSetupBenchIndices((prev) => prev.filter((i) => i !== idx));
+                      return;
+                    }
+                    if (setupActiveIdx === null && activeDgAllowed) {
+                      setSetupActiveIdx(idx);
+                    } else if (
+                      setupActiveIdx !== null &&
+                      benchAllowed &&
+                      setupBenchIndices.length < gameState.rules.maxBenchSize
+                    ) {
+                      setSetupBenchIndices((prev) => [...prev, idx]);
+                    }
+                  };
+
                   return (
                     <CardView
                       key={`${cid}-${idx}`}
                       card={c}
                       size="sm"
-                      highlighted={isReady}
-                      disabled={!dgAllowed}
+                      selected={isSelectedActive || isSelectedBench}
+                      highlighted={isSelectedActive || isSelectedBench || (setupActiveIdx === null && isReady)}
+                      disabled={!canClick}
                       badgeText={badgeText}
-                      onClick={
-                        dgAllowed
-                          ? () =>
-                              onDispatch({
-                                type: 'CHOOSE_STARTING_ACTIVE',
-                                playerId: myId,
-                                handIndex: idx,
-                              })
-                          : undefined
-                      }
+                      onClick={canClick ? handleCardClick : undefined}
                     />
                   );
                 });
               })()}
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                disabled={setupActiveIdx === null}
+                onClick={() => {
+                  if (setupActiveIdx === null) return;
+                  onDispatch({
+                    type: 'CHOOSE_STARTING_ACTIVE',
+                    playerId: myId,
+                    handIndex: setupActiveIdx,
+                    benchHandIndices: setupBenchIndices.length > 0 ? setupBenchIndices : undefined,
+                  });
+                }}
+                className="jojo-btn-primary px-8 py-3 font-jojo-heading text-lg tracking-[0.15em] uppercase disabled:opacity-35"
+              >
+                {setupActiveIdx === null
+                  ? 'Selecciona tu Activo'
+                  : `Confirmar Formación (${1 + setupBenchIndices.length} en campo)`}
+              </button>
             </div>
           </motion.div>
         </motion.div>

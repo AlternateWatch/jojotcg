@@ -61,12 +61,14 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
       'energy-colorless',
       'energy-colorless',
       'energy-colorless',
+      'energy-colorless',
+      'energy-colorless',
       'char-jonathan-joestar',
       ...Array.from({ length: 14 }, () => 'energy-electric'),
     ];
     const p2Deck = [
       'char-dio-brando',
-      ...Array.from({ length: 19 }, () => 'energy-psychic'),
+      ...Array.from({ length: 21 }, () => 'energy-psychic'),
     ];
     let state = createGame({
       p1Name: 'P1',
@@ -84,8 +86,8 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     const badConfirm = dispatchAction(state, { type: 'CONFIRM_STARTING_HAND', playerId: 'P1' });
     expect(badConfirm.ok).toBe(false);
 
-    // P2 starts with 5 cards; after P1 mulligans, P2 gets +1 card (6 cards)
-    expect(state.players.P2.hand).toHaveLength(5);
+    // P2 starts with 7 cards; after P1 mulligans, P2 gets +1 card (8 cards)
+    expect(state.players.P2.hand).toHaveLength(7);
     const mulliganRes = dispatchAction(
       state,
       { type: 'PERFORM_MULLIGAN', playerId: 'P1' },
@@ -94,8 +96,8 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     expect(mulliganRes.ok).toBe(true);
     state = mulliganRes.state;
     expect(state.players.P1.mulliganCount).toBe(1);
-    expect(state.players.P1.hand).toHaveLength(5);
-    expect(state.players.P2.hand).toHaveLength(6);
+    expect(state.players.P1.hand).toHaveLength(7);
+    expect(state.players.P2.hand).toHaveLength(8);
   });
 
   it('prevents First Player from attacking on Turn 1 (Pokémon TCG rule)', () => {
@@ -170,7 +172,9 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
       'energy-electric',
       'energy-electric',
       'energy-electric',
-    ]; // 7 cards total: 5 initial hand + 1 T1 draw + 1 left in deck
+      'energy-electric',
+      'energy-electric',
+    ]; // 9 cards total: 7 initial hand + 1 T1 draw + 1 left in deck
     const p2Deck = [
       'char-dio-brando',
       ...Array.from({ length: 19 }, () => 'energy-psychic'),
@@ -253,13 +257,13 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
 
   it('guarantees a valid starting hand automatically on the 3rd mulligan', () => {
     const p1Deck = [
-      ...Array.from({ length: 24 }, () => 'energy-colorless'),
+      ...Array.from({ length: 30 }, () => 'energy-colorless'),
       'char-hol-horse',
       'stand-emperor',
-    ]; // 26 cards (6 prizes + 20 playable), valid pair buried at the very bottom
+    ]; // 32 cards (6 prizes + 26 playable), valid pair buried at the very bottom
     const p2Deck = [
       'char-dio-brando',
-      ...Array.from({ length: 25 }, () => 'energy-psychic'),
+      ...Array.from({ length: 31 }, () => 'energy-psychic'),
     ];
     const noShuffle = {
       nextFloat: () => 0.5,
@@ -268,34 +272,34 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     };
 
     let state = createGame({ p1Name: 'P1', p2Name: 'P2', p1Deck, p2Deck, rng: noShuffle });
-    expect(hasValidStartingHand(state.players.P1.hand, 3)).toBe(false);
+    expect(hasValidStartingHand(state.players.P1.hand, 4)).toBe(false);
 
     // Mulligan #1 & #2: still invalid with noShuffle
     state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P1' }, noShuffle).state;
     expect(state.players.P1.mulliganCount).toBe(1);
-    expect(hasValidStartingHand(state.players.P1.hand, 3)).toBe(false);
+    expect(hasValidStartingHand(state.players.P1.hand, 4)).toBe(false);
 
     state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P1' }, noShuffle).state;
     expect(state.players.P1.mulliganCount).toBe(2);
-    expect(hasValidStartingHand(state.players.P1.hand, 3)).toBe(false);
+    expect(hasValidStartingHand(state.players.P1.hand, 4)).toBe(false);
 
-    // Mulligan #3: pity rule guarantees a valid Turn-1 hand (Hol Horse + Emperor) & preserves all 26 cards!
+    // Mulligan #3: pity rule guarantees a valid Turn-1 hand (Hol Horse + Emperor) & preserves all 32 cards!
     state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P1' }, noShuffle).state;
     expect(state.players.P1.mulliganCount).toBe(3);
-    expect(hasValidStartingHand(state.players.P1.hand, 3)).toBe(true);
-    expect(state.players.P1.hand).toHaveLength(5);
+    expect(hasValidStartingHand(state.players.P1.hand, 4)).toBe(true);
+    expect(state.players.P1.hand).toHaveLength(7);
     expect(
       state.players.P1.hand.length + state.players.P1.deck.length + state.players.P1.prizeCards.length,
-    ).toBe(26);
+    ).toBe(32);
     expect(
       dispatchAction(state, { type: 'CONFIRM_STARTING_HAND', playerId: 'P1' }, noShuffle).ok,
     ).toBe(true);
   });
 
   it('guarantees campaign AI featured card in its opening hand (even across mulligans)', () => {
-    const p1Deck = ['char-jonathan-joestar', ...Array.from({ length: 19 }, () => 'energy-electric')];
+    const p1Deck = ['char-jonathan-joestar', ...Array.from({ length: 23 }, () => 'energy-electric')];
     const p2Deck = [
-      ...Array.from({ length: 18 }, () => 'energy-light'),
+      ...Array.from({ length: 22 }, () => 'energy-light'),
       'char-kars',
       'evo-kars-ultimate',
     ]; // Both Kars & Kars Ultimate buried at the bottom
@@ -315,13 +319,13 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
       rng: noShuffle,
     });
 
-    // Featured card is immediately guaranteed in P2's 5-card opening hand
-    expect(state.players.P2.hand).toHaveLength(5);
+    // Featured card is immediately guaranteed in P2's 7-card opening hand
+    expect(state.players.P2.hand).toHaveLength(7);
     expect(state.players.P2.hand).toContain('evo-kars-ultimate');
     expect(state.players.P2.prizeCards).toHaveLength(6);
     expect(
       state.players.P2.hand.length + state.players.P2.deck.length + state.players.P2.prizeCards.length,
-    ).toBe(20);
+    ).toBe(24);
 
     // Even after 3 mulligans, P2 gets a valid starting hand AND keeps evo-kars-ultimate in hand!
     state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P2' }, noShuffle).state;
@@ -331,11 +335,11 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     state = dispatchAction(state, { type: 'PERFORM_MULLIGAN', playerId: 'P2' }, noShuffle).state;
     expect(state.players.P2.hand).toContain('evo-kars-ultimate');
     expect(state.players.P2.hand).toContain('char-kars');
-    expect(hasValidStartingHand(state.players.P2.hand, 3)).toBe(true);
-    expect(state.players.P2.hand).toHaveLength(5);
+    expect(hasValidStartingHand(state.players.P2.hand, 4)).toBe(true);
+    expect(state.players.P2.hand).toHaveLength(7);
     expect(
       state.players.P2.hand.length + state.players.P2.deck.length + state.players.P2.prizeCards.length,
-    ).toBe(20);
+    ).toBe(24);
   });
 
   it('sets aside 6 face-down Prize Cards at game start while guaranteeing a Turn-1 playable starter remains in deck/hand', () => {
@@ -359,16 +363,16 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     });
 
     expect(state.players.P1.prizeCards).toHaveLength(6);
-    expect(state.players.P1.hand).toHaveLength(5);
-    expect(state.players.P1.deck).toHaveLength(35);
+    expect(state.players.P1.hand).toHaveLength(7);
+    expect(state.players.P1.deck).toHaveLength(33);
     // Jonathan must NOT be trapped in Prize Cards!
     expect(state.players.P1.prizeCards).not.toContain('char-jonathan-joestar');
     expect([...state.players.P1.hand, ...state.players.P1.deck]).toContain('char-jonathan-joestar');
 
-    // Preset 46-card deck splits cleanly into 6 prize + 5 hand + 35 deck
+    // Preset 46-card deck splits cleanly into 6 prize + 7 hand + 33 deck
     expect(state.players.P2.prizeCards).toHaveLength(6);
-    expect(state.players.P2.hand).toHaveLength(5);
-    expect(state.players.P2.deck).toHaveLength(35);
+    expect(state.players.P2.hand).toHaveLength(7);
+    expect(state.players.P2.deck).toHaveLength(33);
   });
 
   it('prompts human to pick a Prize Card on enemy KO and wins immediately upon taking the last Prize Card even if opponent has bench characters', () => {

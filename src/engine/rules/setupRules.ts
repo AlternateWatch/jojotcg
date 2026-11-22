@@ -218,6 +218,7 @@ export function validateChooseStartingActive(
   state: GameState,
   playerId: PlayerId,
   handIndex: number,
+  benchHandIndices: readonly number[] = [],
 ): { ok: boolean; reason?: string } {
   if (state.phase !== 'SETUP_ACTIVE') {
     return { ok: false, reason: 'No estamos en la fase de elección de Personaje Activo inicial.' };
@@ -241,6 +242,37 @@ export function validateChooseStartingActive(
       reason: `No puedes colocar a ${charCard.name} (DG ${charCard.dg}) como Activo inicial en el Turno 1. Se desbloquea en el Turno ${getCharacterUnlockTurn(charCard.dg)} (límite inicial: DG 4; puedes bajarlo a la banca desde el Turno 1).`,
     };
   }
+
+  if (benchHandIndices.length > state.rules.maxBenchSize) {
+    return {
+      ok: false,
+      reason: `Solo puedes colocar hasta ${state.rules.maxBenchSize} personajes iniciales en la banca.`,
+    };
+  }
+  const seen = new Set<number>([handIndex]);
+  for (const bIdx of benchHandIndices) {
+    if (seen.has(bIdx)) {
+      return { ok: false, reason: 'Índice de banca inicial duplicado o repetido con el Activo.' };
+    }
+    seen.add(bIdx);
+    const bCardId = player.hand[bIdx];
+    const bChar = bCardId ? getCharacterCard(bCardId) : undefined;
+    if (!bChar) {
+      return { ok: false, reason: 'Solo puedes colocar cartas de Personaje en la banca inicial.' };
+    }
+    if (
+      enforceInitialDgCap &&
+      !bChar.categories.includes('STAND_USER') &&
+      bChar.dg !== null &&
+      bChar.dg > 4
+    ) {
+      return {
+        ok: false,
+        reason: `${bChar.name} no es elegible para colocación inicial.`,
+      };
+    }
+  }
+
   return { ok: true };
 }
 
@@ -249,30 +281,59 @@ export function applyChooseStartingActive(
   eventsOut: CombatEvent[],
   playerId: PlayerId,
   handIndex: number,
+  benchHandIndices: readonly number[] = [],
 ): void {
   const player = state.players[playerId];
-  const cardId = player.hand.splice(handIndex, 1)[0]!;
-  const inst = createCharacterInstance(state, cardId);
+  const activeCardId = player.hand[handIndex]!;
+  const benchCardIds = benchHandIndices.map((idx) => player.hand[idx]!);
+
+  // Remove selected cards in descending index order so indices stay intact
+  const toRemove = [handIndex, ...benchHandIndices].sort((a, b) => b - a);
+  for (const idx of toRemove) {
+    player.hand.splice(idx, 1);
+  }
+
+  const inst = createCharacterInstance(state, activeCardId);
   player.active = inst;
+  for (const bId of benchCardIds) {
+    player.bench.push(createCharacterInstance(state, bId));
+  }
   player.setupActiveChosen = true;
 
-  const charCard = getCharacterCard(cardId)!;
+  const charCard = getCharacterCard(activeCardId)!;
   pushEvent(state, eventsOut, {
     type: 'CHARACTER_PLAYED',
     playerId,
-    cardId,
+    cardId: activeCardId,
     zone: 'ACTIVE',
     message: `${player.name} coloca a ${charCard.name} en el Puesto Activo.`,
   });
 
+  for (const bId of benchCardIds) {
+    const bCard = getCharacterCard(bId)!;
+    pushEvent(state, eventsOut, {
+      type: 'CHARACTER_PLAYED',
+      playerId,
+      cardId: bId,
+      zone: 'BENCH',
+      message: `${player.name} coloca a ${bCard.name} en la banca inicial.`,
+    });
+  }
+
   // Trigger on-enter abilities once both actives are placed, or start turn 1
   if (state.players.P1.setupActiveChosen && state.players.P2.setupActiveChosen) {
-    // Trigger enter-field abilities for initial actives (e.g. Rohan / Mariah / Pet Shop)
+    // Trigger enter-field abilities for initial actives and initial bench
     if (state.players.P1.active) {
       triggerOnEnterFieldAbility(state, eventsOut, 'P1', state.players.P1.active);
     }
+    for (const b of state.players.P1.bench) {
+      triggerOnEnterFieldAbility(state, eventsOut, 'P1', b);
+    }
     if (state.players.P2.active) {
       triggerOnEnterFieldAbility(state, eventsOut, 'P2', state.players.P2.active);
+    }
+    for (const b of state.players.P2.bench) {
+      triggerOnEnterFieldAbility(state, eventsOut, 'P2', b);
     }
 
     // Begin Turn 1 for firstPlayerId

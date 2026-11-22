@@ -35,7 +35,7 @@ export const DEFAULT_RULES_CONFIG: GameRulesConfig = {
     ITEM: 3,
     ENERGY: null, // Basic Energy cards have no copy limit (classic Pokémon TCG rule)
   },
-  initialHandSize: 5,
+  initialHandSize: 7,
   maxBenchSize: 3,
   firstPlayerCanAttackTurnOne: false,
   maxEnergyAttachmentsPerTurn: 1,

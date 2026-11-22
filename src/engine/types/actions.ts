@@ -20,7 +20,12 @@ export type PromptResponsePayload =
 export type GameAction =
   | { type: 'PERFORM_MULLIGAN'; playerId: PlayerId }
   | { type: 'CONFIRM_STARTING_HAND'; playerId: PlayerId }
-  | { type: 'CHOOSE_STARTING_ACTIVE'; playerId: PlayerId; handIndex: number }
+  | {
+      type: 'CHOOSE_STARTING_ACTIVE';
+      playerId: PlayerId;
+      handIndex: number;
+      benchHandIndices?: number[];
+    }
   | { type: 'EQUIP_STAND'; playerId: PlayerId; handIndex: number; targetInstanceId: string }
   | { type: 'ATTACH_ENERGY'; playerId: PlayerId; handIndex: number; targetInstanceId: string }
   | { type: 'PLAY_ITEM'; playerId: PlayerId; handIndex: number; targetInstanceId?: string }
