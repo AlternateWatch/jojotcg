@@ -27,6 +27,7 @@ import {
   getMaxPlayableCharacterDg,
 } from '../../engine/helpers/cardStats';
 import { getOpponentId } from '../../engine/helpers/stateHelpers';
+import { computeTutorialStep } from '../../engine/tutorial/tutorialCoach';
 import type { GamePhase } from '../../engine/types/state';
 import { CARD_BACK_PATTERN_URL, PLAYMAT_THEMES } from '../../services/assetResolver';
 import { onlineService } from '../../services/onlineService';
@@ -530,6 +531,13 @@ export function BattleView() {
     type: 'ENTER_COMBAT_PHASE',
     playerId: myId,
   });
+
+  const activeTutorialLesson = activeTutorialLessonId
+    ? getTutorialLessonById(activeTutorialLessonId)
+    : undefined;
+  const activeTutorialStep = activeTutorialLesson
+    ? computeTutorialStep(activeTutorialLesson, gameState, myId)
+    : null;
 
   const usablePrepAbilities =
     isHumanTurn && gameState.phase === 'PREPARATION'
@@ -1352,6 +1360,14 @@ export function BattleView() {
                     card={card}
                     size="sm"
                     selected={isSelected}
+                    highlighted={
+                      Boolean(
+                        activeTutorialStep?.requiredCardType &&
+                          card.type === activeTutorialStep.requiredCardType &&
+                          isHumanTurn &&
+                          gameState.phase === 'PREPARATION',
+                      )
+                    }
                     onClick={
                       isHumanTurn && gameState.phase === 'PREPARATION'
                         ? () => setSelectedHandIndex(isSelected ? null : idx)

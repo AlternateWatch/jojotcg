@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 import { getCardById } from '../data/cardRegistry';
+import { getTutorialLessonById } from '../data/tutorialData';
 import type { BoosterPackDef } from '../data/progressionData';
 import { chooseAiAction, type AiDifficulty } from '../engine/ai/tacticalAi';
 import { createGame, dispatchAction } from '../engine/gameEngine';
 import { createSystemRng, type CoinResult, type RngProvider } from '../engine/rng';
+import { checkTutorialActionAllowed } from '../engine/tutorial/tutorialCoach';
 import type { GameAction } from '../engine/types/actions';
 import type { CombatEvent } from '../engine/types/events';
 import type { GameState, PlayerId } from '../engine/types/state';
@@ -518,7 +520,15 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   },
 
   dispatch: (action, usePrivacyCurtain = true) => {
-    const { gameState, rng, mode, recentTicker, onlineRoomCode, onlineRole } = get();
+    const {
+      gameState,
+      rng,
+      mode,
+      recentTicker,
+      onlineRoomCode,
+      onlineRole,
+      activeTutorialLessonId,
+    } = get();
     if (!gameState) return false;
 
     if (mode === 'ONLINE' && onlineRole === 'SPECTATOR') {
@@ -528,6 +538,17 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
     if (mode === 'ONLINE' && onlineRole && action.playerId !== onlineRole) {
       set({ lastError: 'Espera a que tu rival online realice su acción.' });
       return false;
+    }
+
+    if (activeTutorialLessonId) {
+      const lesson = getTutorialLessonById(activeTutorialLessonId);
+      if (lesson) {
+        const tutCheck = checkTutorialActionAllowed(lesson, gameState, 'P1', action);
+        if (!tutCheck.ok) {
+          set({ lastError: tutCheck.reason });
+          return false;
+        }
+      }
     }
 
     const prevActor = getNextActingPlayer(gameState);
