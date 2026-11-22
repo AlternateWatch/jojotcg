@@ -99,6 +99,7 @@ export const OFFICIAL_ITEM_IMAGE_IDS = new Set<string>([
   'cinta-de-caesar',
   'clackers',
   'comida-de-tonio',
+  'entrenamiento-air-supplena',
   'estilo-de-combate-ogre-street',
   'flecha-de-stand',
   'flecha-requiem',

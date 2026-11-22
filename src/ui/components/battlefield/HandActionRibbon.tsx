@@ -147,9 +147,13 @@ export function HandActionRibbon({
         );
       }
 
-      const hasDualModeSearch =
-        card.itemKind === 'EQUIPPABLE' && card.effects.some((e) => e.kind === 'SEARCH_DECK');
-      if (hasDualModeSearch) {
+      const dualModeSearchEff =
+        card.itemKind === 'EQUIPPABLE'
+          ? card.effects.find(
+              (e): e is Extract<typeof e, { kind: 'SEARCH_DECK' }> => e.kind === 'SEARCH_DECK',
+            )
+          : undefined;
+      if (dualModeSearchEff) {
         const searchAction: GameAction = {
           type: 'PLAY_ITEM',
           playerId,
@@ -164,6 +168,15 @@ export function HandActionRibbon({
           targetInstanceId: player.active?.instanceId,
         };
         const equipCheck = validateAction(gameState, equipAction);
+        const catBonus = card.effects.find(
+          (e): e is Extract<typeof e, { kind: 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS' }> =>
+            e.kind === 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS',
+        );
+        const searchLabel =
+          dualModeSearchEff.filter === 'HAMON_USER'
+            ? 'Buscar Usuario de Hamon (Por su cuenta)'
+            : 'Buscar Luchador Convencional (Por su cuenta)';
+        const bonusLabel = catBonus ? `+${catBonus.bonusDamage} daño` : 'Equipar';
 
         return (
           <div className="flex flex-wrap items-center gap-1.5">
@@ -173,7 +186,7 @@ export function HandActionRibbon({
               onClick={() => onDispatch(searchAction)}
               className="jojo-btn-crimson px-3 py-1 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-40"
             >
-              {searchCheck.ok ? 'Buscar Luchador Convencional (Por su cuenta)' : searchCheck.reason}
+              {searchCheck.ok ? searchLabel : searchCheck.reason}
             </button>
             {player.active && (
               <button
@@ -182,7 +195,7 @@ export function HandActionRibbon({
                 onClick={() => onDispatch(equipAction)}
                 className="jojo-btn-primary px-3 py-1 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-40"
               >
-                Equipar al Activo (+20 daño o clic en banca)
+                Equipar al Activo ({bonusLabel} o clic en banca)
               </button>
             )}
           </div>

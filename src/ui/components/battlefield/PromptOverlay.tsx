@@ -496,6 +496,12 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
                     entry.card.categories.includes('CONVENTIONAL_FIGHTER')
                   );
                 }
+                if (prompt.filter === 'HAMON_USER') {
+                  return (
+                    entry.card.type === 'CHARACTER' &&
+                    entry.card.categories.includes('HAMON_USER')
+                  );
+                }
                 return entry.card.type === 'CHARACTER' || entry.card.type === 'STAND';
               },
             )
@@ -525,7 +531,9 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
                           ? 'carta de Evolución de Stand'
                           : prompt.filter === 'CONVENTIONAL_FIGHTER'
                             ? 'personaje Luchador Convencional'
-                            : 'carta de Stand o Personaje'}
+                            : prompt.filter === 'HAMON_USER'
+                              ? 'personaje Usuario de Hamon'
+                              : 'carta de Stand o Personaje'}
                     . Tu mazo se barajará al terminar.
                   </p>
                 </div>

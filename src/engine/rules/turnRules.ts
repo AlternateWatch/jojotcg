@@ -518,6 +518,9 @@ export function validatePlayItem(
         if (eff.filter === 'CONVENTIONAL_FIGHTER') {
           return c.type === 'CHARACTER' && c.categories.includes('CONVENTIONAL_FIGHTER');
         }
+        if (eff.filter === 'HAMON_USER') {
+          return c.type === 'CHARACTER' && c.categories.includes('HAMON_USER');
+        }
         return c.type === 'CHARACTER' || c.type === 'STAND';
       });
       if (!hasMatch) {
@@ -532,7 +535,9 @@ export function validatePlayItem(
                   ? 'No quedan cartas de evolución de Stand en tu mazo.'
                   : eff.filter === 'CONVENTIONAL_FIGHTER'
                     ? 'No quedan Luchadores Convencionales en tu mazo.'
-                    : 'No quedan cartas de Personaje ni Stand en tu mazo.',
+                    : eff.filter === 'HAMON_USER'
+                      ? 'No quedan Usuarios de Hamon en tu mazo.'
+                      : 'No quedan cartas de Personaje ni Stand en tu mazo.',
         };
       }
     } else if (eff.kind === 'FREE_BENCH_SWAP') {
@@ -615,6 +620,9 @@ export function applyPlayItem(
       if (standaloneSearchEff.filter === 'CONVENTIONAL_FIGHTER') {
         return c.type === 'CHARACTER' && c.categories.includes('CONVENTIONAL_FIGHTER');
       }
+      if (standaloneSearchEff.filter === 'HAMON_USER') {
+        return c.type === 'CHARACTER' && c.categories.includes('HAMON_USER');
+      }
       if (standaloneSearchEff.filter === 'ENERGY') return c.type === 'ENERGY';
       if (standaloneSearchEff.filter === 'STAND') return c.type === 'STAND';
       if (standaloneSearchEff.filter === 'STAND_EVOLUTION') {
@@ -631,11 +639,15 @@ export function applyPlayItem(
         sourceLabel: item.name,
       });
     } else {
+      const targetLabel =
+        standaloneSearchEff.filter === 'HAMON_USER'
+          ? 'Usuarios de Hamon'
+          : 'Luchadores Convencionales';
       pushEvent(state, eventsOut, {
         type: 'ABILITY_TRIGGERED',
         playerId,
         abilityName: item.name,
-        message: `${item.name}: no hay Luchadores Convencionales en el mazo de ${player.name}, la carta no tiene efecto.`,
+        message: `${item.name}: no hay ${targetLabel} en el mazo de ${player.name}, la carta no tiene efecto.`,
       });
     }
     player.discard.push(item.id);

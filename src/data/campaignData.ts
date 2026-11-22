@@ -441,6 +441,7 @@ const P2_STORY_EARLY_IDS = buildPart1Deck(
   [
     ...rep('item-clackers', 2),
     ...rep('item-cinta-de-caesar', 2),
+    ...rep('item-entrenamiento-air-supplena', 2),
     ...rep('item-suministros-speedwagon', 2),
   ],
   [

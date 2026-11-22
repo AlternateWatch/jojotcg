@@ -181,7 +181,13 @@ export type ItemEffectDef =
   | { kind: 'DRAW_CARDS'; count: number }
   | {
       kind: 'SEARCH_DECK';
-      filter: 'ENERGY' | 'STAND' | 'STAND_EVOLUTION' | 'CHARACTER_OR_STAND' | 'CONVENTIONAL_FIGHTER';
+      filter:
+        | 'ENERGY'
+        | 'STAND'
+        | 'STAND_EVOLUTION'
+        | 'CHARACTER_OR_STAND'
+        | 'CONVENTIONAL_FIGHTER'
+        | 'HAMON_USER';
       maxCount: number;
     }
   | { kind: 'EXTRA_ENERGY_ALLOWANCE'; bonusAttachments: number; recoverDiscardEnergy: boolean }

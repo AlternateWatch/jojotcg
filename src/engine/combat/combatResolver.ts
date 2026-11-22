@@ -1232,7 +1232,9 @@ export function validatePromptResponse(
                 ? card.type === 'EVOLUTION' && card.evolutionTarget === 'STAND'
                 : prompt.filter === 'CONVENTIONAL_FIGHTER'
                   ? card.type === 'CHARACTER' && card.categories.includes('CONVENTIONAL_FIGHTER')
-                  : card.type === 'CHARACTER' || card.type === 'STAND';
+                  : prompt.filter === 'HAMON_USER'
+                    ? card.type === 'CHARACTER' && card.categories.includes('HAMON_USER')
+                    : card.type === 'CHARACTER' || card.type === 'STAND';
         if (!matches) {
           return {
             ok: false,

@@ -12,7 +12,7 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
   it('verifies all 69 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
     expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(73);
-    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(14);
+    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(15);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
       const filePath = path.join(projectRoot, 'public', 'assets', 'cards', 'official', `${imageId}.png`);
@@ -977,5 +977,85 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       attackId: 'atk-straizo-space-ripper-stingy-eyes',
     });
     expect(state.players.P2.active!.currentHp).toBe(10);
+  });
+
+  it('resolves ¡Entrenamiento en la isla Air Supplena! (standalone search Hamon User / fizzles if none; equipped +10 dmg to Hamon User only)', () => {
+    // 1. Standalone with a Hamon User in deck -> searches and adds to hand
+    let searchState = buildControlledBattleState({
+      p1ActiveId: 'char-joseph-joestar',
+      p1Hand: ['item-entrenamiento-air-supplena'],
+      p1Deck: ['energy-electric', 'char-caesar-zeppeli', 'char-tarkus'],
+      p2ActiveId: 'char-dio',
+      phase: 'PREPARATION',
+    });
+    searchState = mustDispatch(searchState, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: 0 });
+    expect(searchState.pendingPrompt?.kind).toBe('SEARCH_DECK_CARDS');
+    if (searchState.pendingPrompt?.kind === 'SEARCH_DECK_CARDS') {
+      expect(searchState.pendingPrompt.filter).toBe('HAMON_USER');
+    }
+    const caesarIdx = searchState.players.P1.deck.indexOf('char-caesar-zeppeli');
+    searchState = mustDispatch(searchState, {
+      type: 'RESPOND_PROMPT',
+      playerId: 'P1',
+      response: { kind: 'SEARCH_DECK_CARDS', deckIndices: [caesarIdx] },
+    });
+    expect(searchState.players.P1.hand).toContain('char-caesar-zeppeli');
+    expect(searchState.players.P1.discard).toContain('item-entrenamiento-air-supplena');
+
+    // 2. Standalone with NO Hamon User in deck -> fizzles cleanly ("no hace nada")
+    let emptyState = buildControlledBattleState({
+      p1ActiveId: 'char-tarkus',
+      p1Hand: ['item-entrenamiento-air-supplena'],
+      p1Deck: ['energy-colorless', 'char-bruford'],
+      p2ActiveId: 'char-dio',
+      phase: 'PREPARATION',
+    });
+    emptyState = mustDispatch(emptyState, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: 0 });
+    expect(emptyState.pendingPrompt).toBeNull();
+    expect(emptyState.players.P1.discard).toContain('item-entrenamiento-air-supplena');
+
+    // 3. Equipped onto a Hamon User (Jonathan) -> +10 permanent dmg (Zoom Punch 20 + 10 = 30 -> 160 - 30 = 130)
+    let equipHamon = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar',
+      p1ActiveEnergies: ['COLORLESS'],
+      p1Hand: ['item-entrenamiento-air-supplena'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'PREPARATION',
+    });
+    equipHamon = mustDispatch(equipHamon, {
+      type: 'PLAY_ITEM',
+      playerId: 'P1',
+      handIndex: 0,
+      targetInstanceId: equipHamon.players.P1.active!.instanceId,
+    });
+    equipHamon = mustDispatch(equipHamon, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    equipHamon = mustDispatch(equipHamon, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-zoom-punch',
+    });
+    expect(equipHamon.players.P2.active!.currentHp).toBe(130);
+
+    // 4. Equipped onto a non-Hamon character (Tarkus) -> +0 bonus (40 -> 160 - 40 = 120)
+    let equipNonHamon = buildControlledBattleState({
+      p1ActiveId: 'char-tarkus',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS'],
+      p1Hand: ['item-entrenamiento-air-supplena'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'PREPARATION',
+    });
+    equipNonHamon = mustDispatch(equipNonHamon, {
+      type: 'PLAY_ITEM',
+      playerId: 'P1',
+      handIndex: 0,
+      targetInstanceId: equipNonHamon.players.P1.active!.instanceId,
+    });
+    equipNonHamon = mustDispatch(equipNonHamon, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    equipNonHamon = mustDispatch(equipNonHamon, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-hell-heaven-snake-kill',
+    });
+    expect(equipNonHamon.players.P2.active!.currentHp).toBe(120);
   });
 });

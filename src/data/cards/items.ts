@@ -140,6 +140,27 @@ export const ITEM_CARDS: ItemCard[] = [
     tags: ['official', 'equippable', 'hamon'],
   },
   {
+    id: 'item-entrenamiento-air-supplena',
+    name: '¡Entrenamiento en la isla Air Supplena!',
+    type: 'ITEM',
+    part: 2,
+    imageId: 'entrenamiento-air-supplena',
+    assetFolder: 'items',
+    itemKind: 'EQUIPPABLE',
+    targetScope: 'ANY_ALLY',
+    description:
+      'Todo usuario de Hamon que se precie, debe pasar por el entrenamiento de la isla Air Supplena. Al jugar por su cuenta: Busca en tu mazo un Usuario de Hamon y añádelo a tu mano. Si no tienes, esta carta no hace nada. Al jugarla junto a un personaje: Si el personaje es un Usuario de Hamon, añade 10 puntos de daño permanentes.',
+    effects: [
+      { kind: 'SEARCH_DECK', filter: 'HAMON_USER', maxCount: 1 },
+      {
+        kind: 'EQUIP_PASSIVE_CATEGORY_DAMAGE_BONUS',
+        category: 'HAMON_USER',
+        bonusDamage: 10,
+      },
+    ],
+    tags: ['official', 'equippable', 'search', 'hamon', 'damage'],
+  },
+  {
     id: 'item-suministros-speedwagon',
     name: 'Suministros de la fundación Speedwagon',
     type: 'ITEM',

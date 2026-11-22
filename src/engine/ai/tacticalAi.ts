@@ -483,10 +483,11 @@ function buildPromptResponse(
           const maxAtk = Math.max(0, ...card.attacks.map(getAttackNominalMaxDamage));
           candidates.push({ idx: i, score: 100 + maxAtk });
         }
-      } else if (prompt.filter === 'CONVENTIONAL_FIGHTER') {
+      } else if (prompt.filter === 'CONVENTIONAL_FIGHTER' || prompt.filter === 'HAMON_USER') {
+        const targetCat = prompt.filter;
         for (let i = 0; i < player.deck.length; i++) {
           const card = getCardById(player.deck[i]!);
-          if (!card || card.type !== 'CHARACTER' || !card.categories.includes('CONVENTIONAL_FIGHTER')) {
+          if (!card || card.type !== 'CHARACTER' || !card.categories.includes(targetCat)) {
             continue;
           }
           const maxAtk = Math.max(0, ...card.attacks.map(getAttackNominalMaxDamage));
@@ -709,6 +710,9 @@ export function chooseAiAction(
                 getEffectiveCharacterProfile(ch).categories.includes(catBonusEff.category),
             )
           : undefined;
+        const searchEff = item.effects.find(
+          (e): e is Extract<typeof e, { kind: 'SEARCH_DECK' }> => e.kind === 'SEARCH_DECK',
+        );
         if (targetChar) {
           const act: GameAction = {
             type: 'PLAY_ITEM',
@@ -719,9 +723,15 @@ export function chooseAiAction(
           if (validateAction(state, act).ok) return act;
         } else if (
           player.deck.length > 7 &&
+          searchEff &&
           player.deck.some((id) => {
             const c = getCharacterCard(id);
-            return Boolean(c && c.categories.includes('CONVENTIONAL_FIGHTER'));
+            if (!c) return false;
+            if (searchEff.filter === 'HAMON_USER') return c.categories.includes('HAMON_USER');
+            if (searchEff.filter === 'CONVENTIONAL_FIGHTER') {
+              return c.categories.includes('CONVENTIONAL_FIGHTER');
+            }
+            return false;
           })
         ) {
           const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
