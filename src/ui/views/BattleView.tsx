@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { getCampaignStageById } from '../../data/campaignData';
 import { getCardById } from '../../data/cardRegistry';
+import { getTutorialLessonById } from '../../data/tutorialData';
 import { validateAction } from '../../engine/gameEngine';
 import {
   getEffectiveCharacterProfile,
@@ -50,6 +51,7 @@ import { PhysicalDeckPiles } from '../components/battlefield/PhysicalDeckPiles';
 import { PileViewerModal } from '../components/battlefield/PileViewerModal';
 import { PromptOverlay } from '../components/battlefield/PromptOverlay';
 import { TurnSplashOverlay } from '../components/battlefield/TurnSplashOverlay';
+import { TutorialCoachBanner } from '../components/battlefield/TutorialCoachBanner';
 import { CardView } from '../components/cards/CardView';
 import { RulesModal } from '../components/common/RulesModal';
 import { PackOpeningModal } from '../components/shop/PackOpeningModal';
@@ -112,6 +114,7 @@ export function BattleView() {
   const lastBattleReward = useBattleStore((s) => s.lastBattleReward);
   const claimBattleReward = useBattleStore((s) => s.claimBattleReward);
   const activeCampaignStageId = useBattleStore((s) => s.activeCampaignStageId);
+  const activeTutorialLessonId = useBattleStore((s) => s.activeTutorialLessonId);
   const campaignPackReward = useBattleStore((s) => s.campaignPackReward);
   const setCampaignPackReward = useBattleStore((s) => s.setCampaignPackReward);
   const onlineRoomCode = useBattleStore((s) => s.onlineRoomCode);
@@ -125,6 +128,7 @@ export function BattleView() {
   const settings = useAppStore((s) => s.settings);
   const awardBattleReward = useAppStore((s) => s.awardBattleReward);
   const completeCampaignStage = useAppStore((s) => s.completeCampaignStage);
+  const completeTutorialLesson = useAppStore((s) => s.completeTutorialLesson);
   const setPlaymatTheme = useAppStore((s) => s.setPlaymatTheme);
   const setAnimationSpeed = useAppStore((s) => s.setAnimationSpeed);
   const setEnable3dVfx = useAppStore((s) => s.setEnable3dVfx);
@@ -219,7 +223,34 @@ export function BattleView() {
       mode === 'ONLINE' && (onlineRole === 'P1' || onlineRole === 'P2') ? onlineRole : 'P1';
     const didWin = gameState.winnerId === localPlayerId;
 
-    if (activeCampaignStageId) {
+    if (activeTutorialLessonId) {
+      const lesson = getTutorialLessonById(activeTutorialLessonId);
+      if (didWin && lesson) {
+        const res = completeTutorialLesson(activeTutorialLessonId);
+        if (res?.firstClear) {
+          claimBattleReward({
+            coins: res.coinsAwarded,
+            label: `Tutorial Lección ${lesson.lessonNumber} completada${
+              res.packOutcomes ? ` + ${res.packOutcomes.length} sobre(s)` : ''
+            }`,
+          });
+          if (res.pack && res.packOutcomes) {
+            setCampaignPackReward({ pack: res.pack, outcomes: res.packOutcomes });
+          }
+        } else {
+          claimBattleReward({
+            coins: 0,
+            label: `Tutorial Lección ${lesson.lessonNumber} · Recompensa única ya recogida`,
+          });
+        }
+      } else {
+        claimBattleReward({
+          coins: 15,
+          label: 'Práctica de Tutorial · ¡Inténtalo de nuevo!',
+        });
+        awardBattleReward(15, false);
+      }
+    } else if (activeCampaignStageId) {
       const stage = getCampaignStageById(activeCampaignStageId);
       if (didWin && stage) {
         const res = completeCampaignStage(activeCampaignStageId);
@@ -276,9 +307,11 @@ export function BattleView() {
     onlineRole,
     aiDifficulty,
     activeCampaignStageId,
+    activeTutorialLessonId,
     battleRewardClaimed,
     awardBattleReward,
     completeCampaignStage,
+    completeTutorialLesson,
     claimBattleReward,
     setCampaignPackReward,
   ]);
@@ -804,6 +837,14 @@ export function BattleView() {
           </AnimatePresence>
         </div>
       </header>
+
+      {/* INTERACTIVE TUTORIAL COACH BANNER */}
+      {activeTutorialLessonId && (() => {
+        const lesson = getTutorialLessonById(activeTutorialLessonId);
+        return lesson ? (
+          <TutorialCoachBanner lesson={lesson} gameState={gameState} myId={myId} />
+        ) : null;
+      })()}
 
       {/* Error Toast */}
       <AnimatePresence>
@@ -1374,8 +1415,13 @@ export function BattleView() {
         hotseatHandoffTo={hotseatHandoffTo}
         battleReward={lastBattleReward}
         isCampaign={Boolean(activeCampaignStageId)}
+        isTutorial={Boolean(activeTutorialLessonId)}
         campaignPackReward={campaignPackReward}
         onOpenCampaignPacks={() => setShowCampaignPacks(true)}
+        onReturnToTutorial={() => {
+          resetBattle();
+          setScreen('TUTORIAL');
+        }}
         onReturnToCampaign={() => {
           if (activeCampaignStageId) {
             const stage = getCampaignStageById(activeCampaignStageId);

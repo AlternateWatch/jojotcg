@@ -1,5 +1,6 @@
 import { ALL_CARDS, getCardById } from '../data/cardRegistry';
 import type { CampaignStageDef } from '../data/campaignData';
+import type { TutorialLessonDef } from '../data/tutorialData';
 import {
   ALL_MILESTONES,
   getMilestoneById,
@@ -29,6 +30,8 @@ export interface PlayerProgression {
   losses: number;
   /** Campaign stage IDs already cleared (one-time pickup rewards claimed) */
   completedCampaignStages: string[];
+  /** Tutorial lesson IDs already cleared (one-time basic rewards claimed) */
+  completedTutorialLessons: string[];
   /** Milestone IDs whose extra coin rewards have already been claimed (one-time pickup) */
   claimedMilestones: string[];
 }
@@ -120,6 +123,7 @@ export function createInitialProgression(): PlayerProgression {
     wins: 0,
     losses: 0,
     completedCampaignStages: [],
+    completedTutorialLessons: [],
     claimedMilestones: [],
   };
 }
@@ -162,6 +166,14 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
       )
     : [];
 
+  const completedTutorialLessons = Array.isArray(progression.completedTutorialLessons)
+    ? Array.from(
+        new Set(
+          progression.completedTutorialLessons.filter((id): id is string => typeof id === 'string'),
+        ),
+      )
+    : [];
+
   const claimedMilestones = Array.isArray(progression.claimedMilestones)
     ? Array.from(
         new Set(
@@ -174,6 +186,7 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
     ...progression,
     ownedCards: nextOwned,
     completedCampaignStages,
+    completedTutorialLessons,
     claimedMilestones,
   };
 }
@@ -718,6 +731,60 @@ export function claimCampaignStageReward(
   return {
     firstClear: true,
     coinsAwarded: stage.rewardCoins,
+    pack: rewardPack,
+    packOutcomes,
+    nextProgression: current,
+  };
+}
+
+/**
+ * Claims one-time basic rewards for completing a Tutorial Lesson.
+ */
+export function claimTutorialLessonReward(
+  lesson: TutorialLessonDef,
+  progression: PlayerProgression,
+  rng: RngProvider = createSystemRng(),
+): CampaignClearResult {
+  const completed = progression.completedTutorialLessons ?? [];
+  if (completed.includes(lesson.id)) {
+    return {
+      firstClear: false,
+      coinsAwarded: 0,
+      pack: null,
+      packOutcomes: null,
+      nextProgression: {
+        ...progression,
+        wins: progression.wins + 1,
+      },
+    };
+  }
+
+  let current: PlayerProgression = {
+    ...progression,
+    coins: progression.coins + lesson.rewardCoins,
+    wins: progression.wins + 1,
+    completedTutorialLessons: [...completed, lesson.id],
+  };
+
+  let rewardPack: BoosterPackDef | null = null;
+  let packOutcomes: OpenPackOutcome[] | null = null;
+
+  if (lesson.rewardPackId && lesson.rewardPackCount && lesson.rewardPackCount > 0) {
+    const foundPack = getBoosterPackById(lesson.rewardPackId);
+    if (foundPack) {
+      rewardPack = foundPack;
+      packOutcomes = [];
+      for (let i = 0; i < lesson.rewardPackCount; i++) {
+        const out = openBoosterPack(foundPack, current, rng, true);
+        packOutcomes.push(out);
+        current = out.nextProgression;
+      }
+    }
+  }
+
+  return {
+    firstClear: true,
+    coinsAwarded: lesson.rewardCoins,
     pack: rewardPack,
     packOutcomes,
     nextProgression: current,

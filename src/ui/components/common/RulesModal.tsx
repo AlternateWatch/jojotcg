@@ -70,7 +70,7 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
               <li>• Mano inicial de <strong>7 cartas</strong>; banca de hasta <strong>3 personajes</strong> (puedes colocar personajes en banca gratis durante la colocación inicial).</li>
               <li>• <strong>Mulligan</strong> si no tienes personaje inicial válido (sin DG o DG ≤ 4 autosuficiente, o Usuario DG ≤ 4 + Stand compatible); rival roba +1 y <strong>tras 3 mulligans se garantiza mano válida</strong>.</li>
               <li>• <strong>Desbloqueo progresivo de DG</strong>: Activo inicial Turno 1 máx. <strong>DG 4</strong> (o sin DG), Turno 2 <strong>DG 5</strong>, Turno 3+ <strong>DG 6</strong>. Los <strong>Usuarios de Stand</strong> de DG alto sí pueden bajarse a la <strong>banca</strong> desde el Turno 1.</li>
-              <li>• El primer jugador <strong>no puede atacar en el Turno 1</strong>.</li>
+              <li>• En el <strong>Turno 1</strong> no puede atacar el primer jugador ni ningún personaje <strong>sin Stand</strong> (los Usuarios con Stand sí pueden atacar en T1 si salen 2.º).</li>
             </ul>
           </div>
 

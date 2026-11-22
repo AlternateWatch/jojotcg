@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getCampaignStageById } from '../data/campaignData';
+import { getTutorialLessonById } from '../data/tutorialData';
 import { PRESET_DECKS } from '../data/cardRegistry';
 import { getBoosterPackById } from '../data/progressionData';
 import type { AiDifficulty } from '../engine/ai/tacticalAi';
@@ -8,6 +9,7 @@ import {
   claimAllReadyMilestones,
   claimCampaignStageReward,
   claimMilestoneReward,
+  claimTutorialLessonReward,
   craftRandomCard,
   createInitialProgression,
   normalizePlayerProgression,
@@ -30,6 +32,7 @@ import {
 
 export type AppScreen =
   | 'HOME'
+  | 'TUTORIAL'
   | 'CAMPAIGN'
   | 'BATTLE_SETUP'
   | 'BATTLE'
@@ -90,6 +93,7 @@ interface AppStoreState {
   ) => CraftOutcome;
   awardBattleReward: (coins: number, won: boolean) => void;
   completeCampaignStage: (stageId: string) => CampaignClearResult | null;
+  completeTutorialLesson: (lessonId: string) => CampaignClearResult | null;
   claimMilestone: (milestoneId: string) => ClaimMilestoneResult;
   claimAllMilestones: () => ClaimAllMilestonesResult;
   grantTestCoins: (amount: number) => void;
@@ -390,6 +394,18 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     if (!stage) return null;
     const current = get().progression;
     const result = claimCampaignStageReward(stage, current);
+    if (get().authUser) {
+      void authService.syncAccountData({ progression: result.nextProgression });
+    }
+    set({ progression: result.nextProgression });
+    return result;
+  },
+
+  completeTutorialLesson: (lessonId) => {
+    const lesson = getTutorialLessonById(lessonId);
+    if (!lesson) return null;
+    const current = get().progression;
+    const result = claimTutorialLessonReward(lesson, current);
     if (get().authUser) {
       void authService.syncAccountData({ progression: result.nextProgression });
     }

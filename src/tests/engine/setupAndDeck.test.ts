@@ -119,14 +119,14 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     const combatTurn1 = dispatchAction(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
     expect(combatTurn1.ok).toBe(false);
 
-    // P1 ends turn -> still Turn 1 (P2's half of Turn 1), and P2 CAN enter combat
+    // P1 ends turn -> still Turn 1 (P2's half of Turn 1): non-Stand Dio Brando CANNOT attack on T1!
     state = dispatchAction(state, { type: 'END_TURN', playerId: 'P1' }, noShuffle).state;
     expect(state.turnNumber).toBe(1);
     expect(state.activePlayerId).toBe('P2');
     const combatTurn1P2 = dispatchAction(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P2' });
-    expect(combatTurn1P2.ok).toBe(true);
+    expect(combatTurn1P2.ok).toBe(false);
 
-    // P2 ends turn -> both players have played once, so Turn 2 begins with P1!
+    // P2 ends turn -> both players have played once, so Turn 2 begins with P1 (now allowed to attack)!
     state = dispatchAction(state, { type: 'END_TURN', playerId: 'P2' }, noShuffle).state;
     expect(state.turnNumber).toBe(2);
     expect(state.activePlayerId).toBe('P1');

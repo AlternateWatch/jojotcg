@@ -147,6 +147,13 @@ export const storageService: StorageAdapter = {
             ),
           )
         : [];
+      const completedTutorialLessons = Array.isArray(parsed.completedTutorialLessons)
+        ? Array.from(
+            new Set(
+              parsed.completedTutorialLessons.filter((id): id is string => typeof id === 'string'),
+            ),
+          )
+        : [];
       const claimedMilestones = Array.isArray(parsed.claimedMilestones)
         ? Array.from(
             new Set(
@@ -168,6 +175,7 @@ export const storageService: StorageAdapter = {
         losses:
           typeof parsed.losses === 'number' && parsed.losses >= 0 ? Math.floor(parsed.losses) : 0,
         completedCampaignStages,
+        completedTutorialLessons,
         claimedMilestones,
       };
     } catch {

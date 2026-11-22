@@ -52,6 +52,7 @@ export interface StartBattleConfig {
   firstPlayerId: PlayerId;
   aiDifficulty?: AiDifficulty;
   campaignStageId?: string;
+  tutorialLessonId?: string;
   p2GuaranteedOpeningCardId?: string;
 }
 
@@ -77,6 +78,7 @@ interface BattleStoreState {
   battleRewardClaimed: boolean;
   lastBattleReward: { coins: number; label: string } | null;
   activeCampaignStageId: string | null;
+  activeTutorialLessonId: string | null;
   campaignPackReward: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null;
   onlineRoomCode: string | null;
   onlineRole: OnlineRole | null;
@@ -298,6 +300,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   battleRewardClaimed: false,
   lastBattleReward: null,
   activeCampaignStageId: null,
+  activeTutorialLessonId: null,
   campaignPackReward: null,
   onlineRoomCode: null,
   onlineRole: null,
@@ -341,6 +344,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       battleRewardClaimed: false,
       lastBattleReward: null,
       activeCampaignStageId: config.campaignStageId ?? null,
+      activeTutorialLessonId: config.tutorialLessonId ?? null,
       campaignPackReward: null,
       onlineRoomCode: null,
       onlineRole: null,
@@ -434,6 +438,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       battleRewardClaimed: true,
       lastBattleReward: null,
       activeCampaignStageId: null,
+      activeTutorialLessonId: null,
       campaignPackReward: null,
     });
   },
@@ -675,6 +680,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       battleRewardClaimed: false,
       lastBattleReward: null,
       activeCampaignStageId: null,
+      activeTutorialLessonId: null,
       campaignPackReward: null,
       onlineRoomCode: null,
       onlineRole: null,

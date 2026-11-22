@@ -1124,6 +1124,13 @@ export function validateEnterCombatPhase(
   if (!active) {
     return { ok: false, reason: 'No tienes un personaje activo.' };
   }
+  if (state.turnNumber === 1 && !active.attachedStand) {
+    return {
+      ok: false,
+      reason:
+        'Los personajes sin Stand no pueden atacar en el Turno 1 (solo un Usuario con Stand equipado puede atacar en T1 si sale 2.º).',
+    };
+  }
   if (active.statuses.stunned) {
     return {
       ok: false,

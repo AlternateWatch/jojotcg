@@ -22,9 +22,11 @@ interface BattleModalsProps {
   hotseatHandoffTo: PlayerId | null;
   battleReward?: { coins: number; label: string } | null;
   isCampaign?: boolean;
+  isTutorial?: boolean;
   campaignPackReward?: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null;
   onOpenCampaignPacks?: () => void;
   onReturnToCampaign?: () => void;
+  onReturnToTutorial?: () => void;
   onDispatch: (action: GameAction) => void;
   onConfirmHandoff: () => void;
   onRematch: () => void;
@@ -40,9 +42,11 @@ export function BattleModals({
   hotseatHandoffTo,
   battleReward,
   isCampaign = false,
+  isTutorial = false,
   campaignPackReward,
   onOpenCampaignPacks,
   onReturnToCampaign,
+  onReturnToTutorial,
   onDispatch,
   onConfirmHandoff,
   onRematch,
@@ -414,6 +418,15 @@ export function BattleModals({
             )}
 
             <div className="flex flex-wrap justify-center gap-3 pt-2">
+              {isTutorial && onReturnToTutorial && (
+                <button
+                  type="button"
+                  onClick={onReturnToTutorial}
+                  className="jojo-btn-primary inline-flex items-center gap-2 px-6 py-3 font-jojo-heading text-base tracking-[0.14em] uppercase"
+                >
+                  <Map size={16} /> Volver al Tutorial
+                </button>
+              )}
               {isCampaign && onReturnToCampaign && (
                 <button
                   type="button"

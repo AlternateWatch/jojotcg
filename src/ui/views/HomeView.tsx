@@ -3,6 +3,7 @@ import { ArrowRight, ShieldAlert, UserCheck } from 'lucide-react';
 import { CAMPAIGN_PARTS } from '../../data/campaignData';
 import { getCardById } from '../../data/cardRegistry';
 import { ALL_MILESTONES } from '../../data/milestonesData';
+import { TUTORIAL_LESSONS } from '../../data/tutorialData';
 import { PLAYMAT_THEMES } from '../../services/assetResolver';
 import {
   getClaimableMilestonesCount,
@@ -33,6 +34,7 @@ export function HomeView() {
   const coll = getCollectionProgress(progression);
   const campaignTotal = CAMPAIGN_PARTS.reduce((sum, p) => sum + (p.available ? p.stages.length : 0), 0);
   const campaignCleared = (progression.completedCampaignStages ?? []).length;
+  const tutorialCleared = (progression.completedTutorialLessons ?? []).length;
   const milestonesClaimed = (progression.claimedMilestones ?? []).length;
   const milestonesReady = getClaimableMilestonesCount(progression);
 
@@ -41,6 +43,13 @@ export function HomeView() {
   );
 
   const menuEntries = [
+    {
+      index: '00',
+      title: `TUTORIAL GUIADO (${tutorialCleared}/${TUTORIAL_LESSONS.length})`,
+      sub: 'Aprende paso a paso en 6 lecciones prácticas · gana monedas básicas y 2 sobres',
+      accent: 'bg-[#00b87c] text-[#0b090e]',
+      onClick: () => setScreen('TUTORIAL'),
+    },
     {
       index: '01',
       title: `MODO CAMPAÑA (${campaignCleared}/${campaignTotal})`,
