@@ -66,4 +66,10 @@ export const MENU_PLAYLIST: MenuTrack[] = [
     artist: 'The Bangles',
     src: '/assets/music/walk-like-an-egyptian.flac',
   },
+  {
+    id: 'chillin',
+    title: "Chillin'",
+    artist: 'Modjo',
+    src: '/assets/music/chillin.flac',
+  },
 ];
