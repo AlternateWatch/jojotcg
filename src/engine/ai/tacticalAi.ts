@@ -12,7 +12,6 @@ import {
   getAttackNominalMaxDamage,
   getAvailableAttacks,
   getEffectiveCharacterProfile,
-  getEffectiveStandProfile,
   getMaxEnergyAttachmentsThisTurn,
   hasElementalStatusImmunity,
 } from '../helpers/cardStats';
@@ -80,7 +79,12 @@ function expectedAttackScore(
     score += enemyActive.currentHp > selfActive.currentHp + 20 ? 120 : -20;
   }
   if (attack.specialEffects?.some((e) => e.kind === 'COPY_ENEMY_STAND_ATTACK')) {
-    score += enemyActive.attachedStand ? 75 : -30;
+    const copyable = getAvailableAttacks(enemyActive).filter(
+      (a) => !a.attack.specialEffects?.some((se) => se.kind === 'COPY_ENEMY_STAND_ATTACK'),
+    );
+    const bestCopiedDmg =
+      copyable.length > 0 ? Math.max(...copyable.map((a) => getAttackNominalMaxDamage(a.attack))) : 0;
+    score += copyable.length > 0 ? Math.max(65, bestCopiedDmg) : -30;
   }
   if (attack.specialEffects?.some((e) => e.kind === 'HEAL_SELF')) {
     const maxHp = computeEffectiveMaxHp(state, playerId, selfActive);
@@ -368,12 +372,12 @@ function buildPromptResponse(
       return { kind: 'CHOOSE_ENEMY_BENCH_TARGET', benchInstanceId: sorted[0]!.instanceId };
     }
     case 'CHOOSE_ENEMY_STAND_ATTACK': {
-      const enemyStand = state.players[prompt.targetPlayerId].active?.attachedStand;
+      const enemyActive = state.players[prompt.targetPlayerId].active;
       let bestId = prompt.availableAttackIds[0]!;
-      if (enemyStand) {
-        const attacks = getEffectiveStandProfile(enemyStand).attacks.filter((a) =>
-          prompt.availableAttackIds.includes(a.id),
-        );
+      if (enemyActive) {
+        const attacks = getAvailableAttacks(enemyActive)
+          .map((a) => a.attack)
+          .filter((a) => prompt.availableAttackIds.includes(a.id));
         attacks.sort((a, b) => getAttackNominalMaxDamage(b) - getAttackNominalMaxDamage(a));
         if (attacks[0]) bestId = attacks[0].id;
       }

@@ -331,29 +331,27 @@ export function executeAttack(
     if (bonusInfo.consumedDireAfterimage) attacker.direAfterimageBonus = false;
   };
 
-  // Special non-damaging copy attack (Silver Chariot Requiem — Manipulación de Stand)
+  // Special non-damaging copy attack (Silver Chariot Réquiem — Manipulación de Cuerpos)
   if (attack.specialEffects?.some((e) => e.kind === 'COPY_ENEMY_STAND_ATTACK')) {
-    if (defender.attachedStand) {
-      const enemyStandAttacks = getEffectiveStandProfile(defender.attachedStand).attacks.filter(
-        (a) => !a.specialEffects?.some((se) => se.kind === 'COPY_ENEMY_STAND_ATTACK'),
-      );
-      if (enemyStandAttacks.length > 0) {
-        enqueuePrompt(state, {
-          kind: 'CHOOSE_ENEMY_STAND_ATTACK',
-          playerId,
-          targetPlayerId: opponentId,
-          availableAttackIds: enemyStandAttacks.map((a) => a.id),
-          sourceLabel: 'Manipulación de Stand',
-        });
-        state.promptContinuation = 'FINISH_COMBAT_ACTION';
-        return;
-      }
+    const copyableEnemyAttacks = getAvailableAttacks(defender)
+      .map((a) => a.attack)
+      .filter((a) => !a.specialEffects?.some((se) => se.kind === 'COPY_ENEMY_STAND_ATTACK'));
+    if (copyableEnemyAttacks.length > 0) {
+      enqueuePrompt(state, {
+        kind: 'CHOOSE_ENEMY_STAND_ATTACK',
+        playerId,
+        targetPlayerId: opponentId,
+        availableAttackIds: copyableEnemyAttacks.map((a) => a.id),
+        sourceLabel: 'Manipulación de Cuerpos',
+      });
+      state.promptContinuation = 'FINISH_COMBAT_ACTION';
+      return;
     }
     pushEvent(state, eventsOut, {
       type: 'ABILITY_TRIGGERED',
       playerId,
-      abilityName: 'Manipulación de Stand',
-      message: `${defenderProfile.name} no tiene un Stand con ataques copiables.`,
+      abilityName: 'Manipulación de Cuerpos',
+      message: `${defenderProfile.name} no tiene ataques copiables.`,
     });
     advanceAfterCombatAction(state, eventsOut, rng);
     return;
@@ -1401,12 +1399,12 @@ export function resolvePendingPrompt(
     }
     case 'CHOOSE_ENEMY_STAND_ATTACK': {
       const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_ENEMY_STAND_ATTACK' }>;
-      const enemyStand = state.players[prompt.targetPlayerId].active?.attachedStand;
-      if (enemyStand) {
-        const atk = getEffectiveStandProfile(enemyStand).attacks.find((a) => a.id === r.attackId);
-        if (atk) {
-          executeAttack(state, eventsOut, playerId, atk.id, rng, {
-            attack: atk,
+      const enemyActive = state.players[prompt.targetPlayerId].active;
+      if (enemyActive) {
+        const entry = getAvailableAttacks(enemyActive).find((a) => a.attack.id === r.attackId);
+        if (entry) {
+          executeAttack(state, eventsOut, playerId, entry.attack.id, rng, {
+            attack: entry.attack,
             source: 'STAND',
           });
           return;

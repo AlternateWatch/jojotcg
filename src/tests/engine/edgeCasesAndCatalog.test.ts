@@ -69,7 +69,8 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(state.players.P1.active!.statuses.stunned).toBe(false);
   });
 
-  it('resolves Silver Chariot Requiem Manipulación de Stand copying an enemy Stand attack', () => {
+  it('resolves Silver Chariot Réquiem Manipulación de Cuerpos copying enemy Stand or non-Stand attacks & 2-Psychic Intercambio de Almas', () => {
+    // 1. Copies enemy Stand attack (Crazy Diamond Dorara)
     let state = buildControlledBattleState({
       p1ActiveId: 'char-jean-pierre-polnareff',
       p1ActiveStandId: 'stand-silver-chariot',
@@ -85,7 +86,7 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     state = mustDispatch(state, {
       type: 'USE_ATTACK',
       playerId: 'P1',
-      attackId: 'atk-manipulacion-de-stand',
+      attackId: 'atk-manipulacion-de-cuerpos',
     });
 
     expect(state.pendingPrompt?.kind).toBe('CHOOSE_ENEMY_STAND_ATTACK');
@@ -96,6 +97,30 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       response: { kind: 'CHOOSE_ENEMY_STAND_ATTACK', attackId: 'atk-dorara' },
     });
     expect(state.players.P2.active!.currentHp).toBe(50);
+
+    // 2. Also copies attacks from a non-Stand character (Jonathan Joestar) & can use Intercambio de Almas for 2 PSYCHIC!
+    let vsNonStand = buildControlledBattleState({
+      p1ActiveId: 'char-jean-pierre-polnareff',
+      p1ActiveStandId: 'stand-silver-chariot',
+      p1ActiveEnergies: ['PSYCHIC', 'PSYCHIC'],
+      p1Hand: ['evo-silver-chariot-requiem', 'item-flecha-requiem'],
+      p2ActiveId: 'char-jonathan-joestar', // 130 HP, no Stand
+      phase: 'PREPARATION',
+    });
+    vsNonStand = mustDispatch(vsNonStand, { type: 'EVOLVE_CARD', playerId: 'P1', handIndex: 0 });
+    vsNonStand = mustDispatch(vsNonStand, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    vsNonStand = mustDispatch(vsNonStand, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-manipulacion-de-cuerpos',
+    });
+    expect(vsNonStand.pendingPrompt?.kind).toBe('CHOOSE_ENEMY_STAND_ATTACK');
+    vsNonStand = mustDispatch(vsNonStand, {
+      type: 'RESPOND_PROMPT',
+      playerId: 'P1',
+      response: { kind: 'CHOOSE_ENEMY_STAND_ATTACK', attackId: 'atk-sendo-hamon-overdrive' },
+    });
+    expect(vsNonStand.players.P2.active!.currentHp).toBe(60); // 130 - 70
   });
 
   it('resolves Jonathan Adiós Erina, Caesar Último Hamon, Joseph Nigerundayo, Santana Absorción & Prep draw abilities', () => {

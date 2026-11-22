@@ -5,8 +5,8 @@ import { getCardById } from '../../../data/cardRegistry';
 import { CARD_BACK_PATTERN_URL } from '../../../services/assetResolver';
 import {
   computeEffectiveMaxHp,
+  getAvailableAttacks,
   getEffectiveCharacterProfile,
-  getEffectiveStandProfile,
 } from '../../../engine/helpers/cardStats';
 import { getStatusLabel } from '../../../engine/statuses/statusSystem';
 import type { PromptResponsePayload } from '../../../engine/types/actions';
@@ -408,13 +408,13 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
           </div>
         )}
 
-        {/* 7. CHOOSE ENEMY STAND ATTACK */}
+        {/* 7. CHOOSE ENEMY ATTACK (Manipulación de Cuerpos — Character or Stand attacks) */}
         {prompt.kind === 'CHOOSE_ENEMY_STAND_ATTACK' && (() => {
-          const enemyStand = state.players[prompt.targetPlayerId].active?.attachedStand;
-          const attacks = enemyStand
-            ? getEffectiveStandProfile(enemyStand).attacks.filter((a) =>
-                prompt.availableAttackIds.includes(a.id),
-              )
+          const enemyActive = state.players[prompt.targetPlayerId].active;
+          const attacks = enemyActive
+            ? getAvailableAttacks(enemyActive)
+                .map((a) => a.attack)
+                .filter((a) => prompt.availableAttackIds.includes(a.id))
             : [];
           return (
             <div className="space-y-4">

@@ -72,7 +72,7 @@ export const EVOLUTION_CARDS: EvolutionCard[] = [
   },
   {
     id: 'evo-silver-chariot-requiem',
-    name: 'Silver Chariot Requiem',
+    name: 'Silver Chariot Réquiem',
     type: 'EVOLUTION',
     part: 5,
     imageId: 'silver-chariot-requiem',
@@ -88,22 +88,22 @@ export const EVOLUTION_CARDS: EvolutionCard[] = [
       'Para evolucionar a Silver Chariot a Silver Chariot Réquiem, es necesaria una Flecha Réquiem.',
     attacks: [
       {
-        id: 'atk-manipulacion-de-stand',
-        name: 'Manipulación de Stand',
+        id: 'atk-manipulacion-de-cuerpos',
+        name: 'Manipulación de Cuerpos',
         energyCost: ['PSYCHIC', 'PSYCHIC'],
         baseDamage: 0,
         damageLabel: 'COPIA',
-        effectText: 'Elige uno de los movimientos del Stand enemigo y úsalo contra el usuario enemigo.',
+        effectText:
+          'Utiliza uno de los ataques del enemigo o stand enemigo contra el personaje activo del rival.',
         specialEffects: [{ kind: 'COPY_ENEMY_STAND_ATTACK' }],
       },
       {
         id: 'atk-intercambio-de-almas',
         name: 'Intercambio de Almas',
-        energyCost: ['PSYCHIC', 'PSYCHIC', 'PSYCHIC'],
+        energyCost: ['PSYCHIC', 'PSYCHIC'],
         baseDamage: 0,
         damageLabel: 'SWAP',
-        effectText:
-          'Intercambia la vida actual de tu usuario con la del usuario oponente (puede superar el HP máximo).',
+        effectText: 'Intercambia la vida actual de tu usuario con la del usuario oponente.',
         specialEffects: [{ kind: 'SOUL_SWAP_HP' }],
       },
     ],
