@@ -331,6 +331,7 @@ export function executeAttack(
     if (bonusInfo.consumedLastHamon) player.pendingNextAttackBonus = 0;
     if (bonusInfo.consumedErinaLove) attacker.erinaNextAttackBonus = false;
     if (bonusInfo.consumedDireAfterimage) attacker.direAfterimageBonus = false;
+    if (bonusInfo.consumedGrayFlyMassMurder) attacker.grayFlyMassMurderBonus = false;
   };
 
   // Special non-damaging copy attack (Silver Chariot Réquiem — Manipulación de Cuerpos)

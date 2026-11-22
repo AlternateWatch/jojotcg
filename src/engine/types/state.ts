@@ -89,6 +89,8 @@ export interface CharacterInstance {
   wangChanHpBonus?: number;
   /** Donovan — Élite Alemana: reduces next incoming attack damage by 20 on Stroheim */
   nextAttackDamageReduction?: number;
+  /** Gray Fly — Asesinato en Masa: +20 damage on next attack if owner KO'd an opponent last turn */
+  grayFlyMassMurderBonus?: boolean;
 }
 
 export interface PlayerState {
@@ -122,6 +124,9 @@ export interface PlayerState {
   guaranteedOpeningCardId?: string;
   /** Giorno Giovanna: triggers "I, Giorno Giovanna, Have a Dream" only the first time Giorno is played */
   giornoDreamUsed?: boolean;
+  /** Tracks whether this player KO'd an enemy character during their current / previous turn (Gray Fly) */
+  koEnemyThisTurn?: boolean;
+  koEnemyLastTurn?: boolean;
 }
 
 export type PromptContinuation =

@@ -742,6 +742,24 @@ export const CHARACTER_CARDS: CharacterCard[] = [
 
   // ===================== PART 3: STARDUST CRUSADERS =====================
   {
+    id: 'char-gray-fly',
+    name: 'Gray Fly',
+    type: 'CHARACTER',
+    part: 3,
+    imageId: 'gray-fly',
+    assetFolder: 'official',
+    categories: ['STAND_USER'],
+    maxHp: 80,
+    dg: 3,
+    signatureAbility: {
+      id: 'MASS_MURDER_GRAY_FLY',
+      name: 'ASESINATO EN MASA',
+      text: 'Al jugarse, si el turno anterior has eliminado a un oponente, su siguiente ataque inflige 20 puntos de daño extra.',
+      trigger: 'ON_ENTER_FIELD',
+    },
+    attacks: [],
+  },
+  {
     id: 'char-jotaro-kujo',
     name: 'Jotaro Kujo',
     type: 'CHARACTER',

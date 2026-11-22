@@ -100,7 +100,6 @@ export function App() {
   }, [hydrateAuthSession]);
 
   const prevScreenRef = useRef<AppScreen>(screen);
-  const battleEntryAudioRef = useRef<HTMLAudioElement | null>(null);
   const [transitionMeta, setTransitionMeta] = useState<{
     wipeKey: number;
     direction: 1 | -1;
@@ -121,19 +120,6 @@ export function App() {
         direction,
         isBattleLaunch: screen === 'BATTLE',
       }));
-      if (screen === 'BATTLE') {
-        try {
-          if (!battleEntryAudioRef.current) {
-            battleEntryAudioRef.current = new Audio('/assets/sfx/yes-yes-yes.ogg');
-          }
-          const sfx = battleEntryAudioRef.current;
-          sfx.volume = 0.65;
-          sfx.currentTime = 0;
-          void sfx.play().catch(() => {});
-        } catch {
-          // Ignore audio playback errors in restricted environments
-        }
-      }
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }, [screen]);

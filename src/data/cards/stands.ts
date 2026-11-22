@@ -2,6 +2,31 @@ import type { StandCard } from '../schemas/cardTypes';
 
 export const STAND_CARDS: StandCard[] = [
   {
+    id: 'stand-tower-of-gray',
+    name: 'Tower of Gray',
+    type: 'STAND',
+    part: 3,
+    imageId: 'tower-of-gray',
+    assetFolder: 'official',
+    requiredDg: 3,
+    attacks: [
+      {
+        id: 'atk-tower-needle',
+        name: 'Tower Needle',
+        energyCost: ['FIRE', 'WATER', 'NATURE', 'PSYCHIC', 'LIGHT'],
+        baseDamage: 0,
+        damageLabel: 'KO',
+        effectText:
+          'Lanza una moneda. Si sale cara, el oponente es directamente eliminado. Si sale cruz, tu personaje activo pasa a estar aturdido.',
+        coinFlip: {
+          count: 1,
+          onHeads: [{ kind: 'INSTANT_KO', target: 'DEFENDER' }],
+          onTails: [{ kind: 'STATUS', status: 'STUNNED', target: 'SELF' }],
+        },
+      },
+    ],
+  },
+  {
     id: 'stand-star-platinum',
     name: 'Star Platinum',
     type: 'STAND',

@@ -1498,16 +1498,19 @@ const PART_3_STAGES: CampaignStageDef[] = [
     opponentDeckIds: buildPart1Deck(
       [
         'char-hol-horse',
+        'char-gray-fly',
         'char-noriaki-kakyoin',
         'char-mariah',
         'stand-emperor',
+        'stand-tower-of-gray',
         'stand-bastet',
         'stand-hierophant-green',
       ],
       [...rep('item-atraccion-usuarios-stand', 2), ...rep('item-suministros-speedwagon', 2)],
       [
-        ['energy-psychic', 18],
-        ['energy-colorless', 12],
+        ['energy-stand', 4],
+        ['energy-psychic', 16],
+        ['energy-colorless', 14],
       ],
     ),
     storyDeckName: P3_STORY_EARLY_NAME,

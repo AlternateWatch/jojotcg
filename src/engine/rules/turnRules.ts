@@ -86,6 +86,16 @@ export function triggerOnEnterFieldAbility(
     }
   }
 
+  if (profile.signatureAbility.id === 'MASS_MURDER_GRAY_FLY' && player.koEnemyLastTurn) {
+    inst.grayFlyMassMurderBonus = true;
+    pushEvent(state, eventsOut, {
+      type: 'ABILITY_TRIGGERED',
+      playerId,
+      abilityName: 'Asesinato en Masa',
+      message: `¡Asesinato en Masa! ${profile.name} entra tras un KO del turno anterior (+20 de daño en su siguiente ataque).`,
+    });
+  }
+
   if (profile.signatureAbility.id === 'MAGNETIC_ATTRACTION_MARIAH' && opponent.active) {
     let stolen = 0;
     const remaining: typeof opponent.active.attachedEnergies = [];

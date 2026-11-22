@@ -143,6 +143,7 @@ export type SignatureEffectId =
   | 'SUPERHUMAN_STRENGTH_TARKUS'
   | 'DIO_LACKEY_WANG_CHAN'
   | 'GERMAN_ELITE_DONOVAN'
+  | 'MASS_MURDER_GRAY_FLY'
   | 'NONE';
 
 export interface SignatureAbilityDef {

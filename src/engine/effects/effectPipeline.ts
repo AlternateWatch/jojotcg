@@ -53,6 +53,7 @@ export function computeAttackDamageBonus(
   consumedLastHamon: boolean;
   consumedErinaLove: boolean;
   consumedDireAfterimage: boolean;
+  consumedGrayFlyMassMurder: boolean;
 } {
   const player = state.players[attackerPlayerId];
   const opponent = state.players[getOpponentId(attackerPlayerId)];
@@ -64,6 +65,7 @@ export function computeAttackDamageBonus(
   let consumedLastHamon = false;
   let consumedErinaLove = false;
   let consumedDireAfterimage = false;
+  let consumedGrayFlyMassMurder = false;
 
   // 1. Bench Hamon Masters (Will A. Zeppeli & Lisa Lisa): +20 each for HAMON_USER attacks
   if (profile.categories.includes('HAMON_USER')) {
@@ -158,6 +160,10 @@ export function computeAttackDamageBonus(
     bonus += 10;
     consumedDireAfterimage = true;
   }
+  if (attackerInst.grayFlyMassMurderBonus) {
+    bonus += 20;
+    consumedGrayFlyMassMurder = true;
+  }
   if (attackerInst.tarkusDamageBonus && attackerInst.tarkusDamageBonus > 0) {
     bonus += attackerInst.tarkusDamageBonus;
   }
@@ -201,6 +207,7 @@ export function computeAttackDamageBonus(
     consumedLastHamon,
     consumedErinaLove,
     consumedDireAfterimage,
+    consumedGrayFlyMassMurder,
   };
 }
 
@@ -439,6 +446,12 @@ export function handleCharacterKo(
     reason,
     message: `${profile.name} de ${owner.name} ha sido eliminado (${reason}).`,
   });
+
+  // Track opponent KO during active player's turn for Gray Fly ("Asesinato en Masa")
+  const killerId = getOpponentId(ownerPlayerId);
+  if (state.activePlayerId === killerId) {
+    state.players[killerId].koEnemyThisTurn = true;
+  }
 
   // 7. Check immediate Game Over if Active was KO'd and owner has no bench left
   if (zone === 'ACTIVE' && owner.bench.length === 0) {
@@ -884,4 +897,8 @@ export function resolveEndOfTurnEffects(
       character.attachedStand.rapidReloadTurnsRemaining -= 1;
     }
   }
+
+  // Roll KO tracking for Gray Fly ("Asesinato en Masa") into the player's next turn
+  player.koEnemyLastTurn = Boolean(player.koEnemyThisTurn);
+  player.koEnemyThisTurn = false;
 }

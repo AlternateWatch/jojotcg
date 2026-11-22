@@ -15,7 +15,7 @@ import { buildControlledBattleState, mustDispatch } from '../helpers/testFixture
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
   it('verifies all 69 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(74);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(76);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1176,5 +1176,86 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       tailsRng,
     );
     expect(afterTails.players.P1.active!.statuses.stunned).toBe(true);
+  });
+
+  it('resolves Gray Fly (80 HP, DG 3, Asesinato en Masa +20 next attack after prior-turn KO) and Tower of Gray (DG 3, Tower Needle: HEADS instant KO / TAILS self-stun)', () => {
+    const headsRng = { ...createSeededRng(1), flipCoin: () => 'HEADS' as const };
+    const tailsRng = { ...createSeededRng(1), flipCoin: () => 'TAILS' as const };
+
+    // 1. Gray Fly — Asesinato en Masa: KO an enemy on Turn N -> play Gray Fly on Turn N+1 -> gets +20 next attack bonus!
+    let gfState = buildControlledBattleState({
+      p1ActiveId: 'char-dio-brando',
+      p1ActiveEnergies: ['ELECTRIC', 'ELECTRIC'],
+      p1Hand: ['char-gray-fly', 'stand-hermit-purple'],
+      p2ActiveId: 'char-wang-chan', // 90 HP -> 1-shot by Space Ripper Stingy Eyes (90 dmg)
+      p2BenchIds: ['char-dio'], // 160 HP
+      phase: 'COMBAT',
+    });
+    gfState = mustDispatch(gfState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-space-ripper-stingy-eyes',
+    });
+    if (gfState.pendingPrompt?.kind === 'CHOOSE_PRIZE_CARD') {
+      gfState = mustDispatch(gfState, {
+        type: 'RESPOND_PROMPT',
+        playerId: 'P1',
+        response: { kind: 'CHOOSE_PRIZE_CARD', prizeIndex: 0 },
+      });
+    }
+    // P1 KO'd Wang Chan -> P1 turn ended -> koEnemyLastTurn is now true!
+    expect(gfState.players.P1.koEnemyLastTurn).toBe(true);
+
+    // P2 ends turn -> P1 plays Gray Fly to bench -> triggers Asesinato en Masa (+20 next attack!)
+    gfState = mustDispatch(gfState, { type: 'END_TURN', playerId: 'P2' });
+    gfState = mustDispatch(gfState, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: 0 });
+    const grayFly = gfState.players.P1.bench.find((b) => b.cardId === 'char-gray-fly')!;
+    expect(grayFly.grayFlyMassMurderBonus).toBe(true);
+
+    // Equip Hermit Purple (40 dmg) on Gray Fly, move to Active -> deals 40 + 20 = 60 dmg (160 -> 100) and consumes bonus!
+    gfState.activePlayerId = 'P1';
+    gfState.phase = 'COMBAT';
+    gfState.players.P1.active = grayFly;
+    grayFly.attachedStand = {
+      instanceId: 'st-hp-test',
+      cardId: 'stand-hermit-purple',
+      evolvedCardIds: [],
+      permanentDamageBonus: 0,
+      damageDebuff: 0,
+    };
+    grayFly.attachedEnergies = ['PSYCHIC', 'PSYCHIC'];
+    gfState = mustDispatch(gfState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-hermit-purple',
+    });
+    // DIO had 180 HP (160 + 20 from Wang Chan's Lacayo de DIO!) -> 180 - (40 + 20) = 120 HP
+    expect(gfState.players.P2.active!.currentHp).toBe(120);
+    expect(gfState.players.P1.active!.grayFlyMassMurderBonus).toBe(false);
+
+    // 2. Tower of Gray — Tower Needle (FIRE, WATER, NATURE, PSYCHIC, LIGHT): HEADS instant KO, TAILS self-stun
+    const tgBase = buildControlledBattleState({
+      p1ActiveId: 'char-gray-fly',
+      p1ActiveStandId: 'stand-tower-of-gray',
+      p1ActiveEnergies: ['FIRE', 'WATER', 'NATURE', 'PSYCHIC', 'LIGHT'],
+      p2ActiveId: 'char-dio', // 160 HP
+      p2BenchIds: ['char-hol-horse'],
+      phase: 'COMBAT',
+    });
+    const afterNeedleHeads = mustDispatch(
+      tgBase,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-tower-needle' },
+      headsRng,
+    );
+    expect(afterNeedleHeads.players.P2.discard).toContain('char-dio');
+    expect(afterNeedleHeads.players.P2.active!.cardId).toBe('char-hol-horse');
+
+    const afterNeedleTails = mustDispatch(
+      tgBase,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-tower-needle' },
+      tailsRng,
+    );
+    expect(afterNeedleTails.players.P2.active!.cardId).toBe('char-dio');
+    expect(afterNeedleTails.players.P1.active!.statuses.stunned).toBe(true);
   });
 });
