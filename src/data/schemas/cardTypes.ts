@@ -137,6 +137,7 @@ export type SignatureEffectId =
   | 'FLAGRANT_LOVE_ERINA'
   | 'PRECOGNITION_TONPETTY'
   | 'AFTERIMAGE_DIRE'
+  | 'HAMON_SCHOLAR_STRAIZO'
   | 'NONE';
 
 export interface SignatureAbilityDef {

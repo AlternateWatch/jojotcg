@@ -187,6 +187,32 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     ],
   },
   {
+    id: 'char-straizo',
+    name: 'Straizo',
+    type: 'CHARACTER',
+    part: 1,
+    imageId: 'straizo',
+    assetFolder: 'official',
+    categories: ['HAMON_USER'],
+    maxHp: 110,
+    dg: null,
+    signatureAbility: {
+      id: 'HAMON_SCHOLAR_STRAIZO',
+      name: 'ESTUDIOSO DEL HAMON',
+      text: 'Mientras Straizo esté en banca, roba una carta extra por cada turno en el que tengas a Tonpetty o Dire en activo.',
+      trigger: 'PASSIVE',
+    },
+    attacks: [
+      {
+        id: 'atk-straizo-overdrive',
+        name: 'Overdrive',
+        energyCost: ['ELECTRIC', 'COLORLESS'],
+        baseDamage: 50,
+        damageLabel: '50',
+      },
+    ],
+  },
+  {
     id: 'char-dio-brando',
     name: 'Dio Brando',
     type: 'CHARACTER',

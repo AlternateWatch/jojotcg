@@ -81,6 +81,41 @@ export function startNextTurn(
     return;
   }
 
+  // Straizo — ESTUDIOSO DEL HAMON: while Straizo is on bench and Tonpetty or Dire is Active, draw 1 extra card!
+  if (
+    player.active &&
+    player.bench.some(
+      (b) => getEffectiveCharacterProfile(b).signatureAbility.id === 'HAMON_SCHOLAR_STRAIZO',
+    )
+  ) {
+    const activeProfile = getEffectiveCharacterProfile(player.active);
+    if (
+      (activeProfile.currentCardId === 'char-tonpetty' ||
+        activeProfile.currentCardId === 'char-dire') &&
+      player.deck.length > 0
+    ) {
+      const extraCard = player.deck.shift()!;
+      player.hand.push(extraCard);
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId: nextPlayerId,
+        abilityName: 'Estudioso del Hamon',
+        message: `¡Estudioso del Hamon! Straizo en banca otorga 1 carta extra a ${player.name} (${activeProfile.name} activo).`,
+      });
+      pushEvent(state, eventsOut, {
+        type: 'CARD_DRAWN',
+        playerId: nextPlayerId,
+        count: 1,
+        message: `${player.name} roba 1 carta extra gracias a Estudioso del Hamon.`,
+      });
+      if (checkImmediateDeckOut(state, eventsOut, nextPlayerId)) {
+        return;
+      }
+      triggerOpponentExtraDrawReaction(state, eventsOut, nextPlayerId);
+      if (isGameOver(state)) return;
+    }
+  }
+
   state.phase = 'PREPARATION';
   pushEvent(state, eventsOut, {
     type: 'PHASE_CHANGED',

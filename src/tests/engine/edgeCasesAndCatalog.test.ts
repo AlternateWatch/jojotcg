@@ -9,9 +9,9 @@ import { OFFICIAL_CARD_IMAGE_IDS, OFFICIAL_ITEM_IMAGE_IDS } from '../../services
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 68 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 69 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(68);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(69);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(12);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -583,6 +583,30 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     // 60 base + 20 heads + 10 Imagen Residual = 90 dmg -> 160 - 90 = 70 HP!
     expect(state.players.P2.active!.currentHp).toBe(70);
     expect(state.players.P1.active!.direAfterimageBonus).toBe(false);
+  });
+
+  it('resolves Straizo (Estudioso del Hamon draws +1 extra card each turn when Straizo is on bench and Tonpetty or Dire is Active)', () => {
+    // 1. P2 has Dire active + Straizo on bench -> when P1 ends turn, P2 draws 1 mandatory + 1 extra = 2 cards!
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-dio-brando',
+      p2ActiveId: 'char-dire',
+      p2BenchIds: ['char-straizo'],
+      phase: 'PREPARATION',
+    });
+    const p2HandBefore = state.players.P2.hand.length;
+    state = mustDispatch(state, { type: 'END_TURN', playerId: 'P1' });
+    expect(state.players.P2.hand.length).toBe(p2HandBefore + 2);
+
+    // 2. When P2 has Jonathan active instead of Tonpetty/Dire, Straizo does NOT grant the extra draw
+    let noSynergyState = buildControlledBattleState({
+      p1ActiveId: 'char-dio-brando',
+      p2ActiveId: 'char-jonathan-joestar',
+      p2BenchIds: ['char-straizo'],
+      phase: 'PREPARATION',
+    });
+    const noSynHandBefore = noSynergyState.players.P2.hand.length;
+    noSynergyState = mustDispatch(noSynergyState, { type: 'END_TURN', playerId: 'P1' });
+    expect(noSynergyState.players.P2.hand.length).toBe(noSynHandBefore + 1);
   });
 
   it('completes AI vs AI matches across all 4 preset decks cleanly', () => {
