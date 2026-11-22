@@ -278,6 +278,9 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(resKq.cardIds).not.toContain('item-clackers');
     expect(resKq.cardIds).toContain('energy-fire');
     expect(resKq.cardIds.filter((id) => id === 'energy-stand').length).toBeLessThanOrEqual(4);
+    const kqEnergyCount = resKq.cardIds.filter((id) => getCardById(id)?.type === 'ENERGY').length;
+    expect(kqEnergyCount).toBeGreaterThanOrEqual(14);
+    expect(kqEnergyCount).toBeLessThanOrEqual(18);
   });
 
   it('validates Part 1–4 Campaigns (20 stages in Part 1 with bosses every 5; 10 stages in Parts 2–4; legal decks & strict one-time pickup)', () => {

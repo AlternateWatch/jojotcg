@@ -139,8 +139,8 @@ export function autoCompleteDeck(
         (c.categories.includes('VAMPIRE') || c.categories.includes('PILLAR_MAN')),
     );
 
-  // Reserve space for Energies so the deck always has enough fuel (at least 16 energies)
-  const MIN_ENERGIES = 16;
+  // Reserve space for Energies so the deck always has enough fuel (~15-18 energies, not flooded)
+  const MIN_ENERGIES = 15;
   const nonEnergyBudget = () => Math.max(0, maxDeck - MIN_ENERGIES - (nextIds.length - countByType('ENERGY')));
 
   // 1. Evolution prerequisites (base card + catalyst items + bench partners)
@@ -171,8 +171,8 @@ export function autoCompleteDeck(
   }
 
   // 2. Direct synergy partners for cards already placed by the player
-  const TARGET_CHARS = 7;
-  const TARGET_STANDS = seedHasStandArchetype ? 6 : 5;
+  const TARGET_CHARS = seedHasStandArchetype ? 10 : 12;
+  const TARGET_STANDS = seedHasStandArchetype ? 8 : 5;
 
   for (const id of [...nextIds]) {
     const syn = CARD_SYNERGIES[id];
@@ -297,7 +297,8 @@ export function autoCompleteDeck(
 
   // 4. Fill compatible Stands up to TARGET_STANDS if the deck has Stand Users
   const standUsers = getDeckStandUsers();
-  const desiredStands = standUsers.length > 0 ? Math.min(TARGET_STANDS, Math.max(3, standUsers.length)) : 0;
+  const desiredStands =
+    standUsers.length > 0 ? Math.min(TARGET_STANDS, Math.max(4, standUsers.length - 1)) : 0;
 
   while (countByType('STAND') < desiredStands && nonEnergyBudget() > 0) {
     const deckColors = getDeckRequiredColors(nextIds);
@@ -359,25 +360,28 @@ export function autoCompleteDeck(
   });
 
   const itemPlan: { id: string; target: number }[] = [
-    ...(hasStandsInDeck ? [{ id: 'item-flecha-de-stand', target: 2 }] : []),
-    ...(hasStandEvoInDeck ? [{ id: 'item-flecha-requiem', target: 1 }] : []),
+    ...(hasStandsInDeck ? [{ id: 'item-flecha-de-stand', target: 3 }] : []),
+    ...(hasStandEvoInDeck ? [{ id: 'item-flecha-requiem', target: 2 }] : []),
     { id: 'item-atraccion-usuarios-stand', target: 3 },
-    { id: 'item-comida-de-tonio', target: 2 },
-    { id: 'item-suministros-speedwagon', target: 2 },
+    { id: 'item-comida-de-tonio', target: 3 },
+    { id: 'item-suministros-speedwagon', target: 3 },
     ...(hasHamonInDeck
       ? [
-          { id: 'item-clackers', target: 2 },
-          { id: 'item-entrenamiento-air-supplena', target: 2 },
+          { id: 'item-clackers', target: 3 },
+          { id: 'item-entrenamiento-air-supplena', target: 3 },
         ]
       : []),
-    ...(hasConventionalInDeck ? [{ id: 'item-estilo-de-combate-ogre-street', target: 2 }] : []),
-    { id: 'item-muerte-de-danny', target: 1 },
-    { id: 'item-pluck', target: 1 },
-    { id: 'item-cinta-de-caesar', target: 1 },
-    { id: 'item-mechero-de-polpo', target: 1 },
+    ...(hasConventionalInDeck ? [{ id: 'item-estilo-de-combate-ogre-street', target: 3 }] : []),
+    { id: 'item-muerte-de-danny', target: 2 },
+    { id: 'item-pluck', target: 2 },
+    { id: 'item-cinta-de-caesar', target: 2 },
+    { id: 'item-mechero-de-polpo', target: 2 },
+    { id: 'item-ataud-de-dio', target: 2 },
+    { id: 'item-mascara-de-piedra', target: 2 },
+    { id: 'item-piedra-roja-de-aja', target: 2 },
   ];
 
-  const MAX_ITEMS_AUTO = 9;
+  const MAX_ITEMS_AUTO = hasStandsInDeck ? 13 : 16;
   for (const plan of itemPlan) {
     while (
       countByType('ITEM') < MAX_ITEMS_AUTO &&
