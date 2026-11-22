@@ -258,6 +258,26 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(resEmpty.cardIds).toHaveLength(46);
     expect(getMissingCardsForDeck(baseProg, resEmpty.cardIds)).toHaveLength(0);
     expect(validateDeck(resEmpty.cardIds).valid).toBe(true);
+
+    // Seeding Killer Queen builds a Stand-focused deck (NO Hamon flood, includes Kira + Stand Users + Fire/Stand Energies!)
+    const fullOwned: Record<string, number> = {};
+    for (const c of ALL_CARDS) {
+      if (c.type !== 'ENERGY') fullOwned[c.id] = 3;
+    }
+    const richProg = { ...baseProg, ownedCards: fullOwned };
+    const resKq = autoCompleteDeck(['stand-killer-queen'], richProg);
+    expect(resKq.cardIds).toHaveLength(46);
+    const valKq = validateDeck(resKq.cardIds);
+    expect(valKq.valid, valKq.errors.map((e) => e.message).join('; ')).toBe(true);
+    expect(resKq.cardIds).toContain('char-yoshikage-kira');
+    const kqChars = resKq.cardIds
+      .map(getCardById)
+      .filter((c): c is NonNullable<typeof c> & { type: 'CHARACTER' } => c?.type === 'CHARACTER');
+    expect(kqChars.every((ch) => ch.categories.includes('STAND_USER'))).toBe(true);
+    expect(kqChars.some((ch) => ch.categories.includes('HAMON_USER'))).toBe(false);
+    expect(resKq.cardIds).not.toContain('item-clackers');
+    expect(resKq.cardIds).toContain('energy-fire');
+    expect(resKq.cardIds.filter((id) => id === 'energy-stand').length).toBeLessThanOrEqual(4);
   });
 
   it('validates Part 1–4 Campaigns (20 stages in Part 1 with bosses every 5; 10 stages in Parts 2–4; legal decks & strict one-time pickup)', () => {

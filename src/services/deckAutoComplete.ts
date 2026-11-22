@@ -71,7 +71,10 @@ export function autoCompleteDeck(
     if (!card) return false;
     const owned = getOwnedCount(progression, cardId);
     if (owned <= 0) return false;
-    const ruleLimit = DEFAULT_RULES_CONFIG.maxCopiesByType[card.type];
+    const ruleLimit =
+      card.type === 'ENERGY' && card.energyType === 'STAND'
+        ? DEFAULT_RULES_CONFIG.maxStandEnergyCopies
+        : DEFAULT_RULES_CONFIG.maxCopiesByType[card.type];
     const effectiveLimit = ruleLimit === null ? owned : Math.min(ruleLimit, owned);
     return (counts.get(cardId) ?? 0) < effectiveLimit;
   };
@@ -100,7 +103,43 @@ export function autoCompleteDeck(
   const getMaxUserDg = (): number =>
     getDeckStandUsers().reduce((max, u) => Math.max(max, u.dg ?? 0), 0);
 
-  // Reserve space for Energies so the deck always has enough fuel (at least 15-17 energies)
+  // Detect seed archetype, parts, and colors from the player's starting cards
+  const seedCards = currentCardIds.map(getCardById).filter((c): c is NonNullable<typeof c> => Boolean(c));
+  const seedParts = new Set<number>(seedCards.filter((c) => c.type !== 'ENERGY').map((c) => c.part));
+  const seedHasStandArchetype = seedCards.some(
+    (c) =>
+      c.type === 'STAND' ||
+      (c.type === 'CHARACTER' && c.categories.includes('STAND_USER')) ||
+      (c.type === 'EVOLUTION' && (c.evolutionTarget === 'STAND' || c.categories?.includes('STAND_USER'))) ||
+      c.id === 'item-flecha-de-stand' ||
+      c.id === 'item-flecha-requiem' ||
+      c.id === 'energy-stand',
+  );
+  const seedHasHamonArchetype =
+    !seedHasStandArchetype &&
+    seedCards.some(
+      (c) =>
+        (c.type === 'CHARACTER' && c.categories.includes('HAMON_USER')) ||
+        c.id === 'item-clackers' ||
+        c.id === 'item-entrenamiento-air-supplena',
+    );
+  const seedHasConventionalArchetype =
+    !seedHasStandArchetype &&
+    !seedHasHamonArchetype &&
+    seedCards.some(
+      (c) =>
+        (c.type === 'CHARACTER' && c.categories.includes('CONVENTIONAL_FIGHTER')) ||
+        c.id === 'item-estilo-de-combate-ogre-street',
+    );
+  const seedHasVampirePillarArchetype =
+    !seedHasStandArchetype &&
+    seedCards.some(
+      (c) =>
+        c.type === 'CHARACTER' &&
+        (c.categories.includes('VAMPIRE') || c.categories.includes('PILLAR_MAN')),
+    );
+
+  // Reserve space for Energies so the deck always has enough fuel (at least 16 energies)
   const MIN_ENERGIES = 16;
   const nonEnergyBudget = () => Math.max(0, maxDeck - MIN_ENERGIES - (nextIds.length - countByType('ENERGY')));
 
@@ -133,7 +172,7 @@ export function autoCompleteDeck(
 
   // 2. Direct synergy partners for cards already placed by the player
   const TARGET_CHARS = 7;
-  const TARGET_STANDS = 5;
+  const TARGET_STANDS = seedHasStandArchetype ? 6 : 5;
 
   for (const id of [...nextIds]) {
     const syn = CARD_SYNERGIES[id];
@@ -160,7 +199,12 @@ export function autoCompleteDeck(
   if (maxNeededDg > getMaxUserDg() && nonEnergyBudget() > 0) {
     const compatUsers = ownedCharacters
       .filter((c) => c.type === 'CHARACTER' && c.categories.includes('STAND_USER') && (c.dg ?? 0) >= maxNeededDg)
-      .sort((a, b) => (b.type === 'CHARACTER' ? b.maxHp : 0) - (a.type === 'CHARACTER' ? a.maxHp : 0));
+      .sort((a, b) => {
+        if (a.type !== 'CHARACTER' || b.type !== 'CHARACTER') return 0;
+        const partBonusA = seedParts.has(a.part) ? 50 : 0;
+        const partBonusB = seedParts.has(b.part) ? 50 : 0;
+        return b.maxHp + partBonusB - (a.maxHp + partBonusA);
+      });
     if (compatUsers[0]) {
       tryAdd(compatUsers[0].id);
     }
@@ -169,6 +213,12 @@ export function autoCompleteDeck(
   // Score and add owned Characters up to TARGET_CHARS
   while (countByType('CHARACTER') < TARGET_CHARS && nonEnergyBudget() > 0) {
     const deckColors = getDeckRequiredColors(nextIds);
+    const hasStandInDeckNow = seedHasStandArchetype || countByType('STAND') > 0 || getDeckStandUsers().length > 0;
+    const TURN_1_MAX_DG = 4;
+    const turn1StartersCount = nextIds.filter((id) => {
+      const ch = getCharacterCard(id);
+      return Boolean(ch && (ch.dg === null || ch.dg <= TURN_1_MAX_DG));
+    }).length;
     const hasSelfSufficient = nextIds.some((id) => {
       const ch = getCharacterCard(id);
       return Boolean(ch && ch.attacks.length > 0);
@@ -180,16 +230,63 @@ export function autoCompleteDeck(
     candidates.sort((a, b) => {
       if (a.type !== 'CHARACTER' || b.type !== 'CHARACTER') return 0;
       const score = (ch: typeof a) => {
-        let s = ch.maxHp * 0.5;
+        let s = ch.maxHp * 0.45;
         const colors = collectAttackColors(ch.attacks);
         const newColors = [...colors].filter((col) => !deckColors.has(col)).length;
-        // Strongly prefer not introducing a 3rd/4th energy color
-        if (deckColors.size + newColors > 2) s -= newColors * 60;
-        else if (colors.size > 0 && newColors === 0) s += 35;
 
-        if (!hasSelfSufficient && ch.attacks.length > 0) s += 80;
-        if (ch.attacks.length > 0) s += 25;
-        if (ch.categories.includes('STAND_USER') && (ch.dg ?? 0) >= 4) s += 20;
+        // Archetype fidelity: strongly keep Stand decks as Stand Users, Hamon decks as Hamon, etc.
+        if (seedHasStandArchetype) {
+          if (ch.categories.includes('STAND_USER')) {
+            s += 130;
+            if (maxNeededDg > 0 && (ch.dg ?? 0) >= maxNeededDg) s += 35;
+            // Ensure at least 2 Turn-1 playable Stand Users (DG <= 4) so the deck never bricks
+            if (turn1StartersCount < 2 && (ch.dg ?? 99) <= TURN_1_MAX_DG) {
+              s += 65;
+            }
+          } else {
+            // Heavily penalize off-archetype non-Stand fighters (Hamon, Vampires, etc.)
+            s -= 140;
+          }
+        } else if (seedHasHamonArchetype) {
+          if (ch.categories.includes('HAMON_USER')) s += 130;
+          else if (ch.categories.includes('STAND_USER')) s -= 110;
+          else s -= 40;
+        } else if (seedHasConventionalArchetype) {
+          if (ch.categories.includes('CONVENTIONAL_FIGHTER')) s += 130;
+          else if (ch.categories.includes('STAND_USER')) s -= 110;
+          else s -= 30;
+        } else if (seedHasVampirePillarArchetype) {
+          if (ch.categories.includes('VAMPIRE') || ch.categories.includes('PILLAR_MAN')) s += 130;
+          else if (ch.categories.includes('STAND_USER')) s -= 110;
+          else s -= 30;
+        } else {
+          // Open / empty seed: balanced approach
+          if (!hasSelfSufficient && ch.attacks.length > 0) s += 60;
+          if (ch.attacks.length > 0) s += 20;
+          if (ch.categories.includes('STAND_USER') && (ch.dg ?? 0) >= 4) s += 20;
+        }
+
+        // Color discipline: avoid introducing extra energy colors unnecessarily
+        if (deckColors.size > 0 && newColors > 0) {
+          s -= deckColors.size + newColors > 2 ? newColors * 80 : newColors * 35;
+        } else if (colors.size > 0 && newColors === 0 && deckColors.size > 0) {
+          s += 35;
+        }
+
+        // Same-Part affinity (e.g. Part 4 Morioh allies with Killer Queen)
+        if (seedParts.has(ch.part)) s += 30;
+
+        // Direct synergy with any card already in deck
+        const syn = CARD_SYNERGIES[ch.id];
+        if (syn && syn.partnerCardIds.some((pid) => nextIds.includes(pid))) {
+          s += 55;
+        }
+
+        // Non-Stand decks benefit from at least 1 Turn-1 attacker
+        if (!hasStandInDeckNow && !hasSelfSufficient && ch.attacks.length > 0) {
+          s += 70;
+        }
+
         return s;
       };
       return score(b) - score(a);
@@ -225,8 +322,17 @@ export function autoCompleteDeck(
         const colors = collectAttackColors(st.attacks);
         const newColors = [...colors].filter((col) => !deckColors.has(col)).length;
         let s = 50;
-        if (deckColors.size + newColors > 2) s -= newColors * 75;
-        else if (colors.size === 0 || newColors === 0) s += 40;
+        if (deckColors.size > 0 && newColors > 0) {
+          s -= deckColors.size + newColors > 2 ? newColors * 90 : newColors * 30;
+        } else if (colors.size === 0 || newColors === 0) {
+          s += 50;
+        }
+        // Synergy with users already in deck
+        const syn = CARD_SYNERGIES[st.id];
+        if (syn && syn.partnerCardIds.some((pid) => nextIds.includes(pid))) {
+          s += 60;
+        }
+        if (seedParts.has(st.part)) s += 20;
         // Prefer lower requiredDg so more Stand Users on board can equip it
         s += (6 - st.requiredDg) * 8;
         return s;
@@ -243,22 +349,32 @@ export function autoCompleteDeck(
     const ch = getCharacterCard(id);
     return Boolean(ch && ch.categories.includes('HAMON_USER'));
   });
+  const hasConventionalInDeck = nextIds.some((id) => {
+    const ch = getCharacterCard(id);
+    return Boolean(ch && ch.categories.includes('CONVENTIONAL_FIGHTER'));
+  });
   const hasStandEvoInDeck = nextIds.some((id) => {
     const evo = getEvolutionCard(id);
     return Boolean(evo && evo.evolutionTarget === 'STAND');
   });
 
   const itemPlan: { id: string; target: number }[] = [
+    ...(hasStandsInDeck ? [{ id: 'item-flecha-de-stand', target: 2 }] : []),
+    ...(hasStandEvoInDeck ? [{ id: 'item-flecha-requiem', target: 1 }] : []),
     { id: 'item-atraccion-usuarios-stand', target: 3 },
     { id: 'item-comida-de-tonio', target: 2 },
     { id: 'item-suministros-speedwagon', target: 2 },
-    ...(hasHamonInDeck ? [{ id: 'item-clackers', target: 2 }] : []),
+    ...(hasHamonInDeck
+      ? [
+          { id: 'item-clackers', target: 2 },
+          { id: 'item-entrenamiento-air-supplena', target: 2 },
+        ]
+      : []),
+    ...(hasConventionalInDeck ? [{ id: 'item-estilo-de-combate-ogre-street', target: 2 }] : []),
+    { id: 'item-muerte-de-danny', target: 1 },
     { id: 'item-pluck', target: 1 },
     { id: 'item-cinta-de-caesar', target: 1 },
-    ...(hasStandsInDeck ? [{ id: 'item-flecha-de-stand', target: 2 }] : []),
-    ...(hasStandEvoInDeck ? [{ id: 'item-flecha-requiem', target: 1 }] : []),
-    { id: 'item-mascara-de-piedra', target: 1 },
-    { id: 'item-piedra-roja-de-aja', target: 1 },
+    { id: 'item-mechero-de-polpo', target: 1 },
   ];
 
   const MAX_ITEMS_AUTO = 9;
@@ -273,7 +389,20 @@ export function autoCompleteDeck(
     }
   }
 
-  // 6. Fill remaining slots up to 40 with optimal Basic Energies matching attack requirements
+  // 6. Fill remaining slots up to maxDeck with optimal Energies (up to 4 Stand Energies for Stand decks + matching Basic Energies)
+  if (hasStandsInDeck && standUsers.length >= 2) {
+    const desiredStandEnergies = Math.min(
+      DEFAULT_RULES_CONFIG.maxStandEnergyCopies,
+      Math.max(0, maxDeck - nextIds.length - 12),
+    );
+    while (
+      (counts.get('energy-stand') ?? 0) < desiredStandEnergies &&
+      tryAdd('energy-stand')
+    ) {
+      // add up to 4 Stand Energies
+    }
+  }
+
   const remainingSlots = maxDeck - nextIds.length;
   if (remainingSlots > 0) {
     const maxPerColor = new Map<EnergyType, number>();
