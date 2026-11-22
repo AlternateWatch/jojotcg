@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, GraduationCap, Lock, Sparkles } from 'lucide-react';
 import type { TutorialLessonDef } from '../../../data/tutorialData';
-import { computeTutorialStep } from '../../../engine/tutorial/tutorialCoach';
+import { computeTutorialStep, isStrictTutorialLesson } from '../../../engine/tutorial/tutorialCoach';
 import type { GameState, PlayerId } from '../../../engine/types/state';
 
 interface TutorialCoachBannerProps {
@@ -44,11 +44,15 @@ export function TutorialCoachBanner({ lesson, gameState, myId }: TutorialCoachBa
         {!collapsed && (
           <div className="border-t border-white/10 bg-[#0e0b16] px-3 py-1.5 text-[11px] text-zinc-300">
             <strong className="text-[#f2c12e]">{lesson.mentorName}:</strong> {guidance.text}{' '}
-            {isStrictStep && (
+            {isStrictStep ? (
               <span className="ml-1 font-mono text-[10px] font-bold text-[#00e599] uppercase">
                 [Paso obligatorio]
               </span>
-            )}
+            ) : !isStrictTutorialLesson(lesson) ? (
+              <span className="ml-1 font-mono text-[10px] font-bold text-[#f2c12e] uppercase">
+                [Examen Final · Control libre]
+              </span>
+            ) : null}
           </div>
         )}
       </div>

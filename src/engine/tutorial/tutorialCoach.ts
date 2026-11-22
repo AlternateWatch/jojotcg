@@ -20,7 +20,26 @@ export interface TutorialStepGuidance {
   blockReason?: string;
 }
 
+export function isStrictTutorialLesson(lesson: TutorialLessonDef): boolean {
+  return lesson.lessonNumber <= 5;
+}
+
 export function computeTutorialStep(
+  lesson: TutorialLessonDef,
+  state: GameState,
+  myId: PlayerId,
+): TutorialStepGuidance {
+  const step = computeTutorialStepRaw(lesson, state, myId);
+  if (!isStrictTutorialLesson(lesson)) {
+    return {
+      stepLabel: step.stepLabel,
+      text: step.text,
+    };
+  }
+  return step;
+}
+
+function computeTutorialStepRaw(
   lesson: TutorialLessonDef,
   state: GameState,
   myId: PlayerId,
@@ -283,7 +302,7 @@ export function checkTutorialActionAllowed(
   myId: PlayerId,
   action: GameAction,
 ): { ok: true } | { ok: false; reason: string } {
-  if (action.type === 'CONCEDE' || action.playerId !== myId) {
+  if (!isStrictTutorialLesson(lesson) || action.type === 'CONCEDE' || action.playerId !== myId) {
     return { ok: true };
   }
   const step = computeTutorialStep(lesson, state, myId);
