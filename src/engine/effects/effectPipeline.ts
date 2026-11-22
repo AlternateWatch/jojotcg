@@ -52,6 +52,7 @@ export function computeAttackDamageBonus(
   consumedLuckyShot: boolean;
   consumedLastHamon: boolean;
   consumedErinaLove: boolean;
+  consumedDireAfterimage: boolean;
 } {
   const player = state.players[attackerPlayerId];
   const opponent = state.players[getOpponentId(attackerPlayerId)];
@@ -62,6 +63,7 @@ export function computeAttackDamageBonus(
   let consumedLuckyShot = false;
   let consumedLastHamon = false;
   let consumedErinaLove = false;
+  let consumedDireAfterimage = false;
 
   // 1. Bench Hamon Masters (Will A. Zeppeli & Lisa Lisa): +20 each for HAMON_USER attacks
   if (profile.categories.includes('HAMON_USER')) {
@@ -152,6 +154,10 @@ export function computeAttackDamageBonus(
     bonus += 10;
     consumedErinaLove = true;
   }
+  if (attackerInst.direAfterimageBonus) {
+    bonus += 10;
+    consumedDireAfterimage = true;
+  }
 
   // 5. Horus — Caída de las Temperaturas (+10 per stack to WATER attacks)
   if (player.permanentWaterAttackBonus > 0 && attack.energyCost.includes('WATER')) {
@@ -179,7 +185,37 @@ export function computeAttackDamageBonus(
     }
   }
 
-  return { bonus, consumedHotBlood, consumedLuckyShot, consumedLastHamon, consumedErinaLove };
+  return {
+    bonus,
+    consumedHotBlood,
+    consumedLuckyShot,
+    consumedLastHamon,
+    consumedErinaLove,
+    consumedDireAfterimage,
+  };
+}
+
+/**
+ * Dire — IMAGEN RESIDUAL:
+ * When moving from Bench to the Active slot with more than 1 Energy attached,
+ * Dire's next attack deals +10 extra damage.
+ */
+export function triggerOnMoveToActiveAbility(
+  state: GameState,
+  eventsOut: CombatEvent[],
+  playerId: PlayerId,
+  inst: CharacterInstance,
+): void {
+  const profile = getEffectiveCharacterProfile(inst);
+  if (profile.signatureAbility.id === 'AFTERIMAGE_DIRE' && inst.attachedEnergies.length > 1) {
+    inst.direAfterimageBonus = true;
+    pushEvent(state, eventsOut, {
+      type: 'ABILITY_TRIGGERED',
+      playerId,
+      abilityName: 'Imagen Residual',
+      message: `¡Imagen Residual! ${profile.name} entra al Puesto Activo con ${inst.attachedEnergies.length} energías (+10 daño en su siguiente ataque).`,
+    });
+  }
 }
 
 export function healCharacter(
@@ -412,6 +448,7 @@ export function handleCharacterKo(
         message: `${promotedProfile.name} sube automáticamente al Puesto Activo.`,
       });
       cleanseBurn(state, eventsOut, ownerPlayerId, promoted.instanceId, 'promoción al Puesto Activo');
+      triggerOnMoveToActiveAbility(state, eventsOut, ownerPlayerId, promoted);
     } else {
       enqueuePrompt(state, {
         kind: 'PROMOTE_FROM_BENCH',

@@ -156,6 +156,37 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     ],
   },
   {
+    id: 'char-dire',
+    name: 'Dire',
+    type: 'CHARACTER',
+    part: 1,
+    imageId: 'dire',
+    assetFolder: 'official',
+    categories: ['HAMON_USER'],
+    maxHp: 110,
+    dg: null,
+    signatureAbility: {
+      id: 'AFTERIMAGE_DIRE',
+      name: 'IMAGEN RESIDUAL',
+      text: 'Al moverse al puesto activo, si tiene más de una energía unida, su siguiente ataque inflige 10 puntos de daño extra.',
+      trigger: 'PASSIVE',
+    },
+    attacks: [
+      {
+        id: 'atk-thunder-cross-split-attack',
+        name: 'Thunder Cross Split Attack',
+        energyCost: ['ELECTRIC', 'ELECTRIC'],
+        baseDamage: 60,
+        damageLabel: '60',
+        effectText: 'Tira una moneda. Si sale cara, este ataque inflige 20 puntos de daño extra.',
+        coinFlip: {
+          count: 1,
+          onHeads: [{ kind: 'DAMAGE', target: 'DEFENDER', amount: 20 }],
+        },
+      },
+    ],
+  },
+  {
     id: 'char-dio-brando',
     name: 'Dio Brando',
     type: 'CHARACTER',

@@ -27,6 +27,7 @@ import {
   handleCharacterKo,
   healCharacter,
   resolveEndOfTurnEffects,
+  triggerOnMoveToActiveAbility,
   triggerOpponentExtraDrawReaction,
 } from '../effects/effectPipeline';
 import type { PromptResponsePayload } from '../types/actions';
@@ -292,6 +293,7 @@ export function executeAttack(
     if (bonusInfo.consumedLuckyShot) attacker.luckyShotUsed = true;
     if (bonusInfo.consumedLastHamon) player.pendingNextAttackBonus = 0;
     if (bonusInfo.consumedErinaLove) attacker.erinaNextAttackBonus = false;
+    if (bonusInfo.consumedDireAfterimage) attacker.direAfterimageBonus = false;
   };
 
   // Special non-damaging copy attack (Silver Chariot Requiem — Manipulación de Stand)
@@ -663,6 +665,7 @@ export function executeAttack(
       const promoted = opponent.bench.splice(0, 1)[0]!;
       opponent.active = promoted;
       cleanseBurn(state, eventsOut, opponentId, promoted.instanceId, 'promoción al Puesto Activo');
+      triggerOnMoveToActiveAbility(state, eventsOut, opponentId, promoted);
       pushEvent(state, eventsOut, {
         type: 'BENCH_SWAP',
         playerId: opponentId,
@@ -847,6 +850,7 @@ export function executeAttack(
             player.bench.push(outgoing);
             cleanseBurn(state, eventsOut, playerId, outgoing.instanceId, 'retirada a la banca');
             cleanseBurn(state, eventsOut, playerId, incoming.instanceId, 'promoción al Puesto Activo');
+            triggerOnMoveToActiveAbility(state, eventsOut, playerId, incoming);
             pushEvent(state, eventsOut, {
               type: 'BENCH_SWAP',
               playerId,
@@ -1241,6 +1245,7 @@ export function resolvePendingPrompt(
           message: `${prof.name} es promovido al Puesto Activo.`,
         });
         cleanseBurn(state, eventsOut, playerId, promoted.instanceId, 'promoción al Puesto Activo');
+        triggerOnMoveToActiveAbility(state, eventsOut, playerId, promoted);
       }
       break;
     }
@@ -1254,6 +1259,7 @@ export function resolvePendingPrompt(
         player.bench.push(outgoing);
         cleanseBurn(state, eventsOut, playerId, outgoing.instanceId, 'retirada a la banca');
         cleanseBurn(state, eventsOut, playerId, incoming.instanceId, 'promoción al Puesto Activo');
+        triggerOnMoveToActiveAbility(state, eventsOut, playerId, incoming);
         pushEvent(state, eventsOut, {
           type: 'BENCH_SWAP',
           playerId,

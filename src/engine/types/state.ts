@@ -79,6 +79,8 @@ export interface CharacterInstance {
   /** Erina Pendleton — Amor Flagrante: +10 HP & +10 next attack granted to Jonathan on entry */
   erinaHpBonus?: number;
   erinaNextAttackBonus?: boolean;
+  /** Dire — Imagen Residual: +10 next attack after moving to Active with >1 energy attached */
+  direAfterimageBonus?: boolean;
 }
 
 export interface PlayerState {

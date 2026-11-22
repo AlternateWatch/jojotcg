@@ -9,9 +9,9 @@ import { OFFICIAL_CARD_IMAGE_IDS, OFFICIAL_ITEM_IMAGE_IDS } from '../../services
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 67 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 68 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(67);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(68);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(12);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -554,6 +554,35 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       attackId: 'atk-mano-a-mano-curtido',
     });
     expect(atkState.players.P2.active!.currentHp).toBe(80); // 160 - 80
+  });
+
+  it('resolves Dire (Imagen Residual +10 next attack after moving to Active with >1 energy, and Thunder Cross Split Attack 60 + 20 on heads)', () => {
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-joseph-joestar', // Nigerundayo swaps to Dire without ending P1 turn!
+      p1BenchIds: ['char-dire'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'PREPARATION',
+    });
+    state.players.P1.bench[0]!.attachedEnergies = ['ELECTRIC', 'ELECTRIC'];
+
+    state = mustDispatch(state, {
+      type: 'SWAP_ACTIVE_WITH_BENCH',
+      playerId: 'P1',
+      benchInstanceId: state.players.P1.bench[0]!.instanceId,
+    });
+    expect(state.players.P1.active!.cardId).toBe('char-dire');
+    expect(state.players.P1.active!.direAfterimageBonus).toBe(true);
+
+    state = mustDispatch(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    const headsRng = { ...createSeededRng(1), flipCoin: () => 'HEADS' as const };
+    state = mustDispatch(
+      state,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-thunder-cross-split-attack' },
+      headsRng,
+    );
+    // 60 base + 20 heads + 10 Imagen Residual = 90 dmg -> 160 - 90 = 70 HP!
+    expect(state.players.P2.active!.currentHp).toBe(70);
+    expect(state.players.P1.active!.direAfterimageBonus).toBe(false);
   });
 
   it('completes AI vs AI matches across all 4 preset decks cleanly', () => {

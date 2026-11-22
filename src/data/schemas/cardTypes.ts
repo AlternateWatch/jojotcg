@@ -136,6 +136,7 @@ export type SignatureEffectId =
   | 'TETRAPHOBIA_MISTA'
   | 'FLAGRANT_LOVE_ERINA'
   | 'PRECOGNITION_TONPETTY'
+  | 'AFTERIMAGE_DIRE'
   | 'NONE';
 
 export interface SignatureAbilityDef {
