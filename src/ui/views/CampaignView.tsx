@@ -135,8 +135,17 @@ export function CampaignView() {
     setScreen('BATTLE');
   };
 
-  const row1 = activePart.stages.slice(0, 5);
-  const row2 = activePart.stages.slice(5, 10);
+  const stageRows = useMemo(() => {
+    const rows: typeof activePart.stages[] = [];
+    for (let i = 0; i < activePart.stages.length; i += 5) {
+      rows.push(activePart.stages.slice(i, i + 5));
+    }
+    return rows;
+  }, [activePart.stages]);
+  const finalStageNumber = activePart.stages[activePart.stages.length - 1]?.stageNumber ?? 10;
+  const minibossNumbers = activePart.stages
+    .filter((s) => s.isBoss && s.stageNumber !== finalStageNumber)
+    .map((s) => s.stageNumber);
 
   return (
     <div
@@ -212,8 +221,18 @@ export function CampaignView() {
               <div className="flex items-center gap-1.5">
                 <Gift size={14} className="text-[#f2c12e]" />
                 <span>
-                  <strong>Nivel 5 (Jefe)</strong>: +1 Sobre {activePart.badge} ·{' '}
-                  <strong>Nivel 10 (Jefe Final)</strong>: +2 Sobres {activePart.badge}
+                  {minibossNumbers.length > 0 && (
+                    <>
+                      <strong>
+                        {minibossNumbers.length === 1
+                          ? `Nivel ${minibossNumbers[0]} (Minijefe)`
+                          : `Niveles ${minibossNumbers.join(', ')} (Minijefes)`}
+                      </strong>
+                      : +1 Sobre {activePart.badge} ·{' '}
+                    </>
+                  )}
+                  <strong>Nivel {finalStageNumber} (Jefe Final)</strong>: +2 Sobres{' '}
+                  {activePart.badge}
                 </span>
               </div>
               <div className="text-[11px] text-zinc-400">
@@ -239,164 +258,118 @@ export function CampaignView() {
               </span>
             </div>
 
-            <div className="space-y-6">
-              {/* ROW 1: Stages 1 -> 5 */}
-              <div className="relative">
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute top-1/2 right-8 left-8 hidden h-1 -translate-y-1/2 bg-[#292038] sm:block"
-                />
-                <div className="relative grid grid-cols-2 gap-3 sm:grid-cols-5">
-                  {row1.map((stage) => {
-                    const unlocked = isCampaignStageUnlocked(stage, completedIds);
-                    const cleared = completedIds.includes(stage.id);
-                    const isCurrent = selectedStage?.id === stage.id;
-                    const isNext = unlocked && !cleared;
-                    return (
-                      <motion.button
-                        key={stage.id}
-                        type="button"
-                        whileHover={{ y: -4, scale: 1.03 }}
-                        whileTap={{ scale: 0.96 }}
-                        onClick={() => setSelectedStageId(stage.id)}
-                        className={`relative flex flex-col items-center justify-between border-2 p-3 text-center transition ${
-                          isCurrent
-                            ? 'border-[#f2c12e] bg-[#241b35] shadow-[0_0_0_2px_#f2c12e,4px_4px_0_#060508]'
-                            : stage.isBoss
-                              ? 'border-[#e6194b] bg-[#240e18] shadow-[4px_4px_0_#060508]'
-                              : cleared
-                                ? 'border-[#00b87c] bg-[#0e201b] shadow-[4px_4px_0_#060508]'
-                                : unlocked
-                                  ? 'border-[#060508] bg-[#1a1426] shadow-[4px_4px_0_#060508]'
-                                  : 'border-[#060508] bg-[#100d17] opacity-60'
+            <div className="space-y-4">
+              {stageRows.map((rowStages, rowIdx) => {
+                const isReversed = rowIdx % 2 === 1;
+                const displayStages = isReversed ? [...rowStages].reverse() : rowStages;
+                const hasNextRow = rowIdx < stageRows.length - 1;
+                return (
+                  <div key={`row-${rowIdx}`} className="space-y-4">
+                    <div className="relative">
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute top-1/2 right-8 left-8 hidden h-1 -translate-y-1/2 bg-[#292038] sm:block"
+                      />
+                      <div className="relative grid grid-cols-2 gap-3 sm:grid-cols-5">
+                        {displayStages.map((stage) => {
+                          const unlocked = isCampaignStageUnlocked(stage, completedIds);
+                          const cleared = completedIds.includes(stage.id);
+                          const isCurrent = selectedStage?.id === stage.id;
+                          const isNext = unlocked && !cleared;
+                          const isFinalBoss = stage.stageNumber === finalStageNumber && stage.isBoss;
+                          return (
+                            <motion.button
+                              key={stage.id}
+                              type="button"
+                              whileHover={{ y: -4, scale: 1.03 }}
+                              whileTap={{ scale: 0.96 }}
+                              onClick={() => setSelectedStageId(stage.id)}
+                              className={`relative flex flex-col items-center justify-between border-2 p-3 text-center transition ${
+                                isCurrent
+                                  ? 'border-[#f2c12e] bg-[#241b35] shadow-[0_0_0_2px_#f2c12e,4px_4px_0_#060508]'
+                                  : isFinalBoss
+                                    ? 'border-[#f2c12e] bg-gradient-to-b from-[#2e0e1b] to-[#1a0b12] shadow-[4px_4px_0_#060508]'
+                                    : stage.isBoss
+                                      ? 'border-[#e6194b] bg-[#240e18] shadow-[4px_4px_0_#060508]'
+                                      : cleared
+                                        ? 'border-[#00b87c] bg-[#0e201b] shadow-[4px_4px_0_#060508]'
+                                        : unlocked
+                                          ? 'border-[#060508] bg-[#1a1426] shadow-[4px_4px_0_#060508]'
+                                          : 'border-[#060508] bg-[#100d17] opacity-60'
+                              }`}
+                            >
+                              <div className="flex w-full items-center justify-between text-[10px] font-black">
+                                <span
+                                  className={`px-1.5 py-0.5 font-mono ${
+                                    isFinalBoss
+                                      ? 'bg-[#f2c12e] text-[#0b090e]'
+                                      : stage.isBoss
+                                        ? 'bg-[#e6194b] text-white'
+                                        : cleared
+                                          ? 'bg-[#00b87c] text-[#0b090e]'
+                                          : 'bg-[#060508] text-[#f2c12e]'
+                                  }`}
+                                >
+                                  N{stage.stageNumber}
+                                </span>
+                                {cleared ? (
+                                  <CheckCircle2 size={14} className="text-[#00e599]" />
+                                ) : !unlocked ? (
+                                  <Lock size={13} className="text-zinc-500" />
+                                ) : isFinalBoss ? (
+                                  <Crown size={14} className="text-[#f2c12e]" />
+                                ) : stage.isBoss ? (
+                                  <Skull size={14} className="text-[#e6194b]" />
+                                ) : isNext ? (
+                                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#f2c12e]" />
+                                ) : null}
+                              </div>
+
+                              <div className="my-2 font-jojo-heading text-sm leading-tight tracking-wide text-[#f5efe0] uppercase">
+                                {stage.title}
+                              </div>
+
+                              <div className="flex flex-wrap items-center justify-center gap-1">
+                                <span className="border border-[#060508] bg-[#0b090e] px-1.5 py-0.5 font-mono text-[9px] font-bold text-[#f2c12e]">
+                                  +{stage.rewardCoins} 🪙
+                                </span>
+                                {stage.rewardPackCount && (
+                                  <span
+                                    className={`border border-[#060508] px-1.5 py-0.5 font-mono text-[9px] font-black ${
+                                      isFinalBoss
+                                        ? 'bg-[#e6194b] text-white'
+                                        : 'bg-[#f2c12e] text-[#0b090e]'
+                                    }`}
+                                  >
+                                    +{stage.rewardPackCount}{' '}
+                                    {stage.rewardPackCount > 1 ? 'SOBRES' : 'SOBRE'}
+                                  </span>
+                                )}
+                              </div>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {hasNextRow && (
+                      <div
+                        className={`hidden sm:flex ${
+                          isReversed ? 'justify-start pl-[9%]' : 'justify-end pr-[9%]'
                         }`}
+                        aria-hidden="true"
                       >
-                        <div className="flex w-full items-center justify-between text-[10px] font-black">
-                          <span
-                            className={`px-1.5 py-0.5 font-mono ${
-                              stage.isBoss
-                                ? 'bg-[#e6194b] text-white'
-                                : cleared
-                                  ? 'bg-[#00b87c] text-[#0b090e]'
-                                  : 'bg-[#060508] text-[#f2c12e]'
-                            }`}
-                          >
-                            N{stage.stageNumber}
+                        <div className="flex flex-col items-center">
+                          <div className="h-4 w-1 bg-[#f2c12e]/50" />
+                          <span className="border border-[#060508] bg-[#f2c12e] px-2 py-0.5 font-mono text-[9px] font-black text-[#0b090e]">
+                            SIGUE ↓
                           </span>
-                          {cleared ? (
-                            <CheckCircle2 size={14} className="text-[#00e599]" />
-                          ) : !unlocked ? (
-                            <Lock size={13} className="text-zinc-500" />
-                          ) : stage.isBoss ? (
-                            <Skull size={14} className="text-[#e6194b]" />
-                          ) : isNext ? (
-                            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#f2c12e]" />
-                          ) : null}
                         </div>
-
-                        <div className="my-2 font-jojo-heading text-sm leading-tight tracking-wide text-[#f5efe0] uppercase">
-                          {stage.title}
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-center gap-1">
-                          <span className="border border-[#060508] bg-[#0b090e] px-1.5 py-0.5 font-mono text-[9px] font-bold text-[#f2c12e]">
-                            +{stage.rewardCoins} 🪙
-                          </span>
-                          {stage.rewardPackCount && (
-                            <span className="border border-[#060508] bg-[#f2c12e] px-1.5 py-0.5 font-mono text-[9px] font-black text-[#0b090e]">
-                              +{stage.rewardPackCount} SOBRE
-                            </span>
-                          )}
-                        </div>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Vertical turn connector on the right side (Stage 5 -> Stage 6) */}
-              <div className="hidden justify-end pr-[9%] sm:flex" aria-hidden="true">
-                <div className="flex flex-col items-center">
-                  <div className="h-5 w-1 bg-[#f2c12e]/50" />
-                  <span className="border border-[#060508] bg-[#f2c12e] px-2 py-0.5 font-mono text-[9px] font-black text-[#0b090e]">
-                    SIGUE ↓
-                  </span>
-                </div>
-              </div>
-
-              {/* ROW 2: Stages 6 -> 10 (serpentine right-to-left) */}
-              <div className="relative">
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute top-1/2 right-8 left-8 hidden h-1 -translate-y-1/2 bg-[#292038] sm:block"
-                />
-                <div className="relative grid grid-cols-2 gap-3 sm:grid-cols-5">
-                  {[...row2].reverse().map((stage) => {
-                    const unlocked = isCampaignStageUnlocked(stage, completedIds);
-                    const cleared = completedIds.includes(stage.id);
-                    const isCurrent = selectedStage?.id === stage.id;
-                    const isNext = unlocked && !cleared;
-                    return (
-                      <motion.button
-                        key={stage.id}
-                        type="button"
-                        whileHover={{ y: -4, scale: 1.03 }}
-                        whileTap={{ scale: 0.96 }}
-                        onClick={() => setSelectedStageId(stage.id)}
-                        className={`relative flex flex-col items-center justify-between border-2 p-3 text-center transition ${
-                          isCurrent
-                            ? 'border-[#f2c12e] bg-[#241b35] shadow-[0_0_0_2px_#f2c12e,4px_4px_0_#060508]'
-                            : stage.isBoss
-                              ? 'border-[#f2c12e] bg-gradient-to-b from-[#2e0e1b] to-[#1a0b12] shadow-[4px_4px_0_#060508]'
-                              : cleared
-                                ? 'border-[#00b87c] bg-[#0e201b] shadow-[4px_4px_0_#060508]'
-                                : unlocked
-                                  ? 'border-[#060508] bg-[#1a1426] shadow-[4px_4px_0_#060508]'
-                                  : 'border-[#060508] bg-[#100d17] opacity-60'
-                        }`}
-                      >
-                        <div className="flex w-full items-center justify-between text-[10px] font-black">
-                          <span
-                            className={`px-1.5 py-0.5 font-mono ${
-                              stage.isBoss
-                                ? 'bg-[#f2c12e] text-[#0b090e]'
-                                : cleared
-                                  ? 'bg-[#00b87c] text-[#0b090e]'
-                                  : 'bg-[#060508] text-[#f2c12e]'
-                            }`}
-                          >
-                            N{stage.stageNumber}
-                          </span>
-                          {cleared ? (
-                            <CheckCircle2 size={14} className="text-[#00e599]" />
-                          ) : !unlocked ? (
-                            <Lock size={13} className="text-zinc-500" />
-                          ) : stage.isBoss ? (
-                            <Crown size={14} className="text-[#f2c12e]" />
-                          ) : isNext ? (
-                            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#f2c12e]" />
-                          ) : null}
-                        </div>
-
-                        <div className="my-2 font-jojo-heading text-sm leading-tight tracking-wide text-[#f5efe0] uppercase">
-                          {stage.title}
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-center gap-1">
-                          <span className="border border-[#060508] bg-[#0b090e] px-1.5 py-0.5 font-mono text-[9px] font-bold text-[#f2c12e]">
-                            +{stage.rewardCoins} 🪙
-                          </span>
-                          {stage.rewardPackCount && (
-                            <span className="border border-[#060508] bg-[#e6194b] px-1.5 py-0.5 font-mono text-[9px] font-black text-white">
-                              +{stage.rewardPackCount} SOBRES
-                            </span>
-                          )}
-                        </div>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
