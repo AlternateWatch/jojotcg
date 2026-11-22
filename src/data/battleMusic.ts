@@ -100,6 +100,14 @@ export const BATTLE_PLAYLIST: BattleTrack[] = [
     part: 2,
     src: '/assets/music/battle/p2-kessen-kasanariau-unmei.ogg',
   },
+  {
+    id: 'p2-propaganda',
+    title: 'Propaganda [Coliseo]',
+    part: 2,
+    src: '/assets/music/battle/p2-propaganda.ogg',
+    excludeFromCampaignPool: true,
+    exclusiveStageId: 'p2-s19',
+  },
 ];
 
 export function getBattleTracksByPart(
