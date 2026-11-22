@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowDown, ArrowUp, Minus, Plus } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowDown, ArrowUp, Minus, Plus, Sparkles, Trophy } from 'lucide-react';
 import { getCardById } from '../../../data/cardRegistry';
+import { CARD_BACK_PATTERN_URL } from '../../../services/assetResolver';
 import {
   computeEffectiveMaxHp,
   getEffectiveCharacterProfile,
@@ -24,6 +25,7 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
   const [pickedIndices, setPickedIndices] = useState<number[]>([]);
   const [reorderIndices, setReorderIndices] = useState<number[]>([]);
   const [peekTarget, setPeekTarget] = useState<'SELF' | 'OPPONENT' | null>(null);
+  const [selectedPrizeIndex, setSelectedPrizeIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (prompt.kind === 'DISTRIBUTE_BENCH_DAMAGE') {
@@ -36,6 +38,8 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
       setReorderIndices(prompt.cards.map((_, i) => i));
     } else if (prompt.kind === 'PEEK_TOP_DECK') {
       setPeekTarget(null);
+    } else if (prompt.kind === 'CHOOSE_PRIZE_CARD') {
+      setSelectedPrizeIndex(null);
     }
   }, [prompt]);
 
@@ -705,6 +709,177 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
             )}
           </div>
         )}
+
+        {/* 13. CHOOSE PRIZE CARD (3D Pack-style flip animation!) */}
+        {prompt.kind === 'CHOOSE_PRIZE_CARD' && (() => {
+          const totalSlots = Math.max(state.rules.prizeCardCount, player.prizeCards.length);
+          const claimedSlots = Math.max(0, totalSlots - player.prizeCards.length);
+          const revealedCardId =
+            selectedPrizeIndex !== null ? player.prizeCards[selectedPrizeIndex] : undefined;
+          const revealedCard = revealedCardId ? getCardById(revealedCardId) : undefined;
+          const isWinningPrize = player.prizeCards.length === 1;
+
+          return (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="flex items-center gap-2 font-jojo-display text-3xl text-[#f2c12e] uppercase">
+                    <Trophy size={24} /> ¡Elige tu Carta de Premio!
+                  </h3>
+                  <p className="text-xs text-zinc-300">{prompt.reason}</p>
+                </div>
+                <span className="border-2 border-[#060508] bg-[#f2c12e] px-3 py-1 font-jojo-display text-sm text-[#0b090e] uppercase shadow-[3px_3px_0_#060508]">
+                  Restantes: {player.prizeCards.length}/{totalSlots}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 justify-items-center gap-3 py-2 sm:grid-cols-3">
+                {player.prizeCards.map((cardId, idx) => {
+                  const card = getCardById(cardId);
+                  const isFlipped = selectedPrizeIndex === idx;
+                  const isDimmed = selectedPrizeIndex !== null && !isFlipped;
+
+                  return (
+                    <motion.div
+                      key={`prize-slot-${idx}-${cardId}`}
+                      initial={{ opacity: 0, y: 18, scale: 0.92 }}
+                      animate={{
+                        opacity: isDimmed ? 0.35 : 1,
+                        y: 0,
+                        scale: isDimmed ? 0.94 : 1,
+                      }}
+                      transition={{
+                        delay: idx * 0.045,
+                        type: 'spring',
+                        stiffness: 340,
+                        damping: 22,
+                      }}
+                      className="flex flex-col items-center gap-1.5"
+                    >
+                      <div className="jojo-3d-stage relative h-[207px] w-[148px]">
+                        <AnimatePresence>
+                          {isFlipped && (
+                            <motion.div
+                              key={`prize-ring-${idx}`}
+                              aria-hidden="true"
+                              initial={{ scale: 0.72, opacity: 0.95 }}
+                              animate={{ scale: 1.55, opacity: 0 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.65, ease: 'easeOut' }}
+                              className="pointer-events-none absolute -inset-2 z-0 rounded-[12px] border-[4px] border-[#f2c12e]"
+                            />
+                          )}
+                        </AnimatePresence>
+
+                        <motion.div
+                          animate={{
+                            rotateY: isFlipped ? 180 : 0,
+                            scale: isFlipped ? [1, 1.12, 1] : 1,
+                            y: isFlipped ? [0, -14, 0] : 0,
+                          }}
+                          transition={{
+                            rotateY: { type: 'spring', stiffness: 220, damping: 20 },
+                            scale: { duration: 0.45, ease: 'easeOut' },
+                            y: { duration: 0.4, ease: 'easeOut' },
+                          }}
+                          className="jojo-3d-card relative h-full w-full"
+                        >
+                          {/* FACE DOWN BACK (0 deg) */}
+                          <motion.button
+                            type="button"
+                            disabled={selectedPrizeIndex !== null}
+                            onClick={() => setSelectedPrizeIndex(idx)}
+                            whileHover={
+                              selectedPrizeIndex === null ? { y: -6, scale: 1.04 } : undefined
+                            }
+                            whileTap={selectedPrizeIndex === null ? { scale: 0.95 } : undefined}
+                            className={`jojo-backface-hidden jojo-foil-shimmer absolute inset-0 flex flex-col items-center justify-center gap-2 overflow-hidden rounded-[8px] border-[3px] border-[#f2c12e] ${
+                              selectedPrizeIndex === null
+                                ? 'cursor-pointer'
+                                : 'pointer-events-none'
+                            }`}
+                            style={{
+                              backgroundImage: `url(${CARD_BACK_PATTERN_URL})`,
+                              backgroundSize: '180px',
+                              boxShadow: '0 0 18px rgba(242,193,46,0.45), 5px 5px 0 #060508',
+                            }}
+                          >
+                            <div className="absolute inset-0 bg-[#0b090e]/55" />
+                            <Trophy
+                              size={24}
+                              className="relative z-10 text-[#f2c12e] drop-shadow-[2px_2px_0_#060508]"
+                            />
+                            <span className="relative z-10 -skew-x-10 border-2 border-[#060508] bg-[#f2c12e] px-2.5 py-0.5 font-jojo-display text-xs tracking-widest text-[#0b090e] uppercase shadow-[3px_3px_0_#060508]">
+                              <span className="inline-block skew-x-10">PREMIO #{idx + 1}</span>
+                            </span>
+                            <span className="relative z-10 font-mono text-[10px] font-bold tracking-widest text-[#f5efe0] uppercase opacity-90">
+                              Clic para girar
+                            </span>
+                          </motion.button>
+
+                          {/* REVEALED FRONT (180 deg) */}
+                          <div
+                            className="jojo-backface-hidden absolute inset-0"
+                            style={{
+                              transform: 'rotateY(180deg)',
+                              filter: 'drop-shadow(0 0 14px rgba(242,193,46,0.75))',
+                            }}
+                          >
+                            {card && (
+                              <CardView card={card} size="md" showInspectButton={false} />
+                            )}
+                          </div>
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+
+                {/* Already claimed prize slots */}
+                {Array.from({ length: claimedSlots }).map((_, idx) => (
+                  <div
+                    key={`claimed-prize-${idx}`}
+                    className="flex h-[207px] w-[148px] flex-col items-center justify-center gap-1.5 rounded-[8px] border-2 border-dashed border-[#f2c12e]/25 bg-[#0b090e]/45 text-center"
+                  >
+                    <Trophy size={18} className="text-[#f2c12e]/35" />
+                    <span className="font-jojo-heading text-[11px] tracking-widest text-zinc-500 uppercase">
+                      Reclamada
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {selectedPrizeIndex !== null && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-2.5 pt-1"
+                >
+                  <div className="border-2 border-[#060508] bg-[#0e0b14] px-4 py-2.5 text-center">
+                    <div className="font-mono text-[11px] font-bold tracking-widest text-[#00e599] uppercase">
+                      {isWinningPrize
+                        ? '¡ÚLTIMA CARTA DE PREMIO — VICTORIA!'
+                        : '¡Carta de Premio revelada!'}
+                    </div>
+                    <div className="font-jojo-display text-2xl text-[#f2c12e] uppercase">
+                      {revealedCard?.name ?? revealedCardId}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onRespond({ kind: 'CHOOSE_PRIZE_CARD', prizeIndex: selectedPrizeIndex })
+                    }
+                    className="jojo-btn-primary inline-flex w-full items-center justify-center gap-2 py-3 font-jojo-heading text-base tracking-widest uppercase"
+                  >
+                    <Sparkles size={16} />
+                    {isWinningPrize ? '¡Reclamar Victoria!' : 'Añadir a mi Mano y Continuar'}
+                  </button>
+                </motion.div>
+              )}
+            </div>
+          );
+        })()}
       </motion.div>
     </motion.div>
   );

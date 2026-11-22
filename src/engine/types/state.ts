@@ -211,6 +211,11 @@ export type PlayerPrompt =
       ownTopCards: string[];
       opponentTopCards: string[];
       sourceLabel: string;
+    }
+  | {
+      kind: 'CHOOSE_PRIZE_CARD';
+      playerId: PlayerId;
+      reason: string;
     };
 
 export interface GameState {

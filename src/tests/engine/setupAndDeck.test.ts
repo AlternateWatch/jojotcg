@@ -400,8 +400,8 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     expect(state.players.P2.deck).toHaveLength(35);
   });
 
-  it('draws 1 Prize Card on enemy KO and wins immediately upon taking the last Prize Card even if opponent has bench characters', () => {
-    // 1. Taking 1 of 2 remaining prize cards adds it to hand and continues match
+  it('prompts human to pick a Prize Card on enemy KO and wins immediately upon taking the last Prize Card even if opponent has bench characters', () => {
+    // 1. Taking 1 of 2 remaining prize cards prompts human P1, adds chosen prize to hand, and continues match
     let state = buildControlledBattleState({
       p1ActiveId: 'char-dio-brando',
       p1ActiveEnergies: ['ELECTRIC', 'ELECTRIC'],
@@ -417,9 +417,16 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
       playerId: 'P1',
       attackId: 'atk-space-ripper-stingy-eyes', // 50 dmg -> KO
     });
+    expect(state.pendingPrompt?.kind).toBe('CHOOSE_PRIZE_CARD');
+    // Pick index 1 (item-pluck) instead of index 0!
+    state = mustDispatch(state, {
+      type: 'RESPOND_PROMPT',
+      playerId: 'P1',
+      response: { kind: 'CHOOSE_PRIZE_CARD', prizeIndex: 1 },
+    });
     expect(state.phase).not.toBe('GAME_OVER');
-    expect(state.players.P1.prizeCards).toHaveLength(1);
-    expect(state.players.P1.hand).toContain('item-comida-de-tonio');
+    expect(state.players.P1.prizeCards).toEqual(['item-comida-de-tonio']);
+    expect(state.players.P1.hand).toContain('item-pluck');
 
     // 2. Taking the LAST prize card wins immediately even though P2 still has bench characters!
     let winState = buildControlledBattleState({
@@ -436,6 +443,12 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
       type: 'USE_ATTACK',
       playerId: 'P1',
       attackId: 'atk-space-ripper-stingy-eyes',
+    });
+    expect(winState.pendingPrompt?.kind).toBe('CHOOSE_PRIZE_CARD');
+    winState = mustDispatch(winState, {
+      type: 'RESPOND_PROMPT',
+      playerId: 'P1',
+      response: { kind: 'CHOOSE_PRIZE_CARD', prizeIndex: 0 },
     });
     expect(winState.phase).toBe('GAME_OVER');
     expect(winState.winnerId).toBe('P1');

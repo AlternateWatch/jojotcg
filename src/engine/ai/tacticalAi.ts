@@ -422,6 +422,12 @@ function buildPromptResponse(
         target: prompt.opponentTopCards.length > 0 ? 'OPPONENT' : 'SELF',
       };
     }
+    case 'CHOOSE_PRIZE_CARD': {
+      return {
+        kind: 'CHOOSE_PRIZE_CARD',
+        prizeIndex: 0,
+      };
+    }
     case 'SEARCH_DECK_CARDS': {
       const boardChars = [...(player.active ? [player.active] : []), ...player.bench];
       const candidates: { idx: number; score: number }[] = [];

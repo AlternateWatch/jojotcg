@@ -403,39 +403,51 @@ export function handleCharacterKo(
     message: `${profile.name} de ${owner.name} ha sido eliminado (${reason}).`,
   });
 
-  // 7. Prize Card award: opponent takes 1 face-down Prize Card into their hand; taking the last Prize Card wins!
+  // 7. Check immediate Game Over if Active was KO'd and owner has no bench left
+  if (zone === 'ACTIVE' && owner.bench.length === 0) {
+    setGameOver(
+      state,
+      eventsOut,
+      getOpponentId(ownerPlayerId),
+      `${owner.name} se ha quedado sin personajes en el campo.`,
+    );
+    return true;
+  }
+
+  // 8. Prize Card award: opponent chooses 1 face-down Prize Card (AI takes immediately; human gets interactive 3D flip!)
   const prizeWinnerId = getOpponentId(ownerPlayerId);
   const prizeWinner = state.players[prizeWinnerId];
   if (prizeWinner.prizeCards.length > 0) {
-    const takenPrizeId = prizeWinner.prizeCards.shift()!;
-    prizeWinner.hand.push(takenPrizeId);
-    pushEvent(state, eventsOut, {
-      type: 'CARD_DRAWN',
-      playerId: prizeWinnerId,
-      count: 1,
-      message: `¡Carta de Premio! ${prizeWinner.name} roba 1 carta de sus premios (${prizeWinner.prizeCards.length} restante(s)).`,
-    });
-    if (prizeWinner.prizeCards.length === 0) {
-      setGameOver(
-        state,
-        eventsOut,
-        prizeWinnerId,
-        `¡${prizeWinner.name} ha robado todas sus Cartas de Premio!`,
-      );
-      return true;
+    if (prizeWinner.isAi) {
+      const takenPrizeId = prizeWinner.prizeCards.shift()!;
+      prizeWinner.hand.push(takenPrizeId);
+      pushEvent(state, eventsOut, {
+        type: 'CARD_DRAWN',
+        playerId: prizeWinnerId,
+        count: 1,
+        message: `¡Carta de Premio! ${prizeWinner.name} roba 1 carta de sus premios (${prizeWinner.prizeCards.length} restante(s)).`,
+      });
+      if (prizeWinner.prizeCards.length === 0) {
+        setGameOver(
+          state,
+          eventsOut,
+          prizeWinnerId,
+          `¡${prizeWinner.name} ha robado todas sus Cartas de Premio!`,
+        );
+        return true;
+      }
+    } else {
+      enqueuePrompt(state, {
+        kind: 'CHOOSE_PRIZE_CARD',
+        playerId: prizeWinnerId,
+        reason: `${profile.name} fue eliminado (${reason}). Elige 1 Carta de Premio boca abajo.`,
+      });
     }
   }
 
-  // 8. If Active was KO'd, check promotion or Game Over
+  // 9. If Active was KO'd, promote sole bench character or ask owner to choose replacement
   if (zone === 'ACTIVE') {
-    if (owner.bench.length === 0) {
-      setGameOver(
-        state,
-        eventsOut,
-        getOpponentId(ownerPlayerId),
-        `${owner.name} se ha quedado sin personajes en el campo.`,
-      );
-    } else if (owner.bench.length === 1) {
+    if (owner.bench.length === 1) {
       // Auto-promote the sole bench character cleanly (still clears Burn on promote!)
       const promoted = owner.bench.splice(0, 1)[0]!;
       owner.active = promoted;

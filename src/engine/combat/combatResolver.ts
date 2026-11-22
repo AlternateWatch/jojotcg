@@ -1223,6 +1223,17 @@ export function validatePromptResponse(
       }
       return { ok: true };
     }
+    case 'CHOOSE_PRIZE_CARD': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_PRIZE_CARD' }>;
+      if (
+        !Number.isInteger(r.prizeIndex) ||
+        r.prizeIndex < 0 ||
+        r.prizeIndex >= player.prizeCards.length
+      ) {
+        return { ok: false, reason: 'Debes seleccionar una Carta de Premio válida.' };
+      }
+      return { ok: true };
+    }
   }
 }
 
@@ -1480,6 +1491,28 @@ export function resolvePendingPrompt(
           r.target === 'SELF' ? 'propio' : 'rival'
         }.`,
       });
+      break;
+    }
+    case 'CHOOSE_PRIZE_CARD': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_PRIZE_CARD' }>;
+      const takenPrizeId = player.prizeCards.splice(r.prizeIndex, 1)[0]!;
+      player.hand.push(takenPrizeId);
+      const prizeCardName = getCardById(takenPrizeId)?.name ?? takenPrizeId;
+      pushEvent(state, eventsOut, {
+        type: 'CARD_DRAWN',
+        playerId,
+        count: 1,
+        message: `¡Carta de Premio! ${player.name} elige y roba ${prizeCardName} (${player.prizeCards.length} restante(s)).`,
+      });
+      if (player.prizeCards.length === 0) {
+        setGameOver(
+          state,
+          eventsOut,
+          playerId,
+          `¡${player.name} ha robado todas sus Cartas de Premio!`,
+        );
+        return;
+      }
       break;
     }
   }
