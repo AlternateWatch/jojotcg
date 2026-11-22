@@ -67,16 +67,21 @@ const STORY_DECK_EARLY_IDS = buildPart1Deck(
     'char-robert-e-o-speedwagon',
     'char-will-a-zeppeli',
   ],
-  [...rep('item-suministros-speedwagon', 2), ...rep('item-pluck', 2), 'item-mascara-de-piedra'],
+  [
+    ...rep('item-suministros-speedwagon', 2),
+    ...rep('item-pluck', 2),
+    'item-mascara-de-piedra',
+    'item-muerte-de-danny',
+  ],
   [
     ['energy-electric', 22],
-    ['energy-colorless', 15],
+    ['energy-colorless', 14],
   ],
 );
 
 const STORY_DECK_MID_NAME = 'Discípulo del Hamon (Campaña P1)';
 const STORY_DECK_MID_DESC =
-  'Jonathan, Erina, Zeppeli, Tonpetty, Dire, Straizo y Speedwagon entrenados en Hamon con (P)luck, Máscara de Piedra y Suministros Speedwagon.';
+  'Jonathan, Erina, Zeppeli, Tonpetty, Dire, Straizo y Speedwagon entrenados en Hamon con (P)luck, Muerte de Danny, Máscara de Piedra y Suministros Speedwagon.';
 const STORY_DECK_MID_IDS = buildPart1Deck(
   [
     'char-jonathan-joestar',
@@ -91,10 +96,11 @@ const STORY_DECK_MID_IDS = buildPart1Deck(
     ...rep('item-suministros-speedwagon', 3),
     ...rep('item-pluck', 3),
     ...rep('item-mascara-de-piedra', 2),
+    ...rep('item-muerte-de-danny', 2),
   ],
   [
     ['energy-electric', 23],
-    ['energy-colorless', 8],
+    ['energy-colorless', 6],
   ],
 );
 

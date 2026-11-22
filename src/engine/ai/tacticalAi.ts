@@ -773,6 +773,11 @@ export function chooseAiAction(
           const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
           if (validateAction(state, act).ok) return act;
         }
+      } else if (item.effects.some((e) => e.kind === 'NEXT_ATTACK_DAMAGE_BONUS')) {
+        if (activeCanAttackNow && opponent.active) {
+          const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
+          if (validateAction(state, act).ok) return act;
+        }
       } else if (item.effects.some((e) => e.kind === 'DRAW_CARDS')) {
         // Avoid deck-out suicide: only play draw items when deck has plenty of cards left
         // Also occasionally hold draw items when hand is already comfortable so HARD feels more human

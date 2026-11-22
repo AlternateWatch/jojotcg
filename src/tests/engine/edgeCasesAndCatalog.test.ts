@@ -12,7 +12,7 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
   it('verifies all 69 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
     expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(71);
-    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(12);
+    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(13);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
       const filePath = path.join(projectRoot, 'public', 'assets', 'cards', 'official', `${imageId}.png`);
@@ -744,5 +744,58 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     );
     expect(state.players.P2.active!.currentHp).toBe(110);
     expect(state.players.P1.active!.tarkusDamageBonus).toBe(10);
+  });
+
+  it('resolves Muerte de Danny (+20 extra damage on next active Character or Stand attack, consumed once)', () => {
+    // 1. Character attack (Jonathan Zoom Punch 20 + 20 = 40 dmg)
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar',
+      p1ActiveEnergies: ['COLORLESS'],
+      p1Hand: ['item-muerte-de-danny'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'PREPARATION',
+    });
+
+    state = mustDispatch(state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: 0 });
+    expect(state.players.P1.pendingNextAttackBonus).toBe(20);
+    expect(state.players.P1.discard).toContain('item-muerte-de-danny');
+
+    state = mustDispatch(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-zoom-punch',
+    });
+    expect(state.players.P2.active!.currentHp).toBe(120); // 160 - 40
+    expect(state.players.P1.pendingNextAttackBonus).toBe(0);
+
+    // Next attack has NO bonus (120 - 20 = 100)
+    state = mustDispatch(state, { type: 'END_TURN', playerId: 'P2' });
+    state = mustDispatch(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-zoom-punch',
+    });
+    expect(state.players.P2.active!.currentHp).toBe(100);
+
+    // 2. Stand attack (Star Platinum Ora Ora 60 + 20 = 80)
+    let standState = buildControlledBattleState({
+      p1ActiveId: 'char-jotaro-kujo',
+      p1ActiveStandId: 'stand-star-platinum',
+      p1ActiveEnergies: ['PSYCHIC', 'PSYCHIC', 'PSYCHIC'],
+      p1Hand: ['item-muerte-de-danny'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'PREPARATION',
+    });
+    standState = mustDispatch(standState, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: 0 });
+    standState = mustDispatch(standState, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    standState = mustDispatch(standState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-ora-ora',
+    });
+    expect(standState.players.P2.active!.currentHp).toBe(80); // 160 - (60 + 20)
+    expect(standState.players.P1.pendingNextAttackBonus).toBe(0);
   });
 });

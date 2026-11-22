@@ -539,6 +539,10 @@ export function validatePlayItem(
       if (!opponent.active) {
         return { ok: false, reason: 'El oponente no tiene un personaje activo.' };
       }
+    } else if (eff.kind === 'NEXT_ATTACK_DAMAGE_BONUS') {
+      if (!player.active) {
+        return { ok: false, reason: 'Necesitas tener un personaje activo en el campo.' };
+      }
     }
   }
 
@@ -645,6 +649,14 @@ export function applyPlayItem(
           message: `¡${item.name}! ${getEffectiveCharacterProfile(opponent.active).name} no podrá retirarse a la banca durante su próximo turno.`,
         });
       }
+    } else if (eff.kind === 'NEXT_ATTACK_DAMAGE_BONUS') {
+      player.pendingNextAttackBonus += eff.bonusDamage;
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: item.name,
+        message: `¡${item.name}! El siguiente ataque de tu personaje o Stand activo inflige +${eff.bonusDamage} puntos de daño extra.`,
+      });
     } else if (eff.kind === 'DRAW_CARDS') {
       const drawnCount = Math.min(eff.count, player.deck.length);
       for (let i = 0; i < drawnCount; i++) {

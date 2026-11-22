@@ -57,6 +57,20 @@ export const ITEM_CARDS: ItemCard[] = [
     tags: ['official', 'control', 'stun'],
   },
   {
+    id: 'item-muerte-de-danny',
+    name: 'Muerte de Danny',
+    type: 'ITEM',
+    part: 1,
+    imageId: 'muerte-de-danny',
+    assetFolder: 'items',
+    itemKind: 'CONSUMABLE',
+    targetScope: 'PLAYER',
+    description:
+      'La muerte de un amigo es lo peor que le puede pasar a un ser humano. Al jugar por su cuenta: El siguiente ataque de tu personaje u stand activo inflige 20 puntos de daño extra.',
+    effects: [{ kind: 'NEXT_ATTACK_DAMAGE_BONUS', bonusDamage: 20 }],
+    tags: ['official', 'damage', 'burst'],
+  },
+  {
     id: 'item-piedra-roja-de-aja',
     name: 'Piedra Roja de Aja',
     type: 'ITEM',
