@@ -616,20 +616,6 @@ export function chooseAiAction(
       return equipActions[0]!;
     }
 
-    // 4a-bis. Llamada de Stand (1/turn: summon compatible Stand directly from deck onto Active or Bench!)
-    const summonActions = legal.filter(
-      (a): a is Extract<GameAction, { type: 'SUMMON_STAND_FROM_DECK' }> =>
-        a.type === 'SUMMON_STAND_FROM_DECK',
-    );
-    if (summonActions.length > 0) {
-      summonActions.sort((a, b) => {
-        const aIsActive = player.active?.instanceId === a.targetInstanceId ? 1 : 0;
-        const bIsActive = player.active?.instanceId === b.targetInstanceId ? 1 : 0;
-        return bIsActive - aIsActive;
-      });
-      return summonActions[0]!;
-    }
-
     // 4b. Evolve if possible (EASY skips evolution ~25% of the time for a Turn)
     const evolve = legal.find((a) => a.type === 'EVOLVE_CARD');
     if (evolve && (difficulty !== 'EASY' || deterministicRoll(state, 11) > 0.25)) {
@@ -873,6 +859,23 @@ export function chooseAiAction(
       hasPayableAttack &&
       opponent.active !== null &&
       bestPayableDamage >= opponent.active.currentHp;
+
+    // 4e-bis. Llamada de Stand (ends turn like bench actions): use when we cannot attack this turn
+    // (e.g. Active has no Stand, Turn 1 first player, or insufficient energy), prioritizing Active first!
+    if (!hasPayableAttack) {
+      const summonActions = legal.filter(
+        (a): a is Extract<GameAction, { type: 'SUMMON_STAND_FROM_DECK' }> =>
+          a.type === 'SUMMON_STAND_FROM_DECK',
+      );
+      if (summonActions.length > 0) {
+        summonActions.sort((a, b) => {
+          const aIsActive = player.active?.instanceId === a.targetInstanceId ? 1 : 0;
+          const bIsActive = player.active?.instanceId === b.targetInstanceId ? 1 : 0;
+          return bIsActive - aIsActive;
+        });
+        return summonActions[0]!;
+      }
+    }
 
     // 4f. Proactive Bench Building (balanced so AI builds safety bench without stalling attacks endlessly)
     const playBenchActions = legal.filter(

@@ -81,7 +81,7 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
             <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
               <li>• Orden: <strong>Robo → Preparación → Combate → Fin de Turno</strong>.</li>
               <li>• Equipar Stand compatible (Activo o Banca): <strong>Gratis</strong> y otorga <strong>Resonancia (+1 energía adjuntable ese turno, máx. 1/turno)</strong>. Si el usuario es eliminado, su Stand <strong>vuelve barajado al mazo</strong>.</li>
-              <li>• <strong>Llamada de Stand (1/turno)</strong>: en Preparación puedes invocar un Stand compatible directamente desde tu mazo a un Usuario en campo sin Stand.</li>
+              <li>• <strong>Llamada de Stand</strong>: en Preparación puedes elegir un Usuario en campo sin Stand para invocar y equipar automáticamente un <strong>Stand compatible aleatorio</strong> de tu mazo; <strong>finaliza el turno inmediatamente</strong> (como gestionar la banca).</li>
               <li>• Energías: <strong>1 por turno</strong>. Objetos: <strong>ilimitados</strong> (máx. <strong>1 copia de cada equipable por personaje</strong>). Evoluciones: <strong>1 por turno</strong>.</li>
               <li>• Cualquier acción de banca (bajar / cambiar / retirar) <strong>finaliza el turno inmediatamente</strong> (salvo promoción tras KO o <em>Nigerundayo</em>).</li>
             </ul>

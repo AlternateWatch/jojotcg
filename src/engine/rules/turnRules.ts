@@ -338,27 +338,19 @@ export function applySummonStandFromDeck(
   playerId: PlayerId,
   targetInstanceId: string,
   rng: RngProvider,
-  standCardId?: string,
 ): void {
   const target = findCharacterOnBoard(state, playerId, targetInstanceId)!;
   const eligible = getCompatibleDeckStandsForCharacter(state, playerId, target.character);
+  if (eligible.length === 0) return;
 
-  if (standCardId && eligible.includes(standCardId)) {
-    attachSummonedStandFromDeck(state, eventsOut, playerId, targetInstanceId, standCardId, rng);
-    return;
-  }
-  if (eligible.length === 1) {
-    attachSummonedStandFromDeck(state, eventsOut, playerId, targetInstanceId, eligible[0]!, rng);
-    return;
-  }
+  // Pick a random compatible Stand from the deck and auto-bind it to the chosen User
+  const pickedIdx = Math.min(eligible.length - 1, Math.floor(rng.nextFloat() * eligible.length));
+  const pickedStandId = eligible[pickedIdx]!;
 
-  enqueuePrompt(state, {
-    kind: 'CHOOSE_STAND_FROM_DECK',
-    playerId,
-    targetInstanceId,
-    eligibleStandCardIds: eligible,
-    sourceLabel: 'Llamada de Stand',
-  });
+  attachSummonedStandFromDeck(state, eventsOut, playerId, targetInstanceId, pickedStandId, rng);
+
+  // Rulebook: Llamada de Stand consumes the main action and immediately ends the turn (like bench actions)
+  finishTurnToEndPhase(state, eventsOut, rng);
 }
 
 export function validateAttachEnergy(

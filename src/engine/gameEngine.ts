@@ -427,7 +427,6 @@ export function dispatchAction(
         action.playerId,
         action.targetInstanceId,
         rng,
-        action.standCardId,
       );
       break;
 

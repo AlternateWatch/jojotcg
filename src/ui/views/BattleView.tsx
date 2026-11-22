@@ -1013,7 +1013,7 @@ export function BattleView() {
                             <button
                               key={`summon-${ch.instanceId}`}
                               type="button"
-                              title="Llamada de Stand (1/turno): invoca un Stand compatible desde tu mazo y gana +1 energía adjuntable este turno"
+                              title="Llamada de Stand (finaliza el turno): invoca y equipa automáticamente un Stand compatible aleatorio desde tu mazo"
                               onClick={() =>
                                 handleDispatch({
                                   type: 'SUMMON_STAND_FROM_DECK',
@@ -1023,7 +1023,7 @@ export function BattleView() {
                               }
                               className="border-2 border-[#060508] bg-[#00b87c] px-3 py-1.5 font-jojo-heading text-xs tracking-widest text-[#0b090e] uppercase shadow-[3px_3px_0_#060508] hover:bg-[#00e599]"
                             >
-                              ⚡ Invocar Stand ({prof.name.split(' ')[0]})
+                              ⚡ Llamar Stand: {prof.name.split(' ')[0]} (Fin)
                             </button>
                           );
                         })}
