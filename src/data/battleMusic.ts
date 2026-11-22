@@ -94,6 +94,12 @@ export const BATTLE_PLAYLIST: BattleTrack[] = [
     part: 2,
     src: '/assets/music/battle/p2-aoi-kurayamino-soko.ogg',
   },
+  {
+    id: 'p2-kessen-kasanariau-unmei',
+    title: 'Kessen Kasanariau Unmei',
+    part: 2,
+    src: '/assets/music/battle/p2-kessen-kasanariau-unmei.ogg',
+  },
 ];
 
 export function getBattleTracksByPart(
