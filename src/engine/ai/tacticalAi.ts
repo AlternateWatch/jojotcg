@@ -213,16 +213,24 @@ function chooseEnergyTarget(
   const candidates: CharacterInstance[] = [
     ...(player.active ? [player.active] : []),
     ...player.bench,
-  ];
+  ].filter((ch) => {
+    if (energyType === 'STAND') {
+      return getEffectiveCharacterProfile(ch).categories.includes('STAND_USER');
+    }
+    return true;
+  });
   if (candidates.length === 0) return null;
 
-  // 1. Active specifically needs this color (or any color for COLORLESS)
-  if (player.active) {
+  // 1. Active specifically needs this color (or any color for COLORLESS, or STAND wildcard)
+  if (player.active && candidates.some((c) => c.instanceId === player.active!.instanceId)) {
     const attacks = getAvailableAttacks(player.active);
     const activeNeeded = collectNeededEnergyColors([player.active]);
     const activeNeedsMore = attacks.some(
-      (a) => !canPayEnergyCost(player.active!.attachedEnergies, a.attack.energyCost),
+      (a) => !canPayEnergyCost(player.active!.attachedEnergies, a.attack.energyCost, a.source),
     );
+    if (energyType === 'STAND' && activeNeedsMore) {
+      return player.active.instanceId;
+    }
     if ((activeNeeded.get(energyType) ?? 0) > 0) {
       return player.active.instanceId;
     }
@@ -233,6 +241,16 @@ function chooseEnergyTarget(
 
   // 2. Bench character specifically needs this color
   for (const benchChar of player.bench) {
+    if (!candidates.some((c) => c.instanceId === benchChar.instanceId)) continue;
+    if (energyType === 'STAND') {
+      const bAttacks = getAvailableAttacks(benchChar);
+      if (
+        bAttacks.length === 0 ||
+        bAttacks.some((a) => !canPayEnergyCost(benchChar.attachedEnergies, a.attack.energyCost, a.source))
+      ) {
+        return benchChar.instanceId;
+      }
+    }
     const benchNeeded = collectNeededEnergyColors([benchChar]);
     if ((benchNeeded.get(energyType) ?? 0) > 0) {
       return benchChar.instanceId;
@@ -240,11 +258,11 @@ function chooseEnergyTarget(
   }
 
   // 3. Active still lacks energy or is waiting for a Stand
-  if (player.active) {
+  if (player.active && candidates.some((c) => c.instanceId === player.active!.instanceId)) {
     const attacks = getAvailableAttacks(player.active);
     const activeNeedsAny =
       attacks.length === 0 ||
-      attacks.some((a) => !canPayEnergyCost(player.active!.attachedEnergies, a.attack.energyCost));
+      attacks.some((a) => !canPayEnergyCost(player.active!.attachedEnergies, a.attack.energyCost, a.source));
     if (activeNeedsAny && player.active.attachedEnergies.length < 4) {
       return player.active.instanceId;
     }
@@ -252,9 +270,10 @@ function chooseEnergyTarget(
 
   // 4. Any bench character that needs energy
   for (const benchChar of player.bench) {
+    if (!candidates.some((c) => c.instanceId === benchChar.instanceId)) continue;
     const attacks = getAvailableAttacks(benchChar);
     if (
-      attacks.some((a) => !canPayEnergyCost(benchChar.attachedEnergies, a.attack.energyCost)) ||
+      attacks.some((a) => !canPayEnergyCost(benchChar.attachedEnergies, a.attack.energyCost, a.source)) ||
       benchChar.attachedEnergies.length < 2
     ) {
       return benchChar.instanceId;
@@ -806,34 +825,38 @@ export function chooseAiAction(
         .filter((x): x is { card: NonNullable<typeof x.card>; idx: number } => !!x.card);
 
       if (energyIndices.length > 0) {
+        const activeIsStandUser =
+          player.active !== null &&
+          getEffectiveCharacterProfile(player.active).categories.includes('STAND_USER');
         energyIndices.sort((a, b) => {
-          const scoreA =
-            (activeNeeded.get(a.card.energyType) ?? 0) * 10 +
-            (boardNeeded.get(a.card.energyType) ?? 0) * 3;
-          const scoreB =
-            (activeNeeded.get(b.card.energyType) ?? 0) * 10 +
-            (boardNeeded.get(b.card.energyType) ?? 0) * 3;
-          return scoreB - scoreA;
-        });
-        const chosen = energyIndices[0]!;
-        let targetId = chooseEnergyTarget(state, aiPlayerId, chosen.card.energyType);
-        // Human-like opening: occasionally invest energy into a bench character when active can already attack
-        if (
-          difficulty === 'HARD' &&
-          activeCanAttackNow &&
-          player.bench.length > 0 &&
-          deterministicRoll(state, 37) < 0.16
-        ) {
-          targetId = player.bench[0]!.instanceId;
-        }
-        if (targetId) {
-          const act: GameAction = {
-            type: 'ATTACH_ENERGY',
-            playerId: aiPlayerId,
-            handIndex: chosen.idx,
-            targetInstanceId: targetId,
+          const scoreEnergy = (etype: EnergyType) => {
+            if (etype === 'STAND') return activeIsStandUser ? 14 : 6;
+            return (activeNeeded.get(etype) ?? 0) * 10 + (boardNeeded.get(etype) ?? 0) * 3;
           };
-          if (validateAction(state, act).ok) return act;
+          return scoreEnergy(b.card.energyType) - scoreEnergy(a.card.energyType);
+        });
+        for (const chosen of energyIndices) {
+          let targetId = chooseEnergyTarget(state, aiPlayerId, chosen.card.energyType);
+          // Human-like opening: occasionally invest energy into a bench character when active can already attack
+          if (
+            difficulty === 'HARD' &&
+            activeCanAttackNow &&
+            player.bench.length > 0 &&
+            deterministicRoll(state, 37) < 0.16 &&
+            (chosen.card.energyType !== 'STAND' ||
+              getEffectiveCharacterProfile(player.bench[0]!).categories.includes('STAND_USER'))
+          ) {
+            targetId = player.bench[0]!.instanceId;
+          }
+          if (targetId) {
+            const act: GameAction = {
+              type: 'ATTACH_ENERGY',
+              playerId: aiPlayerId,
+              handIndex: chosen.idx,
+              targetInstanceId: targetId,
+            };
+            if (validateAction(state, act).ok) return act;
+          }
         }
       }
     }
@@ -846,7 +869,7 @@ export function chooseAiAction(
     const payableAttacks =
       canEnterCombat && player.active !== null
         ? getAvailableAttacks(player.active).filter((a) =>
-            canPayEnergyCost(player.active!.attachedEnergies, a.attack.energyCost),
+            canPayEnergyCost(player.active!.attachedEnergies, a.attack.energyCost, a.source),
           )
         : [];
     const hasPayableAttack = payableAttacks.length > 0;

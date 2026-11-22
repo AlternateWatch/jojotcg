@@ -81,4 +81,15 @@ export const ENERGY_CARDS: EnergyCard[] = [
     energyType: 'METAL',
     description: 'Energía básica de Metal (compatible con costes incoloros y Atracción Magnética de Mariah).',
   },
+  {
+    id: 'energy-stand',
+    name: 'Energía de Stand',
+    type: 'ENERGY',
+    part: 3,
+    imageId: 'energy-stand',
+    assetFolder: 'energies',
+    energyType: 'STAND',
+    description:
+      'Energía especial (máx. 8 por mazo). Solo puede unirse a Usuarios de Stand y paga cualquier tipo de energía en ataques de Stand.',
+  },
 ];

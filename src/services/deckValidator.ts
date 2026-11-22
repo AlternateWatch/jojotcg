@@ -55,9 +55,16 @@ export function validateDeck(
   const counts = new Map<string, number>();
   const standUsers: { id: string; dg: number }[] = [];
   const stands: { id: string; requiredDg: number }[] = [];
-  const maxColorNeededByAnyAttack = new Map<EnergyType, { maxCount: number; cardName: string }>();
+  const maxColorNeededByAnyAttack = new Map<
+    EnergyType,
+    { maxCount: number; cardName: string; isStandAttack: boolean }
+  >();
 
-  const recordAttackCosts = (cardName: string, attacks: readonly { energyCost: EnergyType[] }[]) => {
+  const recordAttackCosts = (
+    cardName: string,
+    attacks: readonly { energyCost: EnergyType[] }[],
+    isStandAttack: boolean,
+  ) => {
     for (const atk of attacks) {
       const perColor = new Map<EnergyType, number>();
       for (const req of atk.energyCost) {
@@ -67,7 +74,7 @@ export function validateDeck(
       for (const [color, needed] of perColor.entries()) {
         const prev = maxColorNeededByAnyAttack.get(color);
         if (!prev || needed > prev.maxCount) {
-          maxColorNeededByAnyAttack.set(color, { maxCount: needed, cardName });
+          maxColorNeededByAnyAttack.set(color, { maxCount: needed, cardName, isStandAttack });
         }
       }
     }
@@ -99,12 +106,12 @@ export function validateDeck(
       if (card.categories.includes('STAND_USER') && card.dg !== null) {
         standUsers.push({ id: card.id, dg: card.dg });
       }
-      recordAttackCosts(card.name, card.attacks);
+      recordAttackCosts(card.name, card.attacks, false);
     } else if (card.type === 'STAND') {
       stands.push({ id: card.id, requiredDg: card.requiredDg });
-      recordAttackCosts(card.name, card.attacks);
+      recordAttackCosts(card.name, card.attacks, true);
     } else if (card.type === 'EVOLUTION') {
-      recordAttackCosts(card.name, card.attacks);
+      recordAttackCosts(card.name, card.attacks, card.evolutionTarget === 'STAND');
     } else if (card.type === 'ENERGY') {
       stats.byEnergy[card.energyType] = (stats.byEnergy[card.energyType] ?? 0) + 1;
     }
@@ -132,11 +139,14 @@ export function validateDeck(
     });
   }
 
-  // Copy limits per card type
+  // Copy limits per card type (special cap of 8 for Energía de Stand)
   for (const [id, count] of counts.entries()) {
     const card = getCardById(id);
     if (!card) continue;
-    const limit = rules.maxCopiesByType[card.type];
+    const limit =
+      card.type === 'ENERGY' && card.energyType === 'STAND'
+        ? rules.maxStandEnergyCopies
+        : rules.maxCopiesByType[card.type];
     if (limit !== null && count > limit) {
       errors.push({
         severity: 'ERROR',
@@ -180,9 +190,10 @@ export function validateDeck(
     });
   }
 
-  // Energy color consistency diagnostics
+  // Energy color consistency diagnostics (Energía de Stand is a wildcard for Stands, so don't penalize it as an extra color)
+  const standEnergyCount = stats.byEnergy.STAND ?? 0;
   const distinctEnergyColors = Object.keys(stats.byEnergy).filter(
-    (k) => (stats.byEnergy[k as EnergyType] ?? 0) > 0,
+    (k) => k !== 'STAND' && (stats.byEnergy[k as EnergyType] ?? 0) > 0,
   );
   if (distinctEnergyColors.length > 3) {
     warnings.push({
@@ -200,7 +211,7 @@ export function validateDeck(
     });
   }
   for (const [color, req] of maxColorNeededByAnyAttack.entries()) {
-    const inDeck = stats.byEnergy[color] ?? 0;
+    const inDeck = (stats.byEnergy[color] ?? 0) + (req.isStandAttack ? standEnergyCount : 0);
     const label = ENERGY_META[color].label;
     if (inDeck === 0) {
       warnings.push({

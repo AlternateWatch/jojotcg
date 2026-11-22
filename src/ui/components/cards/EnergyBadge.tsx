@@ -5,6 +5,7 @@ import {
   Leaf,
   Shield,
   Sparkles,
+  Star,
   Sun,
   Zap,
 } from 'lucide-react';
@@ -49,6 +50,8 @@ export function EnergyBadge({ type, size = 'sm', showLabel = false, count }: Ene
         return <Leaf size={iconSize} />;
       case 'METAL':
         return <Shield size={iconSize} />;
+      case 'STAND':
+        return <Star size={iconSize} />;
       default:
         return <CircleDot size={iconSize} />;
     }

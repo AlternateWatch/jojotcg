@@ -371,11 +371,22 @@ export function validateAttachEnergy(
     };
   }
   const cardId = player.hand[handIndex];
-  if (!cardId || !getEnergyCard(cardId)) {
+  const energyCard = cardId ? getEnergyCard(cardId) : undefined;
+  if (!energyCard) {
     return { ok: false, reason: 'La carta seleccionada no es una carta de Energía.' };
   }
-  if (!findCharacterOnBoard(state, playerId, targetInstanceId)) {
+  const target = findCharacterOnBoard(state, playerId, targetInstanceId);
+  if (!target) {
     return { ok: false, reason: 'El personaje objetivo no está en tu campo.' };
+  }
+  if (
+    energyCard.energyType === 'STAND' &&
+    !getEffectiveCharacterProfile(target.character).categories.includes('STAND_USER')
+  ) {
+    return {
+      ok: false,
+      reason: 'Energía de Stand solo puede unirse a Usuarios de Stand.',
+    };
   }
   return { ok: true };
 }
@@ -1146,7 +1157,7 @@ export function validateUseAttack(
     return { ok: false, reason: 'El ataque seleccionado no está disponible para el personaje activo.' };
   }
 
-  if (!canPayEnergyCost(active.attachedEnergies, found.attack.energyCost)) {
+  if (!canPayEnergyCost(active.attachedEnergies, found.attack.energyCost, found.source)) {
     return {
       ok: false,
       reason: `Energías insuficientes para usar ${found.attack.name}.`,

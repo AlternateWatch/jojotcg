@@ -29,7 +29,7 @@ export function CombatMovePlates({ gameState, playerId, onDispatch }: CombatMove
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-wrap justify-center gap-2.5 pt-1">
       {attacks.map(({ attack, source }) => {
-        const canPay = canPayEnergyCost(active.attachedEnergies, attack.energyCost);
+        const canPay = canPayEnergyCost(active.attachedEnergies, attack.energyCost, source);
         const action: GameAction = { type: 'USE_ATTACK', playerId, attackId: attack.id };
         const check = validateAction(gameState, action);
         const bonusInfo = computeAttackDamageBonus(gameState, playerId, active, attack, source);

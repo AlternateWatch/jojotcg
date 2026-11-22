@@ -375,6 +375,68 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     expect(state.players.P2.deck).toHaveLength(33);
   });
 
+  it('enforces Energía de Stand rules: max 8 copies in deck, Stand Users only, pays any cost for Stand attacks only', () => {
+    // 9 copies of energy-stand -> illegal
+    const tooManyStandEnergy = [
+      'char-hol-horse',
+      'stand-emperor',
+      ...Array.from({ length: 9 }, () => 'energy-stand'),
+      ...Array.from({ length: 35 }, () => 'energy-psychic'),
+    ];
+    const invalidRes = validateDeck(tooManyStandEnergy);
+    expect(invalidRes.valid).toBe(false);
+    expect(invalidRes.errors.some((e) => e.code === 'COPY_LIMIT_EXCEEDED' && e.cardId === 'energy-stand')).toBe(true);
+
+    // 8 copies -> strictly legal!
+    const validStandEnergy = [
+      'char-hol-horse',
+      'stand-emperor',
+      ...Array.from({ length: 8 }, () => 'energy-stand'),
+      ...Array.from({ length: 36 }, () => 'energy-psychic'),
+    ];
+    expect(validateDeck(validStandEnergy).valid).toBe(true);
+
+    // Cannot attach Energía de Stand to a non-Stand character (Jonathan Joestar)
+    const nonStandState = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar',
+      p1Hand: ['energy-stand'],
+      p2ActiveId: 'char-dio-brando',
+      phase: 'PREPARATION',
+    });
+    expect(
+      dispatchAction(nonStandState, {
+        type: 'ATTACH_ENERGY',
+        playerId: 'P1',
+        handIndex: 0,
+        targetInstanceId: nonStandState.players.P1.active!.instanceId,
+      }).ok,
+    ).toBe(false);
+
+    // CAN attach Energía de Stand to a Stand User (Giorno + Gold Experience) and pay ANY elemental cost (NATURE + NATURE + WATER -> 7-Page Muda)!
+    let standState = buildControlledBattleState({
+      p1ActiveId: 'char-giorno-giovanna',
+      p1ActiveStandId: 'stand-gold-experience',
+      p1ActiveEnergies: ['STAND', 'STAND'],
+      p1Hand: ['energy-stand'],
+      p2ActiveId: 'char-dio-brando',
+      phase: 'PREPARATION',
+    });
+    standState = mustDispatch(standState, {
+      type: 'ATTACH_ENERGY',
+      playerId: 'P1',
+      handIndex: 0,
+      targetInstanceId: standState.players.P1.active!.instanceId,
+    });
+    standState = mustDispatch(standState, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    expect(
+      dispatchAction(standState, {
+        type: 'USE_ATTACK',
+        playerId: 'P1',
+        attackId: 'atk-7-page-muda',
+      }).ok,
+    ).toBe(true);
+  });
+
   it('prompts human to pick a Prize Card on enemy KO and wins immediately upon taking the last Prize Card even if opponent has bench characters', () => {
     // 1. Taking 1 of 2 remaining prize cards prompts human P1, adds chosen prize to hand, and continues match
     let state = buildControlledBattleState({

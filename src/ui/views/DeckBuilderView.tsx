@@ -82,7 +82,10 @@ export function DeckBuilderView() {
   const addCard = (cardId: string) => {
     const card = getCardById(cardId);
     if (!card) return;
-    const ruleLimit = DEFAULT_RULES_CONFIG.maxCopiesByType[card.type];
+    const ruleLimit =
+      card.type === 'ENERGY' && card.energyType === 'STAND'
+        ? DEFAULT_RULES_CONFIG.maxStandEnergyCopies
+        : DEFAULT_RULES_CONFIG.maxCopiesByType[card.type];
     const owned = getOwnedCount(progression, cardId);
     const effectiveLimit =
       ruleLimit === null ? owned : Math.min(ruleLimit, owned);
@@ -389,7 +392,10 @@ export function DeckBuilderView() {
             <div className="grid max-h-[68vh] grid-cols-2 justify-items-center gap-3 overflow-y-auto pr-1 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
               {catalogFiltered.map((card) => {
                 const count = counts.get(card.id) ?? 0;
-                const ruleLimit = DEFAULT_RULES_CONFIG.maxCopiesByType[card.type];
+                const ruleLimit =
+      card.type === 'ENERGY' && card.energyType === 'STAND'
+        ? DEFAULT_RULES_CONFIG.maxStandEnergyCopies
+        : DEFAULT_RULES_CONFIG.maxCopiesByType[card.type];
                 const owned = getOwnedCount(progression, card.id);
                 const unlocked = owned > 0;
                 const effectiveLimit =
@@ -425,7 +431,9 @@ export function DeckBuilderView() {
                         title={
                           unlocked
                             ? card.type === 'ENERGY'
-                              ? 'Energías ilimitadas'
+                              ? card.energyType === 'STAND'
+                                ? `Energía especial de Stand (máx. ${DEFAULT_RULES_CONFIG.maxStandEnergyCopies} por mazo)`
+                                : 'Energías ilimitadas'
                               : `Tienes ${owned} copia(s) en tu colección`
                             : 'Carta bloqueada — consíguela en la Tienda'
                         }

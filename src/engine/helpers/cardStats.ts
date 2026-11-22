@@ -180,18 +180,36 @@ export function computeEffectiveMaxHp(
  * Classic Pokémon TCG energy cost validation:
  * Specific energy requirements must be satisfied by matching energy types;
  * remaining attached energies of ANY type can satisfy COLORLESS requirements.
+ *
+ * Special rule for Energía de Stand ('STAND'):
+ * - ONLY works for Stand attacks (`attackSource !== 'CHARACTER'`).
+ * - Acts as a universal wildcard paying ANY specific or colorless energy cost.
  */
 export function canPayEnergyCost(
   attachedEnergies: readonly EnergyType[],
   cost: readonly EnergyType[],
+  attackSource: 'CHARACTER' | 'STAND' = 'STAND',
 ): boolean {
   if (cost.length === 0) return true;
-  if (attachedEnergies.length < cost.length) return false;
 
   const pool = new Map<EnergyType, number>();
+  let standWildcards = 0;
+  let usableCount = 0;
+
   for (const e of attachedEnergies) {
+    if (e === 'STAND') {
+      if (attackSource === 'STAND') {
+        standWildcards++;
+        usableCount++;
+      }
+      // For CHARACTER (non-Stand) attacks, STAND energy cannot pay any cost
+      continue;
+    }
     pool.set(e, (pool.get(e) ?? 0) + 1);
+    usableCount++;
   }
+
+  if (usableCount < cost.length) return false;
 
   let colorlessNeeded = 0;
   for (const req of cost) {
@@ -199,12 +217,17 @@ export function canPayEnergyCost(
       colorlessNeeded++;
     } else {
       const avail = pool.get(req) ?? 0;
-      if (avail <= 0) return false;
-      pool.set(req, avail - 1);
+      if (avail > 0) {
+        pool.set(req, avail - 1);
+      } else if (standWildcards > 0) {
+        standWildcards--;
+      } else {
+        return false;
+      }
     }
   }
 
-  let totalRemaining = 0;
+  let totalRemaining = standWildcards;
   for (const count of pool.values()) {
     totalRemaining += count;
   }

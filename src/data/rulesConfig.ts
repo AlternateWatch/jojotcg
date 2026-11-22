@@ -5,6 +5,7 @@ export interface GameRulesConfig {
   maxDeckSize: number;
   prizeCardCount: number;
   maxCopiesByType: Record<RulesCardType, number | null>;
+  maxStandEnergyCopies: number;
   initialHandSize: number;
   maxBenchSize: number;
   firstPlayerCanAttackTurnOne: boolean;
@@ -35,6 +36,7 @@ export const DEFAULT_RULES_CONFIG: GameRulesConfig = {
     ITEM: 3,
     ENERGY: null, // Basic Energy cards have no copy limit (classic Pokémon TCG rule)
   },
+  maxStandEnergyCopies: 8,
   initialHandSize: 7,
   maxBenchSize: 3,
   firstPlayerCanAttackTurnOne: false,

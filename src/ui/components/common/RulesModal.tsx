@@ -64,7 +64,7 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
               Mazo y Setup Inicial
             </h3>
             <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
-              <li>• Mazo de <strong>46 cartas</strong> (máx. 1 Personaje/Stand/Evo, 3 Objeto, Energías libres).</li>
+              <li>• Mazo de <strong>46 cartas</strong> (máx. 1 Personaje/Stand/Evo, 3 Objeto, <strong>8 Energía de Stand</strong>, Energías básicas libres).</li>
               <li>• Al empezar, se separan <strong>6 Cartas de Premio boca abajo</strong> (protegiendo tu titular de Turno 1 y evitando apartar cartas de Stand).</li>
               <li>• <strong>Condiciones de victoria</strong>: robar tus <strong>6 Cartas de Premio</strong> (robas 1 por cada personaje rival eliminado), dejar al rival sin personajes en campo/banca o sin cartas en el mazo.</li>
               <li>• Mano inicial de <strong>7 cartas</strong>; banca de hasta <strong>3 personajes</strong> (puedes colocar personajes en banca gratis durante la colocación inicial).</li>
