@@ -51,6 +51,12 @@ export const BATTLE_PLAYLIST: BattleTrack[] = [
     part: 2,
     src: '/assets/music/battle/p2-take-cover.ogg',
   },
+  {
+    id: 'p2-elephant-talk-1',
+    title: 'Elephant Talk 1',
+    part: 2,
+    src: '/assets/music/battle/p2-elephant-talk-1.ogg',
+  },
 ];
 
 export function getBattleTracksByPart(
