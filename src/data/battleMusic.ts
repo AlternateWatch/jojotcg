@@ -108,6 +108,14 @@ export const BATTLE_PLAYLIST: BattleTrack[] = [
     excludeFromCampaignPool: true,
     exclusiveStageId: 'p2-s19',
   },
+  {
+    id: 'p2-burning-colosseum-final-boss',
+    title: 'Burning Colosseum [Jefe Final]',
+    part: 2,
+    src: '/assets/music/battle/p2-burning-colosseum-final-boss.ogg',
+    excludeFromCampaignPool: true,
+    exclusiveStageId: 'p2-s20',
+  },
 ];
 
 export function getBattleTracksByPart(
