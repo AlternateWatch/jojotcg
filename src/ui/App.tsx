@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import { BookOpen, Coins, User, UserCheck } from 'lucide-react';
-import { getClaimableMilestonesCount } from '../services/progressionService';
+import { BookOpen, Coins, GraduationCap, Layers, Map, Trophy, User, UserCheck, Wrench } from 'lucide-react';
+import { CAMPAIGN_PARTS } from '../data/campaignData';
+import { ALL_MILESTONES } from '../data/milestonesData';
+import { TUTORIAL_LESSONS } from '../data/tutorialData';
+import { getClaimableMilestonesCount, getCollectionProgress } from '../services/progressionService';
 import { useAppStore, type AppScreen } from '../store/useAppStore';
 import { CardInspectorModal } from './components/cards/CardInspectorModal';
 import { AuthModal } from './components/common/AuthModal';
@@ -18,15 +21,24 @@ import { MilestonesView } from './views/MilestonesView';
 import { ShopView } from './views/ShopView';
 import { TutorialView } from './views/TutorialView';
 
-const NAV_ITEMS: { id: AppScreen; num: string; label: string }[] = [
-  { id: 'HOME', num: '01', label: 'Portada' },
-  { id: 'TUTORIAL', num: '02', label: 'Tutorial' },
-  { id: 'CAMPAIGN', num: '03', label: 'Campaña' },
-  { id: 'BATTLE_SETUP', num: '04', label: 'Combate' },
-  { id: 'COLLECTION', num: '05', label: 'Colección' },
-  { id: 'DECK_BUILDER', num: '06', label: 'Mazos' },
-  { id: 'SHOP', num: '07', label: 'Tienda' },
-  { id: 'MILESTONES', num: '08', label: 'Hitos' },
+interface NavGroupItem {
+  id: AppScreen;
+  num: string;
+  label: string;
+  matchScreens: AppScreen[];
+}
+
+const NAV_ITEMS: NavGroupItem[] = [
+  { id: 'HOME', num: '01', label: 'Portada', matchScreens: ['HOME'] },
+  { id: 'CAMPAIGN', num: '02', label: 'Historia', matchScreens: ['CAMPAIGN', 'TUTORIAL'] },
+  { id: 'BATTLE_SETUP', num: '03', label: 'Combate', matchScreens: ['BATTLE_SETUP'] },
+  {
+    id: 'COLLECTION',
+    num: '04',
+    label: 'Cartas',
+    matchScreens: ['COLLECTION', 'DECK_BUILDER', 'MILESTONES'],
+  },
+  { id: 'SHOP', num: '05', label: 'Tienda', matchScreens: ['SHOP'] },
 ];
 
 const SCREEN_ORDER: Record<AppScreen, number> = {
@@ -73,6 +85,11 @@ export function App() {
   const progression = useAppStore((s) => s.progression);
   const coins = progression.coins;
   const claimableMilestones = getClaimableMilestonesCount(progression);
+  const coll = getCollectionProgress(progression);
+  const campaignTotal = CAMPAIGN_PARTS.reduce((sum, p) => sum + (p.available ? p.stages.length : 0), 0);
+  const campaignCleared = (progression.completedCampaignStages ?? []).length;
+  const tutorialCleared = (progression.completedTutorialLessons ?? []).length;
+  const milestonesClaimed = (progression.claimedMilestones ?? []).length;
   const authUser = useAppStore((s) => s.authUser);
   const setShowAuthModal = useAppStore((s) => s.setShowAuthModal);
   const hydrateAuthSession = useAppStore((s) => s.hydrateAuthSession);
@@ -153,7 +170,7 @@ export function App() {
                 {/* Skewed Arcade Tabs with sliding shared-layout active pill */}
                 <div className="flex items-center gap-1.5">
                   {NAV_ITEMS.map((item) => {
-                    const active = screen === item.id;
+                    const active = item.matchScreens.includes(screen);
                     return (
                       <motion.button
                         key={item.id}
@@ -178,7 +195,7 @@ export function App() {
                             {item.num}
                           </span>
                           <span>{item.label}</span>
-                          {item.id === 'MILESTONES' && claimableMilestones > 0 && (
+                          {item.id === 'COLLECTION' && claimableMilestones > 0 && (
                             <span className="ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center border border-[#060508] bg-[#f2c12e] px-1 font-mono text-[10px] font-black text-[#0b090e]">
                               {claimableMilestones}
                             </span>
@@ -235,6 +252,88 @@ export function App() {
         </AnimatePresence>
 
         <main className="relative">
+          {/* Sub-navigation bar for grouped hubs (Historia: Campaña/Tutorial · Cartas: Colección/Mazos/Hitos) */}
+          {(screen === 'CAMPAIGN' || screen === 'TUTORIAL') && (
+            <div className="border-b-2 border-[#060508] bg-[#16111f]">
+              <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-2 px-4 py-2 sm:px-6">
+                <button
+                  type="button"
+                  onClick={() => setScreen('CAMPAIGN')}
+                  className={`inline-flex items-center gap-1.5 border-2 border-[#060508] px-3.5 py-1.5 font-jojo-heading text-xs tracking-wider uppercase shadow-[2px_2px_0_#060508] transition ${
+                    screen === 'CAMPAIGN'
+                      ? 'bg-[#2952d9] text-white'
+                      : 'bg-[#1d1727] text-zinc-300 hover:bg-[#272035] hover:text-white'
+                  }`}
+                >
+                  <Map size={14} />
+                  <span>Modo Campaña ({campaignCleared}/{campaignTotal})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScreen('TUTORIAL')}
+                  className={`inline-flex items-center gap-1.5 border-2 border-[#060508] px-3.5 py-1.5 font-jojo-heading text-xs tracking-wider uppercase shadow-[2px_2px_0_#060508] transition ${
+                    screen === 'TUTORIAL'
+                      ? 'bg-[#00b87c] text-[#0b090e]'
+                      : 'bg-[#1d1727] text-zinc-300 hover:bg-[#272035] hover:text-white'
+                  }`}
+                >
+                  <GraduationCap size={14} />
+                  <span>Tutorial Guiado ({tutorialCleared}/{TUTORIAL_LESSONS.length})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {(screen === 'COLLECTION' || screen === 'DECK_BUILDER' || screen === 'MILESTONES') && (
+            <div className="border-b-2 border-[#060508] bg-[#16111f]">
+              <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-2 px-4 py-2 sm:px-6">
+                <button
+                  type="button"
+                  onClick={() => setScreen('COLLECTION')}
+                  className={`inline-flex items-center gap-1.5 border-2 border-[#060508] px-3.5 py-1.5 font-jojo-heading text-xs tracking-wider uppercase shadow-[2px_2px_0_#060508] transition ${
+                    screen === 'COLLECTION'
+                      ? 'bg-[#e6194b] text-white'
+                      : 'bg-[#1d1727] text-zinc-300 hover:bg-[#272035] hover:text-white'
+                  }`}
+                >
+                  <Layers size={14} />
+                  <span>Colección &amp; Forja ({coll.unlocked}/{coll.total})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScreen('DECK_BUILDER')}
+                  className={`inline-flex items-center gap-1.5 border-2 border-[#060508] px-3.5 py-1.5 font-jojo-heading text-xs tracking-wider uppercase shadow-[2px_2px_0_#060508] transition ${
+                    screen === 'DECK_BUILDER'
+                      ? 'bg-[#2952d9] text-white'
+                      : 'bg-[#1d1727] text-zinc-300 hover:bg-[#272035] hover:text-white'
+                  }`}
+                >
+                  <Wrench size={14} />
+                  <span>Constructor de Mazos</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScreen('MILESTONES')}
+                  className={`inline-flex items-center gap-1.5 border-2 border-[#060508] px-3.5 py-1.5 font-jojo-heading text-xs tracking-wider uppercase shadow-[2px_2px_0_#060508] transition ${
+                    screen === 'MILESTONES'
+                      ? 'bg-[#f2c12e] text-[#0b090e]'
+                      : claimableMilestones > 0
+                        ? 'bg-[#f2c12e]/20 text-[#f2c12e] hover:bg-[#f2c12e]/30'
+                        : 'bg-[#1d1727] text-zinc-300 hover:bg-[#272035] hover:text-white'
+                  }`}
+                >
+                  <Trophy size={14} />
+                  <span>Hitos &amp; Premios ({milestonesClaimed}/{ALL_MILESTONES.length})</span>
+                  {claimableMilestones > 0 && (
+                    <span className="ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center border border-[#060508] bg-[#f2c12e] px-1 font-mono text-[10px] font-black text-[#0b090e]">
+                      {claimableMilestones}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
           <AnimatePresence mode="wait" initial={false} custom={transitionMeta.direction}>
             <motion.div
               key={screen}
