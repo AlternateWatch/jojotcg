@@ -143,11 +143,6 @@ export function computeEffectiveMaxHp(
   const player = state.players[playerId];
   let maxHp = profile.baseMaxHp - inst.maxHpPenalty + (inst.erinaHpBonus ?? 0);
 
-  // Stand User + Stand Bond: +20 max HP while any Stand is equipped
-  if (inst.attachedStand) {
-    maxHp += 20;
-  }
-
   // Okuyasu + Josuke on bench: +20 max HP while Okuyasu is active
   if (
     profile.signatureAbility.id === 'OI_JOSUKE_OKUYASU' &&

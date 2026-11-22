@@ -65,15 +65,14 @@ export function computeAttackDamageBonus(
   let consumedErinaLove = false;
   let consumedDireAfterimage = false;
 
-  // 1. Bench Hamon Masters (Will A. Zeppeli / Lisa Lisa): +20 for HAMON_USER attacks (non-stacking max +20)
-  if (
-    profile.categories.includes('HAMON_USER') &&
-    player.bench.some(
-      (benchChar) =>
-        getEffectiveCharacterProfile(benchChar).signatureAbility.id === 'HAMON_MASTER_BENCH',
-    )
-  ) {
-    bonus += 20;
+  // 1. Bench Hamon Masters (Will A. Zeppeli & Lisa Lisa): +20 each for HAMON_USER attacks
+  if (profile.categories.includes('HAMON_USER')) {
+    for (const benchChar of player.bench) {
+      const benchProfile = getEffectiveCharacterProfile(benchChar);
+      if (benchProfile.signatureAbility.id === 'HAMON_MASTER_BENCH') {
+        bonus += 20;
+      }
+    }
   }
 
   // 2. Stand-specific user & bench synergies
@@ -541,27 +540,6 @@ export function dealDamageToCharacter(
       playerId: params.targetPlayerId,
       abilityName: 'Tecnología Alemana Superior',
       message: `${profile.name} reduce el daño del ataque en 10 puntos (daño final: ${finalDamage}).`,
-    });
-  }
-
-  // 4b. Canon Rule: "Only a Stand can harm a Stand" — characters with an equipped Stand
-  // take -10 damage from attacks made by non-Stand attackers.
-  const enemyAttackerActive = params.attackerPlayerId
-    ? state.players[params.attackerPlayerId].active
-    : null;
-  if (
-    isEnemyAttack &&
-    character.attachedStand &&
-    enemyAttackerActive &&
-    !enemyAttackerActive.attachedStand &&
-    finalDamage > 0
-  ) {
-    finalDamage = Math.max(0, finalDamage - 10);
-    pushEvent(state, eventsOut, {
-      type: 'ABILITY_TRIGGERED',
-      playerId: params.targetPlayerId,
-      abilityName: 'Resistencia de Stand',
-      message: `${profile.name} (con Stand) reduce en 10 el daño de un ataque sin Stand (daño final: ${finalDamage}).`,
     });
   }
 

@@ -273,7 +273,7 @@ describe('Statuses (Bleed, Burn, Stun) & Defensive Abilities / Synergies', () =>
     expect(afterBleed.winnerId).toBe('P1');
   });
 
-  it('applies dynamic bench synergies (Will Zeppeli / Lisa Lisa Hamon +20 max non-stacking, Okuyasu + Josuke +20 HP)', () => {
+  it('applies dynamic bench synergies (Will Zeppeli + Lisa Lisa Hamon +40, Okuyasu + Josuke +20 HP)', () => {
     const hamonState = buildControlledBattleState({
       p1ActiveId: 'char-jonathan-joestar',
       p1BenchIds: ['char-will-a-zeppeli', 'char-lisa-lisa'],
@@ -281,13 +281,13 @@ describe('Statuses (Bleed, Burn, Stun) & Defensive Abilities / Synergies', () =>
       p2ActiveId: 'char-dio-brando', // 140 HP
       phase: 'COMBAT',
     });
-    // Zoom Punch (20) + Hamon Master Bench (+20 non-stacking) = 40 damage -> 100 HP
+    // Zoom Punch (20) + Will (20) + Lisa Lisa (20) = 60 damage -> 80 HP
     const afterHamon = mustDispatch(hamonState, {
       type: 'USE_ATTACK',
       playerId: 'P1',
       attackId: 'atk-zoom-punch',
     });
-    expect(afterHamon.players.P2.active!.currentHp).toBe(100);
+    expect(afterHamon.players.P2.active!.currentHp).toBe(80);
 
     const okuState = buildControlledBattleState({
       p1ActiveId: 'char-okuyasu-nijimura', // base 130

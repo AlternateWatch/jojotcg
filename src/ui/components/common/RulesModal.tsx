@@ -80,7 +80,7 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
             </h3>
             <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
               <li>• Orden: <strong>Robo → Preparación → Combate → Fin de Turno</strong>.</li>
-              <li>• Equipar Stand compatible (Activo o Banca): <strong>Gratis</strong>, otorga <strong>+20 HP máximo/actual</strong> y <strong>roba 1 carta</strong> (<em>Despertar del Stand</em>). Además, un personaje con Stand recibe <strong>-10 daño</strong> de ataques de personajes sin Stand.</li>
+              <li>• Equipar Stand compatible (Activo o Banca): <strong>Gratis</strong> (no sustituible salvo al revivir; nunca solo en banca).</li>
               <li>• Energías: <strong>1 por turno</strong>. Objetos: <strong>ilimitados</strong> (máx. <strong>1 copia de cada equipable por personaje</strong>). Evoluciones: <strong>1 por turno</strong>.</li>
               <li>• Cualquier acción de banca (bajar / cambiar / retirar) <strong>finaliza el turno inmediatamente</strong> (salvo promoción tras KO o <em>Nigerundayo</em>).</li>
             </ul>

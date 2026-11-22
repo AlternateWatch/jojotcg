@@ -224,23 +224,8 @@ export function applyEquipStand(
     playerId,
     standCardId: standCard.id,
     characterCardId: charProfile.currentCardId,
-    message: `${player.name} equipa a ${standCard.name} en ${charProfile.name} (${zoneLabel}, +20 HP y acción gratuita).`,
+    message: `${player.name} equipa a ${standCard.name} en ${charProfile.name} (${zoneLabel}, acción gratuita).`,
   });
-
-  // Despertar del Stand: equipping a Stand draws 1 card to offset the 2-card combo cost
-  if (player.deck.length > 0) {
-    const drawn = player.deck.shift()!;
-    player.hand.push(drawn);
-    pushEvent(state, eventsOut, {
-      type: 'CARD_DRAWN',
-      playerId,
-      count: 1,
-      message: `¡Despertar del Stand! ${player.name} roba 1 carta al equipar a ${standCard.name}.`,
-    });
-    if (!checkImmediateDeckOut(state, eventsOut, playerId)) {
-      triggerOpponentExtraDrawReaction(state, eventsOut, playerId);
-    }
-  }
 }
 
 export function validateAttachEnergy(
