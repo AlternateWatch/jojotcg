@@ -5,7 +5,11 @@ import { ALL_CARDS, PRESET_DECKS } from '../../data/cardRegistry';
 import { chooseAiAction } from '../../engine/ai/tacticalAi';
 import { createGame, dispatchAction } from '../../engine/gameEngine';
 import { createSeededRng } from '../../engine/rng';
-import { OFFICIAL_CARD_IMAGE_IDS, OFFICIAL_ITEM_IMAGE_IDS } from '../../services/assetResolver';
+import {
+  OFFICIAL_CARD_IMAGE_IDS,
+  OFFICIAL_ENERGY_IMAGE_IDS,
+  OFFICIAL_ITEM_IMAGE_IDS,
+} from '../../services/assetResolver';
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
@@ -13,6 +17,7 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     const projectRoot = path.resolve(process.cwd());
     expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(73);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(15);
+    expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
       const filePath = path.join(projectRoot, 'public', 'assets', 'cards', 'official', `${imageId}.png`);
@@ -22,6 +27,11 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     for (const imageId of OFFICIAL_ITEM_IMAGE_IDS) {
       const filePath = path.join(projectRoot, 'public', 'assets', 'cards', 'items', `${imageId}.png`);
       expect(fs.existsSync(filePath), `Missing item PNG: ${filePath}`).toBe(true);
+    }
+
+    for (const imageId of OFFICIAL_ENERGY_IMAGE_IDS) {
+      const filePath = path.join(projectRoot, 'public', 'assets', 'cards', 'energies', `${imageId}.png`);
+      expect(fs.existsSync(filePath), `Missing energy PNG: ${filePath}`).toBe(true);
     }
 
     for (let i = 1; i <= 6; i++) {

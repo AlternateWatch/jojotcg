@@ -111,6 +111,17 @@ export const OFFICIAL_ITEM_IMAGE_IDS = new Set<string>([
   'suministros-speedwagon',
 ]);
 
+export const OFFICIAL_ENERGY_IMAGE_IDS = new Set<string>([
+  'energy-colorless',
+  'energy-electric',
+  'energy-fire',
+  'energy-water',
+  'energy-psychic',
+  'energy-light',
+  'energy-nature',
+  'energy-stand',
+]);
+
 export function resolveCardAsset(
   imageId: string,
   folder: AssetCardFolder = 'official',
@@ -125,6 +136,13 @@ export function resolveCardAsset(
     };
   }
   if (folder === 'items' && OFFICIAL_ITEM_IMAGE_IDS.has(imageId)) {
+    return {
+      url: expectedPath,
+      isFullCardRender: true,
+      expectedPath,
+    };
+  }
+  if (folder === 'energies' && OFFICIAL_ENERGY_IMAGE_IDS.has(imageId)) {
     return {
       url: expectedPath,
       isFullCardRender: true,
