@@ -9,9 +9,9 @@ import { OFFICIAL_CARD_IMAGE_IDS, OFFICIAL_ITEM_IMAGE_IDS } from '../../services
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 65 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 66 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(65);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(66);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(12);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -453,6 +453,52 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     });
     expect(noFourState.players.P1.active!.tetraphobiaTriggered).toBeFalsy();
     expect(noFourState.players.P2.active!.currentHp).toBe(130); // 160 - 30 (no +10 bonus)
+  });
+
+  it('resolves Erina Pendleton (Amor Flagrante +10 HP & +10 next attack to Jonathan on entry, and Tratamiento bench heal +10 HP)', () => {
+    // 1. Erina on bench when Jonathan enters play -> Jonathan gets 140 HP and +10 on his next attack!
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-robert-e-o-speedwagon',
+      p1BenchIds: ['char-erina-pendleton'],
+      p1Hand: ['char-jonathan-joestar'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'PREPARATION',
+    });
+
+    state = mustDispatch(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: 0 });
+    const jonathan = state.players.P1.bench.find((b) => b.cardId === 'char-jonathan-joestar')!;
+    expect(jonathan.currentHp).toBe(140); // 130 + 10
+    expect(jonathan.erinaHpBonus).toBe(10);
+    expect(jonathan.erinaNextAttackBonus).toBe(true);
+
+    // Move Jonathan to active with 1 Colorless energy -> Zoom Punch deals 20 + 10 = 30 once!
+    state.activePlayerId = 'P1';
+    state.phase = 'COMBAT';
+    state.players.P1.active = jonathan;
+    jonathan.attachedEnergies = ['COLORLESS'];
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-zoom-punch',
+    });
+    expect(state.players.P2.active!.currentHp).toBe(130); // 160 - 30
+    expect(state.players.P1.active!.erinaNextAttackBonus).toBe(false);
+
+    // 2. Erina's Tratamiento heals a bench ally by +10 HP
+    let healState = buildControlledBattleState({
+      p1ActiveId: 'char-erina-pendleton',
+      p1ActiveEnergies: ['COLORLESS'],
+      p1BenchIds: ['char-jonathan-joestar'],
+      p2ActiveId: 'char-dio-brando',
+      phase: 'COMBAT',
+    });
+    healState.players.P1.bench[0]!.currentHp = 80;
+    healState = mustDispatch(healState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-tratamiento',
+    });
+    expect(healState.players.P1.bench[0]!.currentHp).toBe(90);
   });
 
   it('completes AI vs AI matches across all 4 preset decks cleanly', () => {

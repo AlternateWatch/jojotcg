@@ -141,7 +141,7 @@ export function computeEffectiveMaxHp(
 ): number {
   const profile = getEffectiveCharacterProfile(inst);
   const player = state.players[playerId];
-  let maxHp = profile.baseMaxHp - inst.maxHpPenalty;
+  let maxHp = profile.baseMaxHp - inst.maxHpPenalty + (inst.erinaHpBonus ?? 0);
 
   // Okuyasu + Josuke on bench: +20 max HP while Okuyasu is active
   if (

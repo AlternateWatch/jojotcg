@@ -291,6 +291,7 @@ export function executeAttack(
     if (bonusInfo.consumedHotBlood) attacker.hotBloodBonusReady = false;
     if (bonusInfo.consumedLuckyShot) attacker.luckyShotUsed = true;
     if (bonusInfo.consumedLastHamon) player.pendingNextAttackBonus = 0;
+    if (bonusInfo.consumedErinaLove) attacker.erinaNextAttackBonus = false;
   };
 
   // Special non-damaging copy attack (Silver Chariot Requiem — Manipulación de Stand)

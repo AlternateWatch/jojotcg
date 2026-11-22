@@ -144,6 +144,7 @@ export const CARD_RARITY_MAP: Record<string, CardRarity> = {
   'char-jonathan-joestar': 'COMMON',
   'char-will-a-zeppeli': 'COMMON',
   'char-robert-e-o-speedwagon': 'COMMON',
+  'char-erina-pendleton': 'COMMON',
   'char-iggy': 'COMMON',
   'char-hol-horse': 'COMMON',
   'char-mariah': 'COMMON',
@@ -251,6 +252,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'char-jonathan-joestar',
       'char-will-a-zeppeli',
       'char-robert-e-o-speedwagon',
+      'char-erina-pendleton',
       'char-dio-brando',
       'item-mascara-de-piedra',
       'item-pluck',
@@ -470,6 +472,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
     poolCardIds: [
       'char-robert-e-o-speedwagon',
       'char-will-a-zeppeli',
+      'char-erina-pendleton',
       'char-caesar-zeppeli',
       'char-lisa-lisa',
       'char-rudol-von-stroheim',

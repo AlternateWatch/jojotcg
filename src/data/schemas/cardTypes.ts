@@ -134,6 +134,7 @@ export type SignatureEffectId =
   | 'HAVE_A_DREAM_GIORNO'
   | 'LIE_DETECTION_BUCCIARATI'
   | 'TETRAPHOBIA_MISTA'
+  | 'FLAGRANT_LOVE_ERINA'
   | 'NONE';
 
 export interface SignatureAbilityDef {

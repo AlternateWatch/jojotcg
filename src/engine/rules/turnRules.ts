@@ -42,8 +42,29 @@ export function triggerOnEnterFieldAbility(
   inst: CharacterInstance,
 ): void {
   const profile = getEffectiveCharacterProfile(inst);
+  const player = state.players[playerId];
   const opponentId = getOpponentId(playerId);
   const opponent = state.players[opponentId];
+
+  // Erina Pendleton — AMOR FLAGRANTE: when Jonathan enters play while Erina is on bench, +10 HP & +10 next attack!
+  if (
+    profile.currentCardId === 'char-jonathan-joestar' &&
+    player.bench.some(
+      (b) =>
+        b.instanceId !== inst.instanceId &&
+        getEffectiveCharacterProfile(b).signatureAbility.id === 'FLAGRANT_LOVE_ERINA',
+    )
+  ) {
+    inst.erinaHpBonus = (inst.erinaHpBonus ?? 0) + 10;
+    inst.currentHp += 10;
+    inst.erinaNextAttackBonus = true;
+    pushEvent(state, eventsOut, {
+      type: 'ABILITY_TRIGGERED',
+      playerId,
+      abilityName: 'Amor Flagrante',
+      message: `¡Amor Flagrante! Erina Pendleton anima a Jonathan Joestar desde la banca (+10 HP y +10 daño en su siguiente ataque).`,
+    });
+  }
 
   if (profile.signatureAbility.id === 'MAGNETIC_ATTRACTION_MARIAH' && opponent.active) {
     let stolen = 0;

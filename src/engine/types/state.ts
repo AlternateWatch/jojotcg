@@ -76,6 +76,9 @@ export interface CharacterInstance {
   retreatLockedUntilEndOfTurn?: boolean;
   /** Guido Mista — Tetrafobia: true once +10 permanent Stand damage has been triggered */
   tetraphobiaTriggered?: boolean;
+  /** Erina Pendleton — Amor Flagrante: +10 HP & +10 next attack granted to Jonathan on entry */
+  erinaHpBonus?: number;
+  erinaNextAttackBonus?: boolean;
 }
 
 export interface PlayerState {

@@ -46,7 +46,13 @@ export function computeAttackDamageBonus(
   attackerInst: CharacterInstance,
   attack: AttackDef,
   attackSource: 'CHARACTER' | 'STAND',
-): { bonus: number; consumedHotBlood: boolean; consumedLuckyShot: boolean; consumedLastHamon: boolean } {
+): {
+  bonus: number;
+  consumedHotBlood: boolean;
+  consumedLuckyShot: boolean;
+  consumedLastHamon: boolean;
+  consumedErinaLove: boolean;
+} {
   const player = state.players[attackerPlayerId];
   const opponent = state.players[getOpponentId(attackerPlayerId)];
   const profile = getEffectiveCharacterProfile(attackerInst);
@@ -55,6 +61,7 @@ export function computeAttackDamageBonus(
   let consumedHotBlood = false;
   let consumedLuckyShot = false;
   let consumedLastHamon = false;
+  let consumedErinaLove = false;
 
   // 1. Bench Hamon Masters (Will A. Zeppeli & Lisa Lisa): +20 each for HAMON_USER attacks
   if (profile.categories.includes('HAMON_USER')) {
@@ -141,6 +148,10 @@ export function computeAttackDamageBonus(
     bonus += player.pendingNextAttackBonus;
     consumedLastHamon = true;
   }
+  if (attackerInst.erinaNextAttackBonus) {
+    bonus += 10;
+    consumedErinaLove = true;
+  }
 
   // 5. Horus — Caída de las Temperaturas (+10 per stack to WATER attacks)
   if (player.permanentWaterAttackBonus > 0 && attack.energyCost.includes('WATER')) {
@@ -168,7 +179,7 @@ export function computeAttackDamageBonus(
     }
   }
 
-  return { bonus, consumedHotBlood, consumedLuckyShot, consumedLastHamon };
+  return { bonus, consumedHotBlood, consumedLuckyShot, consumedLastHamon, consumedErinaLove };
 }
 
 export function healCharacter(
