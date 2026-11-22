@@ -283,11 +283,11 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(kqEnergyCount).toBeLessThanOrEqual(18);
   });
 
-  it('validates Part 1–4 Campaigns (20 stages in Part 1 with bosses every 5; 10 stages in Parts 2–4; legal decks & strict one-time pickup)', () => {
+  it('validates Part 1–4 Campaigns (20 stages in Parts 1–2 with bosses every 5; 10 stages in Parts 3–4; legal decks & strict one-time pickup)', () => {
     for (const partNum of [1, 2, 3, 4] as const) {
       const partDef = CAMPAIGN_PARTS.find((p) => p.part === partNum)!;
       expect(partDef.available).toBe(true);
-      const expectedLength = partNum === 1 ? 20 : 10;
+      const expectedLength = partNum <= 2 ? 20 : 10;
       expect(partDef.stages).toHaveLength(expectedLength);
 
       for (const stage of partDef.stages) {
@@ -325,7 +325,7 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     const s2 = getCampaignStageById('p1-s2')!;
     const s5 = getCampaignStageById('p1-s5')!;
     const s20 = getCampaignStageById('p1-s20')!;
-    const p2s10 = getCampaignStageById('p2-s10')!;
+    const p2s20 = getCampaignStageById('p2-s20')!;
     const p3s10 = getCampaignStageById('p3-s10')!;
     const p4s10 = getCampaignStageById('p4-s10')!;
 
@@ -370,14 +370,14 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(r20Again.coinsAwarded).toBe(0);
     expect(r20Again.packOutcomes).toBeNull();
 
-    // Part 2 Stage 10 grants 2 Part 2 packs once
-    const rP2S10 = claimCampaignStageReward(p2s10, r20Again.nextProgression, createSeededRng(210));
-    expect(rP2S10.firstClear).toBe(true);
-    expect(rP2S10.pack?.id).toBe('pack-part-2');
-    expect(rP2S10.packOutcomes).toHaveLength(2);
+    // Part 2 Stage 20 grants 2 Part 2 packs once
+    const rP2S20 = claimCampaignStageReward(p2s20, r20Again.nextProgression, createSeededRng(220));
+    expect(rP2S20.firstClear).toBe(true);
+    expect(rP2S20.pack?.id).toBe('pack-part-2');
+    expect(rP2S20.packOutcomes).toHaveLength(2);
 
     // Part 3 Stage 10 grants 2 Part 3 packs once
-    const rP3S10 = claimCampaignStageReward(p3s10, rP2S10.nextProgression, createSeededRng(310));
+    const rP3S10 = claimCampaignStageReward(p3s10, rP2S20.nextProgression, createSeededRng(310));
     expect(rP3S10.firstClear).toBe(true);
     expect(rP3S10.pack?.id).toBe('pack-part-3');
     expect(rP3S10.packOutcomes).toHaveLength(2);
