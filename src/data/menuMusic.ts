@@ -54,4 +54,16 @@ export const MENU_PLAYLIST: MenuTrack[] = [
     artist: 'nicopatty',
     src: '/assets/music/snooze.flac',
   },
+  {
+    id: 'dont',
+    title: "Don't",
+    artist: 'ATLUS GAME MUSIC',
+    src: '/assets/music/dont.flac',
+  },
+  {
+    id: 'walk-like-an-egyptian',
+    title: 'Walk Like an Egyptian',
+    artist: 'The Bangles',
+    src: '/assets/music/walk-like-an-egyptian.flac',
+  },
 ];
