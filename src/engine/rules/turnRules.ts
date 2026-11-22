@@ -550,6 +550,13 @@ export function validatePlayItem(
       if (!player.active) {
         return { ok: false, reason: 'Necesitas tener un personaje activo en el campo.' };
       }
+    } else if (eff.kind === 'DISCARD_ENEMY_EQUIPPED_ITEM_AND_DRAW') {
+      const opponent = state.players[getOpponentId(playerId)];
+      const enemyChars = [...(opponent.active ? [opponent.active] : []), ...opponent.bench];
+      const hasEquipped = enemyChars.some((ch) => ch.attachedItems.length > 0);
+      if (!hasEquipped) {
+        return { ok: false, reason: 'El oponente no tiene ningún objeto equipado en el campo.' };
+      }
     }
   }
 
@@ -712,6 +719,53 @@ export function applyPlayItem(
         abilityName: item.name,
         message: `¡${item.name}! El siguiente ataque de tu personaje o Stand activo inflige +${eff.bonusDamage} puntos de daño extra.`,
       });
+    } else if (eff.kind === 'DISCARD_ENEMY_EQUIPPED_ITEM_AND_DRAW') {
+      const opponentId = getOpponentId(playerId);
+      const opponent = state.players[opponentId];
+      const enemyChars = [...(opponent.active ? [opponent.active] : []), ...opponent.bench];
+      const equippedEntries: { char: CharacterInstance; itemIdx: number; cardId: string }[] = [];
+      for (const ch of enemyChars) {
+        ch.attachedItems.forEach((it, idx) => {
+          equippedEntries.push({ char: ch, itemIdx: idx, cardId: it.cardId });
+        });
+      }
+      if (equippedEntries.length === 1) {
+        const only = equippedEntries[0]!;
+        only.char.attachedItems.splice(only.itemIdx, 1);
+        opponent.discard.push(only.cardId);
+        const newMax = computeEffectiveMaxHp(state, opponentId, only.char);
+        if (only.char.currentHp > newMax) only.char.currentHp = newMax;
+        const removedName = getCardById(only.cardId)?.name ?? only.cardId;
+        const charName = getEffectiveCharacterProfile(only.char).name;
+        pushEvent(state, eventsOut, {
+          type: 'ABILITY_TRIGGERED',
+          playerId,
+          abilityName: item.name,
+          message: `¡${item.name}! Descarta ${removedName} equipado en ${charName}.`,
+        });
+        const drawnCount = Math.min(eff.drawCount, player.deck.length);
+        for (let i = 0; i < drawnCount; i++) {
+          player.hand.push(player.deck.shift()!);
+        }
+        if (drawnCount > 0) {
+          pushEvent(state, eventsOut, {
+            type: 'CARD_DRAWN',
+            playerId,
+            count: drawnCount,
+            message: `${player.name} roba ${drawnCount} carta(s) gracias a ${item.name}.`,
+          });
+          checkImmediateDeckOut(state, eventsOut, playerId);
+          triggerOpponentExtraDrawReaction(state, eventsOut, playerId);
+        }
+      } else if (equippedEntries.length > 1) {
+        enqueuePrompt(state, {
+          kind: 'CHOOSE_ENEMY_EQUIPPED_ITEM',
+          playerId,
+          targetPlayerId: opponentId,
+          drawCount: eff.drawCount,
+          sourceLabel: item.name,
+        });
+      }
     } else if (eff.kind === 'DRAW_CARDS') {
       const drawnCount = Math.min(eff.count, player.deck.length);
       for (let i = 0; i < drawnCount; i++) {

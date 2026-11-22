@@ -542,6 +542,33 @@ function buildPromptResponse(
       const picked = candidates.slice(0, prompt.maxPickCount).map((c) => c.idx);
       return { kind: 'SEARCH_DECK_CARDS', deckIndices: picked };
     }
+    case 'CHOOSE_ENEMY_EQUIPPED_ITEM': {
+      const targetPlayer = state.players[prompt.targetPlayerId];
+      const enemyChars = [
+        ...(targetPlayer.active ? [{ ch: targetPlayer.active, isActive: true }] : []),
+        ...targetPlayer.bench.map((ch) => ({ ch, isActive: false })),
+      ];
+      let best: { characterInstanceId: string; itemInstanceId: string; score: number } | null = null;
+      for (const { ch, isActive } of enemyChars) {
+        for (const it of ch.attachedItems) {
+          const score =
+            (isActive ? 50 : 10) +
+            (it.cardId === 'item-piedra-roja-de-aja' || it.cardId === 'item-mascara-de-piedra'
+              ? 35
+              : it.cardId === 'item-clackers' || it.cardId === 'item-estilo-de-combate-ogre-street'
+                ? 30
+                : 15);
+          if (!best || score > best.score) {
+            best = { characterInstanceId: ch.instanceId, itemInstanceId: it.instanceId, score };
+          }
+        }
+      }
+      return {
+        kind: 'CHOOSE_ENEMY_EQUIPPED_ITEM',
+        characterInstanceId: best!.characterInstanceId,
+        itemInstanceId: best!.itemInstanceId,
+      };
+    }
   }
 }
 
@@ -830,6 +857,12 @@ export function chooseAiAction(
         }
       } else if (item.effects.some((e) => e.kind === 'NEXT_ATTACK_DAMAGE_BONUS')) {
         if (activeCanAttackNow && opponent.active) {
+          const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
+          if (validateAction(state, act).ok) return act;
+        }
+      } else if (item.effects.some((e) => e.kind === 'DISCARD_ENEMY_EQUIPPED_ITEM_AND_DRAW')) {
+        const enemyBoard = [...(opponent.active ? [opponent.active] : []), ...opponent.bench];
+        if (player.deck.length >= 6 && enemyBoard.some((ch) => ch.attachedItems.length > 0)) {
           const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
           if (validateAction(state, act).ok) return act;
         }

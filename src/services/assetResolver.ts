@@ -96,6 +96,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
 export const OFFICIAL_ITEM_IMAGE_IDS = new Set<string>([
   'ataud-de-dio',
   'atraccion-usuarios-stand',
+  'carterista-de-nueva-york',
   'cinta-de-caesar',
   'clackers',
   'comida-de-tonio',

@@ -236,6 +236,13 @@ export type PlayerPrompt =
       targetInstanceId: string;
       eligibleStandCardIds: string[];
       sourceLabel: string;
+    }
+  | {
+      kind: 'CHOOSE_ENEMY_EQUIPPED_ITEM';
+      playerId: PlayerId;
+      targetPlayerId: PlayerId;
+      drawCount: number;
+      sourceLabel: string;
     };
 
 export interface GameState {

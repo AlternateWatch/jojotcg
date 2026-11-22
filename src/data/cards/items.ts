@@ -161,6 +161,20 @@ export const ITEM_CARDS: ItemCard[] = [
     tags: ['official', 'equippable', 'search', 'hamon', 'damage'],
   },
   {
+    id: 'item-carterista-de-nueva-york',
+    name: 'Carterista de Nueva York',
+    type: 'ITEM',
+    part: 2,
+    imageId: 'carterista-de-nueva-york',
+    assetFolder: 'items',
+    itemKind: 'CONSUMABLE',
+    targetScope: 'PLAYER',
+    description:
+      'Aplica el intelecto de Smokey Brown, un pícaro apreciado por la familia Joestar. Al jugar por su cuenta: Elige un objeto activo unido a un personaje rival, descártalo y roba una carta.',
+    effects: [{ kind: 'DISCARD_ENEMY_EQUIPPED_ITEM_AND_DRAW', drawCount: 1 }],
+    tags: ['official', 'disruption', 'draw'],
+  },
+  {
     id: 'item-suministros-speedwagon',
     name: 'Suministros de la fundación Speedwagon',
     type: 'ITEM',

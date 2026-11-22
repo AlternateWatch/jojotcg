@@ -177,6 +177,7 @@ export type ItemEffectDef =
   | { kind: 'BURN_ENEMY_ACTIVE' }
   | { kind: 'STUN_AND_LOCK_RETREAT_ENEMY_ACTIVE' }
   | { kind: 'NEXT_ATTACK_DAMAGE_BONUS'; bonusDamage: number }
+  | { kind: 'DISCARD_ENEMY_EQUIPPED_ITEM_AND_DRAW'; drawCount: number }
   | { kind: 'EVOLUTION_CATALYST'; catalystTag: string }
   | { kind: 'DRAW_CARDS'; count: number }
   | {

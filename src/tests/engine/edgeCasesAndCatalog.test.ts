@@ -16,7 +16,7 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
   it('verifies all 69 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
     expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(73);
-    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(15);
+    expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -1067,5 +1067,61 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       attackId: 'atk-hell-heaven-snake-kill',
     });
     expect(equipNonHamon.players.P2.active!.currentHp).toBe(120);
+  });
+
+  it('resolves Carterista de Nueva York (discards an enemy equipped item on active or bench and draws 1 card)', () => {
+    // 1. Fails if opponent has no equipped items
+    const noItemsState = buildControlledBattleState({
+      p1ActiveId: 'char-joseph-joestar',
+      p1Hand: ['item-carterista-de-nueva-york'],
+      p2ActiveId: 'char-kars',
+      phase: 'PREPARATION',
+    });
+    const blocked = dispatchAction(noItemsState, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: 0 });
+    expect(blocked.ok).toBe(false);
+
+    // 2. Auto-discards single enemy equipped item & draws 1 card
+    let singleState = buildControlledBattleState({
+      p1ActiveId: 'char-joseph-joestar',
+      p1Hand: ['item-carterista-de-nueva-york'],
+      p1Deck: ['energy-electric', 'energy-colorless'],
+      p2ActiveId: 'char-kars',
+      p2ActiveItems: ['item-mascara-de-piedra'],
+      phase: 'PREPARATION',
+    });
+    singleState = mustDispatch(singleState, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: 0 });
+    expect(singleState.pendingPrompt).toBeNull();
+    expect(singleState.players.P2.active!.attachedItems).toHaveLength(0);
+    expect(singleState.players.P2.discard).toContain('item-mascara-de-piedra');
+    expect(singleState.players.P1.hand).toContain('energy-electric');
+    expect(singleState.players.P1.discard).toContain('item-carterista-de-nueva-york');
+
+    // 3. Opens CHOOSE_ENEMY_EQUIPPED_ITEM when opponent has 2+ equipped items across active/bench
+    let multiState = buildControlledBattleState({
+      p1ActiveId: 'char-joseph-joestar',
+      p1Hand: ['item-carterista-de-nueva-york'],
+      p1Deck: ['char-caesar-zeppeli', 'energy-electric'],
+      p2ActiveId: 'char-kars',
+      p2ActiveItems: ['item-mascara-de-piedra', 'item-piedra-roja-de-aja'],
+      phase: 'PREPARATION',
+    });
+    multiState = mustDispatch(multiState, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: 0 });
+    expect(multiState.pendingPrompt?.kind).toBe('CHOOSE_ENEMY_EQUIPPED_ITEM');
+    const ajaItem = multiState.players.P2.active!.attachedItems.find(
+      (it) => it.cardId === 'item-piedra-roja-de-aja',
+    )!;
+    multiState = mustDispatch(multiState, {
+      type: 'RESPOND_PROMPT',
+      playerId: 'P1',
+      response: {
+        kind: 'CHOOSE_ENEMY_EQUIPPED_ITEM',
+        characterInstanceId: multiState.players.P2.active!.instanceId,
+        itemInstanceId: ajaItem.instanceId,
+      },
+    });
+    expect(multiState.players.P2.active!.attachedItems).toHaveLength(1);
+    expect(multiState.players.P2.active!.attachedItems[0]!.cardId).toBe('item-mascara-de-piedra');
+    expect(multiState.players.P2.discard).toContain('item-piedra-roja-de-aja');
+    expect(multiState.players.P1.hand).toContain('char-caesar-zeppeli');
   });
 });

@@ -775,6 +775,7 @@ const P2_STORY_FINALE_IDS = buildPart1Deck(
     ...rep('item-cinta-de-caesar', 3),
     ...rep('item-suministros-speedwagon', 3),
     ...rep('item-piedra-roja-de-aja', 2),
+    'item-carterista-de-nueva-york',
   ],
   [
     ['energy-electric', 14],

@@ -1287,6 +1287,14 @@ export function validatePromptResponse(
       }
       return { ok: true };
     }
+    case 'CHOOSE_ENEMY_EQUIPPED_ITEM': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_ENEMY_EQUIPPED_ITEM' }>;
+      const found = findCharacterOnBoard(state, prompt.targetPlayerId, r.characterInstanceId);
+      if (!found || !found.character.attachedItems.some((it) => it.instanceId === r.itemInstanceId)) {
+        return { ok: false, reason: 'Debes seleccionar un objeto equipado válido del rival.' };
+      }
+      return { ok: true };
+    }
   }
 }
 
@@ -1612,6 +1620,43 @@ export function resolvePendingPrompt(
         r.standCardId,
         rng,
       );
+      break;
+    }
+    case 'CHOOSE_ENEMY_EQUIPPED_ITEM': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_ENEMY_EQUIPPED_ITEM' }>;
+      const opponent = state.players[prompt.targetPlayerId];
+      const found = findCharacterOnBoard(state, prompt.targetPlayerId, r.characterInstanceId);
+      if (found) {
+        const idx = found.character.attachedItems.findIndex((it) => it.instanceId === r.itemInstanceId);
+        if (idx !== -1) {
+          const removed = found.character.attachedItems.splice(idx, 1)[0]!;
+          opponent.discard.push(removed.cardId);
+          const newMax = computeEffectiveMaxHp(state, prompt.targetPlayerId, found.character);
+          if (found.character.currentHp > newMax) found.character.currentHp = newMax;
+          const removedName = getCardById(removed.cardId)?.name ?? removed.cardId;
+          const charName = getEffectiveCharacterProfile(found.character).name;
+          pushEvent(state, eventsOut, {
+            type: 'ABILITY_TRIGGERED',
+            playerId,
+            abilityName: prompt.sourceLabel,
+            message: `¡${prompt.sourceLabel}! Descarta ${removedName} equipado en ${charName}.`,
+          });
+        }
+      }
+      const drawnCount = Math.min(prompt.drawCount, player.deck.length);
+      for (let i = 0; i < drawnCount; i++) {
+        player.hand.push(player.deck.shift()!);
+      }
+      if (drawnCount > 0) {
+        pushEvent(state, eventsOut, {
+          type: 'CARD_DRAWN',
+          playerId,
+          count: drawnCount,
+          message: `${player.name} roba ${drawnCount} carta(s) gracias a ${prompt.sourceLabel}.`,
+        });
+        checkImmediateDeckOut(state, eventsOut, playerId);
+        triggerOpponentExtraDrawReaction(state, eventsOut, playerId);
+      }
       break;
     }
   }

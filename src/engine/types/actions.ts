@@ -16,7 +16,8 @@ export type PromptResponsePayload =
   | { kind: 'CHOOSE_ALLY_BENCH_HEAL'; benchInstanceId: string }
   | { kind: 'PEEK_TOP_DECK'; target: 'SELF' | 'OPPONENT' }
   | { kind: 'CHOOSE_PRIZE_CARD'; prizeIndex: number }
-  | { kind: 'CHOOSE_STAND_FROM_DECK'; standCardId: string };
+  | { kind: 'CHOOSE_STAND_FROM_DECK'; standCardId: string }
+  | { kind: 'CHOOSE_ENEMY_EQUIPPED_ITEM'; characterInstanceId: string; itemInstanceId: string };
 
 export type GameAction =
   | { type: 'PERFORM_MULLIGAN'; playerId: PlayerId }

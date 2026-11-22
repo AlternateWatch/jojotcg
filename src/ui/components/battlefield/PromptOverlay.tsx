@@ -922,8 +922,7 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
               Elige el Stand a Invocar desde tu Mazo
             </h3>
             <p className="text-xs text-zinc-300">
-              Se equipará directamente al Usuario seleccionado y te otorgará{' '}
-              <strong className="text-[#00e599]">+1 energía adjuntable</strong> este turno.
+              Se equipará directamente al Usuario seleccionado desde tu mazo.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               {prompt.eligibleStandCardIds.map((standId) => {
@@ -945,6 +944,64 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
             </div>
           </div>
         )}
+
+        {/* 14. CHOOSE ENEMY EQUIPPED ITEM (Carterista de Nueva York) */}
+        {prompt.kind === 'CHOOSE_ENEMY_EQUIPPED_ITEM' && (() => {
+          const targetPlayer = state.players[prompt.targetPlayerId];
+          const entries = [
+            ...(targetPlayer.active
+              ? targetPlayer.active.attachedItems.map((it) => ({
+                  ch: targetPlayer.active!,
+                  zoneLabel: 'Activo',
+                  it,
+                }))
+              : []),
+            ...targetPlayer.bench.flatMap((ch) =>
+              ch.attachedItems.map((it) => ({ ch, zoneLabel: 'Banca', it })),
+            ),
+          ];
+          return (
+            <div className="space-y-4 text-center">
+              <div className="inline-block -skew-x-10 border-2 border-[#060508] bg-[#e6194b] px-3 py-0.5 font-jojo-heading text-xs tracking-[0.2em] text-white uppercase">
+                <span className="inline-block skew-x-10">{prompt.sourceLabel}</span>
+              </div>
+              <h3 className="font-jojo-display text-2xl text-[#f5efe0] uppercase">
+                Elige un Objeto Rival para Descartar
+              </h3>
+              <p className="text-xs text-zinc-300">
+                Descarta el objeto seleccionado del campo rival y roba{' '}
+                <strong className="text-[#f2c12e]">{prompt.drawCount} carta</strong>.
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                {entries.map(({ ch, zoneLabel, it }) => {
+                  const itemCard = getCardById(it.cardId);
+                  if (!itemCard) return null;
+                  const ownerName = getEffectiveCharacterProfile(ch).name;
+                  return (
+                    <div key={it.instanceId} className="flex flex-col items-center gap-1.5">
+                      <CardView
+                        card={itemCard}
+                        size="md"
+                        highlighted
+                        badgeText="DESCARTAR"
+                        onClick={() =>
+                          onRespond({
+                            kind: 'CHOOSE_ENEMY_EQUIPPED_ITEM',
+                            characterInstanceId: ch.instanceId,
+                            itemInstanceId: it.instanceId,
+                          })
+                        }
+                      />
+                      <span className="font-jojo-heading text-xs tracking-wider text-[#f2c12e]">
+                        En {ownerName} ({zoneLabel})
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </motion.div>
     </motion.div>
   );
