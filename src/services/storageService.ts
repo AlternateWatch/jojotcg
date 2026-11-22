@@ -66,14 +66,19 @@ export const storageService: StorageAdapter = {
       if (!raw) return [];
       const parsed = JSON.parse(raw) as unknown;
       if (!Array.isArray(parsed)) return [];
-      return parsed.filter(
-        (d): d is SavedDeck =>
-          typeof d === 'object' &&
-          d !== null &&
-          typeof (d as SavedDeck).id === 'string' &&
-          typeof (d as SavedDeck).name === 'string' &&
-          Array.isArray((d as SavedDeck).cardIds),
-      );
+      return parsed
+        .filter(
+          (d): d is SavedDeck =>
+            typeof d === 'object' &&
+            d !== null &&
+            typeof (d as SavedDeck).id === 'string' &&
+            typeof (d as SavedDeck).name === 'string' &&
+            Array.isArray((d as SavedDeck).cardIds),
+        )
+        .map((d) => ({
+          ...d,
+          cardIds: d.cardIds.map((id) => (id === 'energy-metal' ? 'energy-colorless' : id)),
+        }));
     } catch {
       return [];
     }

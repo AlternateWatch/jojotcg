@@ -72,16 +72,6 @@ export const ENERGY_CARDS: EnergyCard[] = [
     description: 'Energía básica de Restauración / Naturaleza. También puede pagar costes incoloros.',
   },
   {
-    id: 'energy-metal',
-    name: 'Energía Metal',
-    type: 'ENERGY',
-    part: 3,
-    imageId: 'energy-metal',
-    assetFolder: 'energies',
-    energyType: 'METAL',
-    description: 'Energía básica de Metal (compatible con costes incoloros y Atracción Magnética de Mariah).',
-  },
-  {
     id: 'energy-stand',
     name: 'Energía de Stand',
     type: 'ENERGY',

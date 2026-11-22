@@ -680,11 +680,11 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     }
   });
 
-  it('resolves Bruford (120 HP, Metal): Lealtad de Caballero doubles (P)luck bonus (+20) and Danse Macab-Hair inflicts Bleed on TAILS', () => {
+  it('resolves Bruford (120 HP, Colorless): Lealtad de Caballero doubles (P)luck bonus (+20) and Danse Macab-Hair inflicts Bleed on TAILS', () => {
     const baseState = buildControlledBattleState({
       p1ActiveId: 'char-bruford',
       p1ActiveItems: ['item-pluck'],
-      p1ActiveEnergies: ['METAL', 'METAL'],
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS'],
       p2ActiveId: 'char-dio', // 160 HP
       phase: 'COMBAT',
     });
@@ -718,10 +718,10 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(afterDanseHeads.players.P2.active!.statuses.bleedStacks).toHaveLength(0);
   });
 
-  it('resolves Tarkus (150 HP, Metal): Fuerza Sobrehumana gains permanent +10 dmg on end-of-turn HEADS while Active', () => {
+  it('resolves Tarkus (150 HP, Colorless): Fuerza Sobrehumana gains permanent +10 dmg on end-of-turn HEADS while Active', () => {
     let state = buildControlledBattleState({
       p1ActiveId: 'char-tarkus',
-      p1ActiveEnergies: ['METAL', 'METAL'],
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS'],
       p2ActiveId: 'char-dio', // 160 HP
       phase: 'PREPARATION',
     });
@@ -829,7 +829,7 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     // 2. Garras Metálicas (1 METAL, 20 dmg): TAILS inflicts Bleed
     let clawState = buildControlledBattleState({
       p1ActiveId: 'char-wang-chan',
-      p1ActiveEnergies: ['METAL'],
+      p1ActiveEnergies: ['COLORLESS'],
       p1BenchIds: ['char-dio-brando'],
       p2ActiveId: 'char-jonathan-joestar', // 130 HP
       phase: 'COMBAT',
@@ -903,7 +903,7 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     // 3. Equipped onto a Conventional Fighter (Tarkus) -> +20 permanent damage (40 + 20 = 60 -> 160 - 60 = 100)
     let equipConvState = buildControlledBattleState({
       p1ActiveId: 'char-tarkus',
-      p1ActiveEnergies: ['METAL', 'METAL'],
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS'],
       p1Hand: ['item-estilo-de-combate-ogre-street'],
       p2ActiveId: 'char-dio', // 160 HP
       phase: 'PREPARATION',
@@ -951,7 +951,7 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
   it('resolves Straizo (Vampiro) (130 HP, HAMON_USER + VAMPIRE): Clackers synergy (+20) and Regeneración Vampírica (+10 HP at end of turn if undamaged)', () => {
     let state = buildControlledBattleState({
       p1ActiveId: 'char-straizo-vampiro',
-      p1ActiveEnergies: ['METAL', 'ELECTRIC', 'ELECTRIC', 'ELECTRIC'],
+      p1ActiveEnergies: ['COLORLESS', 'ELECTRIC', 'ELECTRIC', 'ELECTRIC'],
       p1ActiveItems: ['item-clackers'], // +20 to HAMON_USER!
       p2ActiveId: 'char-dio', // 160 HP
       phase: 'COMBAT',

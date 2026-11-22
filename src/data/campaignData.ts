@@ -258,7 +258,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
       [
         ['energy-electric', 14],
         ['energy-water', 12],
-        ['energy-metal', 8],
+        ['energy-colorless', 8],
       ],
     ),
     storyDeckName: STORY_DECK_MID_NAME,
@@ -316,7 +316,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
       ['char-wang-chan', 'char-dio-brando', 'char-robert-e-o-speedwagon'],
       [...rep('item-mascara-de-piedra', 2), ...rep('item-suministros-speedwagon', 3)],
       [
-        ['energy-metal', 14],
+        ['energy-colorless', 14],
         ['energy-electric', 12],
         ['energy-water', 12],
       ],
@@ -351,7 +351,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
         ...rep('item-suministros-speedwagon', 3),
       ],
       [
-        ['energy-metal', 18],
+        ['energy-colorless', 18],
         ['energy-electric', 9],
         ['energy-water', 7],
       ],
@@ -382,7 +382,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
         'item-ataud-de-dio',
       ],
       [
-        ['energy-metal', 14],
+        ['energy-colorless', 14],
         ['energy-electric', 11],
         ['energy-water', 9],
       ],
@@ -420,7 +420,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
       [
         ['energy-electric', 13],
         ['energy-water', 10],
-        ['energy-metal', 8],
+        ['energy-colorless', 8],
       ],
     ),
     storyDeckName: STORY_DECK_FINALE_NAME,
@@ -506,7 +506,7 @@ const PART_2_STAGES: CampaignStageDef[] = [
       [
         ['energy-light', 14],
         ['energy-electric', 12],
-        ['energy-metal', 10],
+        ['energy-colorless', 10],
       ],
     ),
     storyDeckName: P2_STORY_EARLY_NAME,

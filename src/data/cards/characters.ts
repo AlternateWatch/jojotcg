@@ -232,14 +232,14 @@ export const CHARACTER_CARDS: CharacterCard[] = [
       {
         id: 'atk-luck',
         name: 'Luck',
-        energyCost: ['METAL'],
+        energyCost: ['COLORLESS'],
         baseDamage: 30,
         damageLabel: '30',
       },
       {
         id: 'atk-danse-macab-hair',
         name: 'Danse Macab-Hair',
-        energyCost: ['METAL', 'METAL'],
+        energyCost: ['COLORLESS', 'COLORLESS'],
         baseDamage: 60,
         damageLabel: '60',
         effectText: 'Lanza una moneda. Si sale cruz, el oponente pasa a tener sangrado.',
@@ -270,7 +270,7 @@ export const CHARACTER_CARDS: CharacterCard[] = [
       {
         id: 'atk-hell-heaven-snake-kill',
         name: 'Hell Heaven Snake Kill',
-        energyCost: ['METAL', 'METAL'],
+        energyCost: ['COLORLESS', 'COLORLESS'],
         baseDamage: 40,
         damageLabel: '40',
       },
@@ -306,7 +306,7 @@ export const CHARACTER_CARDS: CharacterCard[] = [
       {
         id: 'atk-garras-metalicas',
         name: 'Garras Metálicas',
-        energyCost: ['METAL'],
+        energyCost: ['COLORLESS'],
         baseDamage: 20,
         damageLabel: '20',
         effectText: 'Tira una moneda. Si sale cruz, el oponente pasa a tener sangrado.',
@@ -372,7 +372,7 @@ export const CHARACTER_CARDS: CharacterCard[] = [
       {
         id: 'atk-satiporoja-beetle-cloth',
         name: 'Satiporoja Beetle Cloth',
-        energyCost: ['METAL'],
+        energyCost: ['COLORLESS'],
         baseDamage: 30,
         damageLabel: '30',
       },
@@ -858,7 +858,7 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     signatureAbility: {
       id: 'MAGNETIC_ATTRACTION_MARIAH',
       name: 'ATRACCIÓN MAGNÉTICA',
-      text: 'Al entrar en juego, si el oponente tiene unidas energías Metal, le roba hasta 3 y las une a Mariah.',
+      text: 'Al entrar en juego, si el oponente tiene unidas energías Incoloras, le roba hasta 3 y las une a Mariah.',
       trigger: 'ON_ENTER_FIELD',
     },
     attacks: [],

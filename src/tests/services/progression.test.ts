@@ -45,7 +45,7 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
       const packs = getPacksContainingCard(card.id);
       expect(packs.length, `Card ${card.id} (${card.name}) is not obtainable in any pack`).toBeGreaterThan(0);
     }
-    expect(COLLECTIBLE_CARDS.length + 9).toBe(ALL_CARDS.length);
+    expect(COLLECTIBLE_CARDS.length + 8).toBe(ALL_CARDS.length);
   });
 
   it('every booster pack references valid cards and preserves exact 0.5% UR drop rate', () => {

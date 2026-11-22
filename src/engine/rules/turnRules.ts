@@ -74,8 +74,8 @@ export function triggerOnEnterFieldAbility(
     let stolen = 0;
     const remaining: typeof opponent.active.attachedEnergies = [];
     for (const energy of opponent.active.attachedEnergies) {
-      if (energy === 'METAL' && stolen < 3) {
-        inst.attachedEnergies.push('METAL');
+      if (energy === 'COLORLESS' && stolen < 3) {
+        inst.attachedEnergies.push('COLORLESS');
         stolen++;
       } else {
         remaining.push(energy);
@@ -87,7 +87,7 @@ export function triggerOnEnterFieldAbility(
         type: 'ABILITY_TRIGGERED',
         playerId,
         abilityName: 'Atracción Magnética',
-        message: `Mariah roba ${stolen} energía(s) Metal del rival y las une a sí misma.`,
+        message: `Mariah roba ${stolen} energía(s) Incolora(s) del rival y las une a sí misma.`,
       });
     }
   } else if (profile.signatureAbility.id === 'READ_INSIDE_ROHAN') {

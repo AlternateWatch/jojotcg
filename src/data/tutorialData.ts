@@ -120,7 +120,7 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
       ['char-hol-horse', 'char-mariah', 'stand-emperor', 'stand-bastet'],
       [
         ['energy-psychic', 22],
-        ['energy-metal', 20],
+        ['energy-colorless', 20],
       ],
     ),
     concepts: [
@@ -164,7 +164,7 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
       [
         ['energy-water', 15],
         ['energy-electric', 14],
-        ['energy-metal', 14],
+        ['energy-colorless', 14],
       ],
     ),
     concepts: [
@@ -204,13 +204,13 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
       ],
       [
         ['energy-electric', 16],
-        ['energy-metal', 13],
+        ['energy-colorless', 13],
       ],
     ),
     opponentDeckIds: buildTutorialDeck(
       ['char-bruford', 'char-robert-e-o-speedwagon', 'char-straizo'],
       [
-        ['energy-metal', 22],
+        ['energy-colorless', 22],
         ['energy-electric', 21],
       ],
     ),
@@ -256,7 +256,7 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
       [
         ['energy-stand', 4],
         ['energy-fire', 14],
-        ['energy-metal', 7],
+        ['energy-colorless', 7],
         ['energy-light', 6],
       ],
     ),
@@ -330,7 +330,7 @@ export const TUTORIAL_LESSONS: TutorialLessonDef[] = [
       [
         ['energy-stand', 4],
         ['energy-psychic', 22],
-        ['energy-metal', 10],
+        ['energy-colorless', 10],
       ],
     ),
     concepts: [

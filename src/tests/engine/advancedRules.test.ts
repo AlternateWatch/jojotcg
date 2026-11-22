@@ -5,19 +5,19 @@ import { createMockRng } from '../../engine/rng';
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Advanced Official Card Abilities & Edge Cases', () => {
-  it('Mariah steals up to 3 METAL energies on entering field without touching other energies', () => {
+  it('Mariah steals up to 3 COLORLESS energies on entering field without touching other energies', () => {
     let state = buildControlledBattleState({
       p1ActiveId: 'char-jonathan-joestar',
       p1Hand: ['char-mariah'],
       p2ActiveId: 'char-dio',
-      p2ActiveEnergies: ['METAL', 'METAL', 'FIRE', 'METAL', 'METAL'],
+      p2ActiveEnergies: ['COLORLESS', 'COLORLESS', 'FIRE', 'COLORLESS', 'COLORLESS'],
       phase: 'PREPARATION',
     });
 
     state = mustDispatch(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: 0 });
     const mariah = state.players.P1.bench.find((c) => c.cardId === 'char-mariah')!;
-    expect(mariah.attachedEnergies).toEqual(['METAL', 'METAL', 'METAL']);
-    expect(state.players.P2.active!.attachedEnergies).toEqual(['FIRE', 'METAL']);
+    expect(mariah.attachedEnergies).toEqual(['COLORLESS', 'COLORLESS', 'COLORLESS']);
+    expect(state.players.P2.active!.attachedEnergies).toEqual(['FIRE', 'COLORLESS']);
   });
 
   it('Rohan Kishibe reveals opponent hand upon entering the field', () => {

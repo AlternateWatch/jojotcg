@@ -3,7 +3,6 @@ import {
   Droplets,
   Flame,
   Leaf,
-  Shield,
   Sparkles,
   Star,
   Sun,
@@ -48,8 +47,6 @@ export function EnergyBadge({ type, size = 'sm', showLabel = false, count }: Ene
         return <Sun size={iconSize} />;
       case 'NATURE':
         return <Leaf size={iconSize} />;
-      case 'METAL':
-        return <Shield size={iconSize} />;
       case 'STAND':
         return <Star size={iconSize} />;
       default:

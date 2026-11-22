@@ -15,7 +15,6 @@ export type EnergyType =
   | 'PSYCHIC'
   | 'LIGHT'
   | 'NATURE'
-  | 'METAL'
   | 'STAND';
 
 export type StatusType = 'STUNNED' | 'BLEED' | 'BURN';
@@ -280,13 +279,6 @@ export const ENERGY_META: Record<
     color: '#4ade80',
     bgClass: 'bg-emerald-500/20 border-emerald-400',
     textClass: 'text-emerald-300',
-  },
-  METAL: {
-    label: 'Metal',
-    short: 'MET',
-    color: '#94a3b8',
-    bgClass: 'bg-slate-400/25 border-slate-300',
-    textClass: 'text-slate-200',
   },
   STAND: {
     label: 'Energía de Stand',
