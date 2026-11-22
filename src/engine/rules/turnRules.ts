@@ -70,6 +70,22 @@ export function triggerOnEnterFieldAbility(
     });
   }
 
+  if (profile.signatureAbility.id === 'GERMAN_ELITE_DONOVAN') {
+    const allyBoard = [...(player.active ? [player.active] : []), ...player.bench];
+    const stroheim = allyBoard.find(
+      (ch) => getEffectiveCharacterProfile(ch).currentCardId === 'char-rudol-von-stroheim',
+    );
+    if (stroheim) {
+      stroheim.nextAttackDamageReduction = (stroheim.nextAttackDamageReduction ?? 0) + 20;
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: 'Élite Alemana',
+        message: `¡Élite Alemana! Donovan protege a Rudol Von Stroheim (-20 de daño en el siguiente ataque que reciba).`,
+      });
+    }
+  }
+
   if (profile.signatureAbility.id === 'MAGNETIC_ATTRACTION_MARIAH' && opponent.active) {
     let stolen = 0;
     const remaining: typeof opponent.active.attachedEnergies = [];

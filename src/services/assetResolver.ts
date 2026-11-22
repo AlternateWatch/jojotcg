@@ -28,6 +28,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'dio-brando',
   'dio',
   'dire',
+  'donovan',
   'echoes-act-1',
   'emperor',
   'erina-pendleton',

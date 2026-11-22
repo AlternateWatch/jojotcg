@@ -556,14 +556,17 @@ export function dealDamageToCharacter(
     return { dodged: true, immune: false, finalDamage: 0, koTriggered: false };
   }
 
-  // 3. Cream — Invisibilidad del Vacío dodge flag
+  // 3. Cream — Invisibilidad del Vacío / Donovan — Sigilo dodge flag
   if (isEnemyAttack && !params.ignoreDodge && character.dodgeNextAttack) {
     character.dodgeNextAttack = false;
+    const isDonovan = profile.currentCardId === 'char-donovan';
     pushEvent(state, eventsOut, {
       type: 'ABILITY_TRIGGERED',
       playerId: params.targetPlayerId,
-      abilityName: 'Invisibilidad del Vacío',
-      message: `${profile.name} esquiva el ataque oculto en el vacío de Cream.`,
+      abilityName: isDonovan ? 'Sigilo' : 'Invisibilidad del Vacío',
+      message: isDonovan
+        ? `¡Sigilo! ${profile.name} evita por completo el daño del ataque.`
+        : `${profile.name} esquiva el ataque oculto en el vacío de Cream.`,
     });
     return { dodged: true, immune: false, finalDamage: 0, koTriggered: false };
   }
@@ -577,6 +580,24 @@ export function dealDamageToCharacter(
       playerId: params.targetPlayerId,
       abilityName: 'Tecnología Alemana Superior',
       message: `${profile.name} reduce el daño del ataque en 10 puntos (daño final: ${finalDamage}).`,
+    });
+  }
+
+  // 4b. Donovan — Élite Alemana (-20 damage on next incoming attack on Stroheim)
+  if (
+    isEnemyAttack &&
+    character.nextAttackDamageReduction &&
+    character.nextAttackDamageReduction > 0 &&
+    finalDamage > 0
+  ) {
+    const red = character.nextAttackDamageReduction;
+    character.nextAttackDamageReduction = 0;
+    finalDamage = Math.max(0, finalDamage - red);
+    pushEvent(state, eventsOut, {
+      type: 'ABILITY_TRIGGERED',
+      playerId: params.targetPlayerId,
+      abilityName: 'Élite Alemana',
+      message: `¡Élite Alemana! ${profile.name} reduce el daño del ataque en ${red} puntos adicionales (daño final: ${finalDamage}).`,
     });
   }
 
@@ -829,7 +850,10 @@ export function resolveEndOfTurnEffects(
     }
 
     // 4. Clear Stunned after the affected player's turn ends (and grant 1-turn stun resistance)
-    if (character.statuses.stunned) {
+    if (character.statuses.stunned && character.statuses.stunAppliedOnOwnTurn) {
+      // Self-inflicted stun during own turn persists into the player's next turn!
+      character.statuses.stunAppliedOnOwnTurn = false;
+    } else if (character.statuses.stunned) {
       character.statuses.stunned = false;
       if (state.rules.preventConsecutiveStun) {
         character.statuses.stunImmuneNextTurn = true;

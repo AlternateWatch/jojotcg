@@ -51,6 +51,8 @@ export interface CharacterInstance {
   attachedEnergies: EnergyType[];
   statuses: {
     stunned: boolean;
+    /** True when Stunned was self-inflicted during the owner's own turn, so it persists into their next turn */
+    stunAppliedOnOwnTurn?: boolean;
     /** Grants 1-turn immunity to Stun immediately after recovering from Stun (anti-stun-lock) */
     stunImmuneNextTurn: boolean;
     bleedStacks: BleedStack[];
@@ -85,6 +87,8 @@ export interface CharacterInstance {
   tarkusDamageBonus?: number;
   /** Wang Chan — Lacayo de DIO: +20 max & current HP granted to bench DIO when Wang Chan is KO'd */
   wangChanHpBonus?: number;
+  /** Donovan — Élite Alemana: reduces next incoming attack damage by 20 on Stroheim */
+  nextAttackDamageReduction?: number;
 }
 
 export interface PlayerState {

@@ -797,12 +797,12 @@ const PART_2_STAGES: CampaignStageDef[] = [
     difficulty: 'EASY',
     isBoss: false,
     opponentDeckIds: buildPart1Deck(
-      ['char-rudol-von-stroheim', 'char-straizo-vampiro', 'char-santana'],
+      ['char-rudol-von-stroheim', 'char-donovan', 'char-straizo-vampiro', 'char-santana'],
       [...rep('item-suministros-speedwagon', 2), 'item-mascara-de-piedra'],
       [
         ['energy-light', 14],
         ['energy-electric', 12],
-        ['energy-colorless', 10],
+        ['energy-colorless', 13],
       ],
     ),
     storyDeckName: P2_STORY_EARLY_NAME,

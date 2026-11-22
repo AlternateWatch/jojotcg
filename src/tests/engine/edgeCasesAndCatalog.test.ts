@@ -15,7 +15,7 @@ import { buildControlledBattleState, mustDispatch } from '../helpers/testFixture
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
   it('verifies all 69 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(73);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(74);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1123,5 +1123,58 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(multiState.players.P2.active!.attachedItems[0]!.cardId).toBe('item-mascara-de-piedra');
     expect(multiState.players.P2.discard).toContain('item-piedra-roja-de-aja');
     expect(multiState.players.P1.hand).toContain('char-caesar-zeppeli');
+  });
+
+  it('resolves Donovan (100 HP, Conventional): Élite Alemana (-20 next attack dmg on Stroheim), Sigilo (HEADS dodge / TAILS self-stun), Whip Knife (60 dmg)', () => {
+    const headsRng = { ...createSeededRng(1), flipCoin: () => 'HEADS' as const };
+    const tailsRng = { ...createSeededRng(1), flipCoin: () => 'TAILS' as const };
+
+    // 1. Élite Alemana: playing Donovan to bench with Stroheim active grants -20 next attack damage reduction (total -30 with Stroheim's -10!)
+    let eliteState = buildControlledBattleState({
+      p1ActiveId: 'char-rudol-von-stroheim', // 100 HP, -10 passive
+      p1Hand: ['char-donovan'],
+      p2ActiveId: 'char-dio-brando',
+      p2ActiveEnergies: ['ELECTRIC', 'ELECTRIC'],
+      phase: 'PREPARATION',
+    });
+    eliteState = mustDispatch(eliteState, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: 0 });
+    expect(eliteState.players.P1.active!.nextAttackDamageReduction).toBe(20);
+    // P1 turn ended on PLAY_TO_BENCH -> P2 attacks with Space Ripper Stingy Eyes (90 dmg -> -10 Stroheim -20 Élite = 60 dmg -> 100 - 60 = 40 HP!)
+    eliteState = mustDispatch(eliteState, { type: 'ENTER_COMBAT_PHASE', playerId: 'P2' });
+    eliteState = mustDispatch(eliteState, {
+      type: 'USE_ATTACK',
+      playerId: 'P2',
+      attackId: 'atk-space-ripper-stingy-eyes',
+    });
+    expect(eliteState.players.P1.active!.currentHp).toBe(40);
+    expect(eliteState.players.P1.active!.nextAttackDamageReduction).toBe(0);
+
+    // 2. Sigilo (0 energy): HEADS sets dodgeNextAttack (blocks enemy attack), TAILS self-stuns
+    let sigiloState = buildControlledBattleState({
+      p1ActiveId: 'char-donovan',
+      p2ActiveId: 'char-dio-brando',
+      p2ActiveEnergies: ['ELECTRIC', 'ELECTRIC'],
+      phase: 'COMBAT',
+    });
+    let afterHeads = mustDispatch(
+      sigiloState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-sigilo' },
+      headsRng,
+    );
+    expect(afterHeads.players.P1.active!.dodgeNextAttack).toBe(true);
+    afterHeads = mustDispatch(afterHeads, { type: 'ENTER_COMBAT_PHASE', playerId: 'P2' });
+    afterHeads = mustDispatch(afterHeads, {
+      type: 'USE_ATTACK',
+      playerId: 'P2',
+      attackId: 'atk-space-ripper-stingy-eyes',
+    });
+    expect(afterHeads.players.P1.active!.currentHp).toBe(100); // Dodged!
+
+    const afterTails = mustDispatch(
+      sigiloState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-sigilo' },
+      tailsRng,
+    );
+    expect(afterTails.players.P1.active!.statuses.stunned).toBe(true);
   });
 });

@@ -386,6 +386,46 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     ],
   },
   {
+    id: 'char-donovan',
+    name: 'Donovan',
+    type: 'CHARACTER',
+    part: 2,
+    imageId: 'donovan',
+    assetFolder: 'official',
+    categories: ['CONVENTIONAL_FIGHTER'],
+    maxHp: 100,
+    dg: null,
+    signatureAbility: {
+      id: 'GERMAN_ELITE_DONOVAN',
+      name: 'ÉLITE ALEMANA',
+      text: 'Al jugarse, si Stroheim está en banca o en activo, reduce en 20 los puntos de daño que Stroheim recibe en el siguiente ataque.',
+      trigger: 'ON_ENTER_FIELD',
+    },
+    attacks: [
+      {
+        id: 'atk-sigilo',
+        name: 'Sigilo',
+        energyCost: [],
+        baseDamage: 0,
+        damageLabel: '0',
+        effectText:
+          'Lanza una moneda. Si sale cara, no recibe daño el siguiente turno. Si sale cruz, pasa a estar aturdido.',
+        coinFlip: {
+          count: 1,
+          onHeads: [{ kind: 'DODGE_NEXT_ENEMY_ATTACK' }],
+          onTails: [{ kind: 'STATUS', status: 'STUNNED', target: 'SELF' }],
+        },
+      },
+      {
+        id: 'atk-whip-knife',
+        name: 'Whip Knife',
+        energyCost: ['COLORLESS', 'COLORLESS'],
+        baseDamage: 60,
+        damageLabel: '60',
+      },
+    ],
+  },
+  {
     id: 'char-joseph-joestar',
     name: 'Joseph Joestar',
     type: 'CHARACTER',

@@ -36,6 +36,9 @@ export function applyStatusConfirmed(
 
   if (status === 'STUNNED') {
     character.statuses.stunned = true;
+    if (targetPlayerId === state.activePlayerId) {
+      character.statuses.stunAppliedOnOwnTurn = true;
+    }
     pushEvent(state, eventsOut, {
       type: 'STATUS_APPLIED',
       targetPlayerId,
