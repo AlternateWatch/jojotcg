@@ -9,9 +9,9 @@ import { OFFICIAL_CARD_IMAGE_IDS, OFFICIAL_ITEM_IMAGE_IDS } from '../../services
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 66 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 67 official PNG cards, all 12 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(66);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(67);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(12);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
@@ -499,6 +499,61 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       attackId: 'atk-tratamiento',
     });
     expect(healState.players.P1.bench[0]!.currentHp).toBe(90);
+  });
+
+  it('resolves Tonpetty (Precognición peeking top 3 cards without mutating decks, and Mano a Mano Curtido 60 dmg + Zeppeli Hamon +20)', () => {
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar',
+      p1Hand: ['char-tonpetty'],
+      p1Deck: ['item-pluck', 'energy-electric', 'char-erina-pendleton', 'energy-colorless'],
+      p2ActiveId: 'char-dio', // 160 HP
+      p2Deck: ['item-mascara-de-piedra', 'energy-water', 'char-dio-brando', 'energy-psychic'],
+      phase: 'PREPARATION',
+    });
+
+    state = mustDispatch(state, { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: 0 });
+    expect(state.pendingPrompt?.kind).toBe('PEEK_TOP_DECK');
+    if (state.pendingPrompt?.kind === 'PEEK_TOP_DECK') {
+      expect(state.pendingPrompt.ownTopCards).toEqual([
+        'item-pluck',
+        'energy-electric',
+        'char-erina-pendleton',
+      ]);
+      expect(state.pendingPrompt.opponentTopCards).toEqual([
+        'item-mascara-de-piedra',
+        'energy-water',
+        'char-dio-brando',
+      ]);
+    }
+
+    state = mustDispatch(state, {
+      type: 'RESPOND_PROMPT',
+      playerId: 'P1',
+      response: { kind: 'PEEK_TOP_DECK', target: 'OPPONENT' },
+    });
+    expect(state.pendingPrompt).toBeNull();
+    // P1 deck untouched; P2 drew 1 card on start of P2's turn after P1's PLAY_TO_BENCH ended P1's turn
+    expect(state.players.P1.deck).toEqual([
+      'item-pluck',
+      'energy-electric',
+      'char-erina-pendleton',
+      'energy-colorless',
+    ]);
+
+    // Tonpetty's Mano a Mano Curtido (60) + Will A. Zeppeli on bench (+20 Hamon) = 80 dmg!
+    let atkState = buildControlledBattleState({
+      p1ActiveId: 'char-tonpetty',
+      p1BenchIds: ['char-will-a-zeppeli'],
+      p1ActiveEnergies: ['ELECTRIC', 'COLORLESS'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    atkState = mustDispatch(atkState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-mano-a-mano-curtido',
+    });
+    expect(atkState.players.P2.active!.currentHp).toBe(80); // 160 - 80
   });
 
   it('completes AI vs AI matches across all 4 preset decks cleanly', () => {

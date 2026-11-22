@@ -116,6 +116,7 @@ export const CARD_RARITY_MAP: Record<string, CardRarity> = {
   'item-ataud-de-dio': 'SUPER_RARE',
 
   // === RARE (R) ===
+  'char-tonpetty': 'RARE',
   'char-caesar-zeppeli': 'RARE',
   'char-muhammad-avdol': 'RARE',
   'char-joseph-joestar-viejo': 'RARE',
@@ -253,6 +254,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'char-will-a-zeppeli',
       'char-robert-e-o-speedwagon',
       'char-erina-pendleton',
+      'char-tonpetty',
       'char-dio-brando',
       'item-mascara-de-piedra',
       'item-pluck',
@@ -473,6 +475,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'char-robert-e-o-speedwagon',
       'char-will-a-zeppeli',
       'char-erina-pendleton',
+      'char-tonpetty',
       'char-caesar-zeppeli',
       'char-lisa-lisa',
       'char-rudol-von-stroheim',

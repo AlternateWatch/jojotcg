@@ -76,12 +76,13 @@ const STORY_DECK_EARLY_IDS = buildPart1Deck(
 
 const STORY_DECK_MID_NAME = 'Discípulo del Hamon (Campaña P1)';
 const STORY_DECK_MID_DESC =
-  'Jonathan, Erina, Zeppeli y Speedwagon entrenados en Hamon con (P)luck, Máscara de Piedra y Suministros Speedwagon.';
+  'Jonathan, Erina, Zeppeli, Tonpetty y Speedwagon entrenados en Hamon con (P)luck, Máscara de Piedra y Suministros Speedwagon.';
 const STORY_DECK_MID_IDS = buildPart1Deck(
   [
     'char-jonathan-joestar',
     'char-erina-pendleton',
     'char-will-a-zeppeli',
+    'char-tonpetty',
     'char-robert-e-o-speedwagon',
   ],
   [
@@ -91,18 +92,19 @@ const STORY_DECK_MID_IDS = buildPart1Deck(
   ],
   [
     ['energy-electric', 23],
-    ['energy-colorless', 11],
+    ['energy-colorless', 10],
   ],
 );
 
 const STORY_DECK_FINALE_NAME = 'Espada (P)luck · Luz del Hamon (Campaña P1)';
 const STORY_DECK_FINALE_DESC =
-  'Mazo definitivo de los héroes de Phantom Blood: Jonathan, Erina, Zeppeli y Speedwagon armados al máximo contra el poder de Dio.';
+  'Mazo definitivo de los héroes de Phantom Blood: Jonathan, Erina, Zeppeli, Tonpetty y Speedwagon armados al máximo contra el poder de Dio.';
 const STORY_DECK_FINALE_IDS = buildPart1Deck(
   [
     'char-jonathan-joestar',
     'char-erina-pendleton',
     'char-will-a-zeppeli',
+    'char-tonpetty',
     'char-robert-e-o-speedwagon',
   ],
   [
@@ -113,7 +115,7 @@ const STORY_DECK_FINALE_IDS = buildPart1Deck(
   ],
   [
     ['energy-electric', 23],
-    ['energy-colorless', 9],
+    ['energy-colorless', 8],
   ],
 );
 
@@ -208,11 +210,11 @@ const PART_1_STAGES: CampaignStageDef[] = [
     difficulty: 'NORMAL',
     isBoss: false,
     opponentDeckIds: buildPart1Deck(
-      ['char-will-a-zeppeli', 'char-jonathan-joestar', 'char-robert-e-o-speedwagon'],
+      ['char-will-a-zeppeli', 'char-tonpetty', 'char-jonathan-joestar', 'char-robert-e-o-speedwagon'],
       [...rep('item-suministros-speedwagon', 2), 'item-pluck'],
       [
-        ['energy-electric', 22],
-        ['energy-colorless', 12],
+        ['energy-electric', 24],
+        ['energy-colorless', 15],
       ],
     ),
     storyDeckName: STORY_DECK_MID_NAME,
@@ -264,11 +266,11 @@ const PART_1_STAGES: CampaignStageDef[] = [
     difficulty: 'NORMAL',
     isBoss: false,
     opponentDeckIds: buildPart1Deck(
-      ['char-jonathan-joestar', 'char-will-a-zeppeli', 'char-erina-pendleton'],
+      ['char-jonathan-joestar', 'char-will-a-zeppeli', 'char-tonpetty', 'char-erina-pendleton'],
       [...rep('item-pluck', 2), ...rep('item-suministros-speedwagon', 2)],
       [
         ['energy-electric', 24],
-        ['energy-colorless', 15],
+        ['energy-colorless', 14],
       ],
     ),
     storyDeckName: STORY_DECK_MID_NAME,
@@ -315,11 +317,17 @@ const PART_1_STAGES: CampaignStageDef[] = [
     difficulty: 'NORMAL',
     isBoss: false,
     opponentDeckIds: buildPart1Deck(
-      ['char-jonathan-joestar', 'char-will-a-zeppeli', 'char-robert-e-o-speedwagon', 'char-erina-pendleton'],
+      [
+        'char-jonathan-joestar',
+        'char-will-a-zeppeli',
+        'char-tonpetty',
+        'char-robert-e-o-speedwagon',
+        'char-erina-pendleton',
+      ],
       [...rep('item-pluck', 3), ...rep('item-suministros-speedwagon', 3)],
       [
         ['energy-electric', 24],
-        ['energy-colorless', 12],
+        ['energy-colorless', 11],
       ],
     ),
     storyDeckName: STORY_DECK_FINALE_NAME,

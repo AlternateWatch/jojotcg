@@ -202,6 +202,13 @@ export type PlayerPrompt =
       eligibleInstanceIds: string[];
       healAmount: number;
       sourceLabel: string;
+    }
+  | {
+      kind: 'PEEK_TOP_DECK';
+      playerId: PlayerId;
+      ownTopCards: string[];
+      opponentTopCards: string[];
+      sourceLabel: string;
     };
 
 export interface GameState {

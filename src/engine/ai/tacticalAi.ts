@@ -416,6 +416,12 @@ function buildPromptResponse(
         benchInstanceId: sorted[0]?.instanceId ?? prompt.eligibleInstanceIds[0]!,
       };
     }
+    case 'PEEK_TOP_DECK': {
+      return {
+        kind: 'PEEK_TOP_DECK',
+        target: prompt.opponentTopCards.length > 0 ? 'OPPONENT' : 'SELF',
+      };
+    }
     case 'SEARCH_DECK_CARDS': {
       const boardChars = [...(player.active ? [player.active] : []), ...player.bench];
       const candidates: { idx: number; score: number }[] = [];

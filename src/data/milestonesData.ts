@@ -51,14 +51,16 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
   {
     id: 'milestone-set-phantom-blood-heroes',
     title: 'Sangre Fantasma',
-    description: 'Reúne a Jonathan, Will A. Zeppeli, Speedwagon, Erina Pendleton y la espada (P)luck.',
+    description:
+      'Reúne a Jonathan, Will A. Zeppeli, Tonpetty, Speedwagon, Erina Pendleton y la espada (P)luck.',
     category: 'CARD_SET',
     badge: 'PARTE 1',
     accentHex: '#2952d9',
-    rewardCoins: 400,
+    rewardCoins: 450,
     requiredCardIds: [
       'char-jonathan-joestar',
       'char-will-a-zeppeli',
+      'char-tonpetty',
       'char-robert-e-o-speedwagon',
       'char-erina-pendleton',
       'item-pluck',

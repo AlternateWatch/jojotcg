@@ -130,6 +130,32 @@ export const CHARACTER_CARDS: CharacterCard[] = [
     ],
   },
   {
+    id: 'char-tonpetty',
+    name: 'Tonpetty',
+    type: 'CHARACTER',
+    part: 1,
+    imageId: 'tonpetty',
+    assetFolder: 'official',
+    categories: ['HAMON_USER'],
+    maxHp: 110,
+    dg: null,
+    signatureAbility: {
+      id: 'PRECOGNITION_TONPETTY',
+      name: 'PRECOGNICIÓN',
+      text: 'Al ser jugado, permite ver las tres próximas cartas de tu mazo o las tres próximas cartas del mazo del oponente.',
+      trigger: 'ON_ENTER_FIELD',
+    },
+    attacks: [
+      {
+        id: 'atk-mano-a-mano-curtido',
+        name: 'Mano a Mano Curtido',
+        energyCost: ['ELECTRIC', 'COLORLESS'],
+        baseDamage: 60,
+        damageLabel: '2x30',
+      },
+    ],
+  },
+  {
     id: 'char-dio-brando',
     name: 'Dio Brando',
     type: 'CHARACTER',

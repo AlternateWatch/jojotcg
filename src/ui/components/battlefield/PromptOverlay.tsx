@@ -23,6 +23,7 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
   const [allocation, setAllocation] = useState<Record<string, number>>({});
   const [pickedIndices, setPickedIndices] = useState<number[]>([]);
   const [reorderIndices, setReorderIndices] = useState<number[]>([]);
+  const [peekTarget, setPeekTarget] = useState<'SELF' | 'OPPONENT' | null>(null);
 
   useEffect(() => {
     if (prompt.kind === 'DISTRIBUTE_BENCH_DAMAGE') {
@@ -33,6 +34,8 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
       setPickedIndices([]);
     } else if (prompt.kind === 'REORDER_OPPONENT_TOP_DECK') {
       setReorderIndices(prompt.cards.map((_, i) => i));
+    } else if (prompt.kind === 'PEEK_TOP_DECK') {
+      setPeekTarget(null);
     }
   }, [prompt]);
 
@@ -632,6 +635,74 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
                   );
                 })}
             </div>
+          </div>
+        )}
+
+        {/* 12. PEEK TOP DECK (Tonpetty — Precognición) */}
+        {prompt.kind === 'PEEK_TOP_DECK' && (
+          <div className="space-y-4">
+            <h3 className="font-jojo-display text-2xl text-[#f5efe0] uppercase">
+              {prompt.sourceLabel} — Visión del Futuro
+            </h3>
+            {!peekTarget ? (
+              <>
+                <p className="text-xs text-zinc-300">
+                  Elige qué mazo quieres observar: verás las próximas 3 cartas (en orden) sin
+                  alterarlas.
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled={prompt.ownTopCards.length === 0}
+                    onClick={() => setPeekTarget('SELF')}
+                    className="jojo-btn-primary py-3 font-jojo-heading text-sm tracking-widest uppercase disabled:opacity-40"
+                  >
+                    Ver mi mazo ({prompt.ownTopCards.length} cartas)
+                  </button>
+                  <button
+                    type="button"
+                    disabled={prompt.opponentTopCards.length === 0}
+                    onClick={() => setPeekTarget('OPPONENT')}
+                    className="jojo-btn-crimson py-3 font-jojo-heading text-sm tracking-widest uppercase disabled:opacity-40"
+                  >
+                    Ver mazo rival ({prompt.opponentTopCards.length} cartas)
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-zinc-300">
+                  Próximas cartas del{' '}
+                  <strong className="text-[#f2c12e]">
+                    {peekTarget === 'SELF' ? 'tu mazo' : 'mazo rival'}
+                  </strong>{' '}
+                  (de izquierda a derecha, orden de robo):
+                </p>
+                <div className="flex flex-wrap justify-center gap-3 py-1">
+                  {(peekTarget === 'SELF' ? prompt.ownTopCards : prompt.opponentTopCards).map(
+                    (cardId, idx) => {
+                      const card = getCardById(cardId);
+                      if (!card) return null;
+                      return (
+                        <CardView
+                          key={`${cardId}-${idx}`}
+                          card={card}
+                          size="sm"
+                          badgeText={`#${idx + 1}`}
+                        />
+                      );
+                    },
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRespond({ kind: 'PEEK_TOP_DECK', target: peekTarget })}
+                  className="jojo-btn-primary w-full py-2.5 font-jojo-heading text-base tracking-widest uppercase"
+                >
+                  Continuar
+                </button>
+              </>
+            )}
           </div>
         )}
       </motion.div>

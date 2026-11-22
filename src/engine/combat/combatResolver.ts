@@ -1177,6 +1177,13 @@ export function validatePromptResponse(
       }
       return { ok: true };
     }
+    case 'PEEK_TOP_DECK': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'PEEK_TOP_DECK' }>;
+      if (r.target !== 'SELF' && r.target !== 'OPPONENT') {
+        return { ok: false, reason: 'Debes elegir ver tu mazo o el mazo del oponente.' };
+      }
+      return { ok: true };
+    }
   }
 }
 
@@ -1419,6 +1426,19 @@ export function resolvePendingPrompt(
         prompt.healAmount,
         prompt.sourceLabel,
       );
+      break;
+    }
+    case 'PEEK_TOP_DECK': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'PEEK_TOP_DECK' }>;
+      const count = r.target === 'SELF' ? prompt.ownTopCards.length : prompt.opponentTopCards.length;
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: prompt.sourceLabel,
+        message: `${player.name} usa ${prompt.sourceLabel} y observa las ${count} próximas cartas del mazo ${
+          r.target === 'SELF' ? 'propio' : 'rival'
+        }.`,
+      });
       break;
     }
   }

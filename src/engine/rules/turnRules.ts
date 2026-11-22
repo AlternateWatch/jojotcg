@@ -143,6 +143,18 @@ export function triggerOnEnterFieldAbility(
         });
       }
     }
+  } else if (profile.signatureAbility.id === 'PRECOGNITION_TONPETTY') {
+    const ownTopCards = player.deck.slice(0, 3);
+    const opponentTopCards = opponent.deck.slice(0, 3);
+    if (ownTopCards.length > 0 || opponentTopCards.length > 0) {
+      enqueuePrompt(state, {
+        kind: 'PEEK_TOP_DECK',
+        playerId,
+        ownTopCards,
+        opponentTopCards,
+        sourceLabel: 'Precognición',
+      });
+    }
   }
 }
 

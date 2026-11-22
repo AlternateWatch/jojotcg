@@ -13,7 +13,8 @@ export type PromptResponsePayload =
   | { kind: 'RETREAT_CHOOSE_NEW_ACTIVE'; benchInstanceId: string }
   | { kind: 'SEARCH_DECK_CARDS'; deckIndices: number[] }
   | { kind: 'RECOVER_ENERGY_FROM_DISCARD'; discardIndex: number }
-  | { kind: 'CHOOSE_ALLY_BENCH_HEAL'; benchInstanceId: string };
+  | { kind: 'CHOOSE_ALLY_BENCH_HEAL'; benchInstanceId: string }
+  | { kind: 'PEEK_TOP_DECK'; target: 'SELF' | 'OPPONENT' };
 
 export type GameAction =
   | { type: 'PERFORM_MULLIGAN'; playerId: PlayerId }

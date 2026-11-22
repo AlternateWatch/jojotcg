@@ -135,6 +135,7 @@ export type SignatureEffectId =
   | 'LIE_DETECTION_BUCCIARATI'
   | 'TETRAPHOBIA_MISTA'
   | 'FLAGRANT_LOVE_ERINA'
+  | 'PRECOGNITION_TONPETTY'
   | 'NONE';
 
 export interface SignatureAbilityDef {
