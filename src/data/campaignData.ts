@@ -59,45 +59,61 @@ function buildPart1Deck(
 // Progressive Part 1 Story Loaner Decks (used mandatorily until each stage is cleared once)
 const STORY_DECK_EARLY_NAME = 'Linaje Joestar · Inicio (Campaña P1)';
 const STORY_DECK_EARLY_DESC =
-  'Mazo temático de Phantom Blood: Jonathan Joestar, Speedwagon y Zeppeli con Hamon básico y Suministros Speedwagon.';
+  'Mazo temático de Phantom Blood: Jonathan Joestar, Erina Pendleton, Speedwagon y Zeppeli con Hamon básico y Suministros Speedwagon.';
 const STORY_DECK_EARLY_IDS = buildPart1Deck(
-  ['char-jonathan-joestar', 'char-robert-e-o-speedwagon', 'char-will-a-zeppeli'],
+  [
+    'char-jonathan-joestar',
+    'char-erina-pendleton',
+    'char-robert-e-o-speedwagon',
+    'char-will-a-zeppeli',
+  ],
   [...rep('item-suministros-speedwagon', 2), ...rep('item-pluck', 2), 'item-mascara-de-piedra'],
   [
-    ['energy-electric', 19],
-    ['energy-colorless', 13],
+    ['energy-electric', 22],
+    ['energy-colorless', 15],
   ],
 );
 
 const STORY_DECK_MID_NAME = 'Discípulo del Hamon (Campaña P1)';
 const STORY_DECK_MID_DESC =
-  'Jonathan, Zeppeli y Speedwagon entrenados en Hamon con (P)luck, Máscara de Piedra y Suministros Speedwagon.';
+  'Jonathan, Erina, Zeppeli y Speedwagon entrenados en Hamon con (P)luck, Máscara de Piedra y Suministros Speedwagon.';
 const STORY_DECK_MID_IDS = buildPart1Deck(
-  ['char-jonathan-joestar', 'char-will-a-zeppeli', 'char-robert-e-o-speedwagon'],
+  [
+    'char-jonathan-joestar',
+    'char-erina-pendleton',
+    'char-will-a-zeppeli',
+    'char-robert-e-o-speedwagon',
+  ],
   [
     ...rep('item-suministros-speedwagon', 3),
     ...rep('item-pluck', 3),
     ...rep('item-mascara-de-piedra', 2),
   ],
   [
-    ['energy-electric', 20],
-    ['energy-colorless', 9],
+    ['energy-electric', 23],
+    ['energy-colorless', 11],
   ],
 );
 
 const STORY_DECK_FINALE_NAME = 'Espada (P)luck · Luz del Hamon (Campaña P1)';
 const STORY_DECK_FINALE_DESC =
-  'Mazo definitivo de los héroes de Phantom Blood: Jonathan, Zeppeli y Speedwagon armados al máximo contra el poder de Dio.';
+  'Mazo definitivo de los héroes de Phantom Blood: Jonathan, Erina, Zeppeli y Speedwagon armados al máximo contra el poder de Dio.';
 const STORY_DECK_FINALE_IDS = buildPart1Deck(
-  ['char-jonathan-joestar', 'char-will-a-zeppeli', 'char-robert-e-o-speedwagon'],
+  [
+    'char-jonathan-joestar',
+    'char-erina-pendleton',
+    'char-will-a-zeppeli',
+    'char-robert-e-o-speedwagon',
+  ],
   [
     ...rep('item-pluck', 3),
     ...rep('item-mascara-de-piedra', 3),
     ...rep('item-suministros-speedwagon', 3),
+    'item-ataud-de-dio',
   ],
   [
-    ['energy-electric', 21],
-    ['energy-colorless', 7],
+    ['energy-electric', 23],
+    ['energy-colorless', 9],
   ],
 );
 
@@ -248,11 +264,11 @@ const PART_1_STAGES: CampaignStageDef[] = [
     difficulty: 'NORMAL',
     isBoss: false,
     opponentDeckIds: buildPart1Deck(
-      ['char-jonathan-joestar', 'char-will-a-zeppeli'],
+      ['char-jonathan-joestar', 'char-will-a-zeppeli', 'char-erina-pendleton'],
       [...rep('item-pluck', 2), ...rep('item-suministros-speedwagon', 2)],
       [
-        ['energy-electric', 22],
-        ['energy-colorless', 12],
+        ['energy-electric', 24],
+        ['energy-colorless', 15],
       ],
     ),
     storyDeckName: STORY_DECK_MID_NAME,
@@ -299,11 +315,11 @@ const PART_1_STAGES: CampaignStageDef[] = [
     difficulty: 'NORMAL',
     isBoss: false,
     opponentDeckIds: buildPart1Deck(
-      ['char-jonathan-joestar', 'char-will-a-zeppeli', 'char-robert-e-o-speedwagon'],
+      ['char-jonathan-joestar', 'char-will-a-zeppeli', 'char-robert-e-o-speedwagon', 'char-erina-pendleton'],
       [...rep('item-pluck', 3), ...rep('item-suministros-speedwagon', 3)],
       [
-        ['energy-electric', 21],
-        ['energy-colorless', 10],
+        ['energy-electric', 24],
+        ['energy-colorless', 12],
       ],
     ),
     storyDeckName: STORY_DECK_FINALE_NAME,
@@ -329,10 +345,11 @@ const PART_1_STAGES: CampaignStageDef[] = [
         ...rep('item-mascara-de-piedra', 3),
         ...rep('item-pluck', 2),
         ...rep('item-suministros-speedwagon', 2),
+        'item-ataud-de-dio',
       ],
       [
-        ['energy-electric', 18],
-        ['energy-water', 12],
+        ['energy-electric', 20],
+        ['energy-water', 15],
       ],
     ),
     storyDeckName: STORY_DECK_FINALE_NAME,
@@ -363,10 +380,11 @@ const PART_1_STAGES: CampaignStageDef[] = [
         ...rep('item-mascara-de-piedra', 3),
         ...rep('item-pluck', 3),
         ...rep('item-suministros-speedwagon', 3),
+        ...rep('item-ataud-de-dio', 2),
       ],
       [
-        ['energy-electric', 16],
-        ['energy-water', 11],
+        ['energy-electric', 18],
+        ['energy-water', 13],
       ],
     ),
     storyDeckName: STORY_DECK_FINALE_NAME,
