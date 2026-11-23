@@ -11,6 +11,8 @@ export interface CampaignStageDef {
   featuredCardId: string;
   difficulty: AiDifficulty;
   isBoss: boolean;
+  /** Optional explicit AI mistake probability (0..1); defaults to progressive 42%->18% across each Part's bosses */
+  aiErrorRate?: number;
   opponentDeckIds: string[];
   /** Mandatory themed loaner deck for first clear (replay unlocks any player deck) */
   storyDeckName: string;
@@ -2352,6 +2354,39 @@ export function getCampaignStageById(stageId: string): CampaignStageDef | undefi
     if (found) return found;
   }
   return undefined;
+}
+
+export const CAMPAIGN_FIRST_BOSS_ERROR_RATE = 0.42;
+export const CAMPAIGN_FINAL_BOSS_ERROR_RATE = 0.18;
+
+/**
+ * Returns the AI mistake probability (0..1) for a Campaign Boss stage.
+ * Homogenizes campaign difficulty by scaling linearly from high (~42%) on the first boss
+ * down to low (~18%) on the final boss of each Part.
+ * Returns undefined for non-boss stages so they use standard difficulty behavior.
+ */
+export function getCampaignBossErrorRate(stage: CampaignStageDef): number | undefined {
+  if (typeof stage.aiErrorRate === 'number') {
+    return Math.max(0, Math.min(1, stage.aiErrorRate));
+  }
+  if (!stage.isBoss) return undefined;
+
+  const partDef = CAMPAIGN_PARTS.find((p) => p.part === stage.part);
+  if (!partDef) return CAMPAIGN_FINAL_BOSS_ERROR_RATE;
+
+  const bosses = partDef.stages
+    .filter((s) => s.isBoss)
+    .sort((a, b) => a.stageNumber - b.stageNumber);
+  if (bosses.length <= 1) return CAMPAIGN_FINAL_BOSS_ERROR_RATE;
+
+  const idx = bosses.findIndex((b) => b.id === stage.id);
+  if (idx === -1) return CAMPAIGN_FINAL_BOSS_ERROR_RATE;
+
+  const progress = idx / (bosses.length - 1);
+  const rate =
+    CAMPAIGN_FIRST_BOSS_ERROR_RATE -
+    progress * (CAMPAIGN_FIRST_BOSS_ERROR_RATE - CAMPAIGN_FINAL_BOSS_ERROR_RATE);
+  return Math.round(rate * 100) / 100;
 }
 
 export function isCampaignStageUnlocked(

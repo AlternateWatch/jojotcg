@@ -287,6 +287,7 @@ function buildPromptResponse(
   state: GameState,
   prompt: PlayerPrompt,
   difficulty: AiDifficulty,
+  aiErrorRate?: number,
 ): PromptResponsePayload {
   const player = state.players[prompt.playerId];
 
@@ -333,8 +334,11 @@ function buildPromptResponse(
       const allocation: Record<string, number> = {};
       for (const id of prompt.eligibleInstanceIds) allocation[id] = 0;
 
-      // EASY dumps everything onto Active instead of sniping low-HP bench KOs
-      if (difficulty === 'EASY' && targetPlayer.active && prompt.eligibleInstanceIds.includes(targetPlayer.active.instanceId)) {
+      // EASY (or Campaign Boss when rolling a mistake) dumps everything onto Active instead of sniping low-HP bench KOs
+      const dumpAllActive =
+        difficulty === 'EASY' ||
+        (aiErrorRate !== undefined && deterministicRoll(state, 61) < aiErrorRate);
+      if (dumpAllActive && targetPlayer.active && prompt.eligibleInstanceIds.includes(targetPlayer.active.instanceId)) {
         allocation[targetPlayer.active.instanceId] = prompt.totalDamage;
         return { kind: 'DISTRIBUTE_BENCH_DAMAGE', allocation };
       }
@@ -576,13 +580,17 @@ export function chooseAiAction(
   state: GameState,
   aiPlayerId: PlayerId,
   difficulty: AiDifficulty = 'NORMAL',
+  aiErrorRate?: number,
 ): GameAction | null {
   if (state.phase === 'GAME_OVER') return null;
+
+  const bossErr =
+    aiErrorRate !== undefined ? Math.max(0, Math.min(1, aiErrorRate)) : undefined;
 
   // 1. Answer pending prompt if addressed to AI
   if (state.pendingPrompt) {
     if (state.pendingPrompt.playerId !== aiPlayerId) return null;
-    const response = buildPromptResponse(state, state.pendingPrompt, difficulty);
+    const response = buildPromptResponse(state, state.pendingPrompt, difficulty, bossErr);
     return { type: 'RESPOND_PROMPT', playerId: aiPlayerId, response };
   }
 
@@ -672,9 +680,13 @@ export function chooseAiAction(
       return equipActions[0]!;
     }
 
-    // 4b. Evolve if possible (EASY skips evolution ~25% of the time for a Turn)
+    // 4b. Evolve if possible (EASY or Campaign Boss mistake rate occasionally delays evolution for a turn)
     const evolve = legal.find((a) => a.type === 'EVOLVE_CARD');
-    if (evolve && (difficulty !== 'EASY' || deterministicRoll(state, 11) > 0.25)) {
+    const skipEvolve =
+      bossErr !== undefined
+        ? deterministicRoll(state, 11) < bossErr * 0.7
+        : difficulty === 'EASY' && deterministicRoll(state, 11) <= 0.25;
+    if (evolve && !skipEvolve) {
       return evolve;
     }
 
@@ -765,11 +777,16 @@ export function chooseAiAction(
           if (validateAction(state, act).ok) return act;
         }
       } else if (item.itemKind === 'EQUIPPABLE' && player.active) {
-        // Human-like imperfection: even HARD occasionally holds an equippable item for a turn instead of dumping everything Turn 1
-        if (
-          (difficulty === 'HARD' && deterministicRoll(state, 19 + i) < 0.2) ||
-          (difficulty === 'EASY' && deterministicRoll(state, 19 + i) < 0.35)
-        ) {
+        // Human-like imperfection: hold an equippable item for a turn based on bossErr or difficulty
+        const equipHoldChance =
+          bossErr !== undefined
+            ? bossErr
+            : difficulty === 'HARD'
+              ? 0.2
+              : difficulty === 'EASY'
+                ? 0.35
+                : 0;
+        if (equipHoldChance > 0 && deterministicRoll(state, 19 + i) < equipHoldChance) {
           continue;
         }
         const boardChars = [player.active, ...player.bench];
@@ -868,9 +885,13 @@ export function chooseAiAction(
         }
       } else if (item.effects.some((e) => e.kind === 'DRAW_CARDS')) {
         // Avoid deck-out suicide: only play draw items when deck has plenty of cards left
-        // Also occasionally hold draw items when hand is already comfortable so HARD feels more human
+        // Also occasionally hold draw items when hand is already comfortable so bosses/HARD feel more human
+        const drawHoldChance =
+          bossErr !== undefined ? bossErr : difficulty === 'HARD' ? 0.22 : 0;
         const holdDraw =
-          difficulty === 'HARD' && player.hand.length >= 4 && deterministicRoll(state, 29 + i) < 0.22;
+          drawHoldChance > 0 &&
+          player.hand.length >= 4 &&
+          deterministicRoll(state, 29 + i) < drawHoldChance;
         if (player.deck.length >= 10 && !holdDraw) {
           const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
           if (validateAction(state, act).ok) return act;
@@ -931,11 +952,13 @@ export function chooseAiAction(
         for (const chosen of energyIndices) {
           let targetId = chooseEnergyTarget(state, aiPlayerId, chosen.card.energyType);
           // Human-like opening: occasionally invest energy into a bench character when active can already attack
+          const benchEnergyChance =
+            bossErr !== undefined ? bossErr * 0.85 : difficulty === 'HARD' ? 0.16 : 0;
           if (
-            difficulty === 'HARD' &&
+            benchEnergyChance > 0 &&
             activeCanAttackNow &&
             player.bench.length > 0 &&
-            deterministicRoll(state, 37) < 0.16 &&
+            deterministicRoll(state, 37) < benchEnergyChance &&
             (chosen.card.energyType !== 'STAND' ||
               getEffectiveCharacterProfile(player.bench[0]!).categories.includes('STAND_USER'))
           ) {
@@ -1056,12 +1079,12 @@ export function chooseAiAction(
           !canScoreKoNow &&
           bestPayableDamage < 60 &&
           (activeHpRatio <= 0.45 || bestBench.isSynergy)) ||
-        // Occasional greedy bench setup on HARD (gives the player a turn of breathing room without throwing lethal)
-        (difficulty === 'HARD' &&
+        // Occasional greedy bench setup on HARD / Campaign Bosses (gives the player a turn of breathing room without throwing lethal)
+        ((bossErr !== undefined || difficulty === 'HARD') &&
           !canScoreKoNow &&
           activeHpRatio >= 0.75 &&
           player.bench.length < 2 &&
-          deterministicRoll(state, 41) < 0.12);
+          deterministicRoll(state, 41) < (bossErr !== undefined ? bossErr * 0.75 : 0.12));
 
       if (shouldBuildBench) {
         return bestBench.action;
@@ -1108,8 +1131,12 @@ export function chooseAiAction(
         })
         .sort((a, b) => b.score - a.score);
 
-      // EASY / NORMAL / HARD occasionally pick a slightly suboptimal non-lethal move so fights feel human rather than pure RNG
-      if (difficulty === 'EASY' && scored.length > 1 && scored[0]!.score < 170) {
+      // EASY / NORMAL / HARD (or Campaign Boss with progressive error rate) occasionally pick a slightly suboptimal non-lethal move
+      if (bossErr !== undefined && scored.length > 1 && scored[0]!.score < 170) {
+        if (deterministicRoll(state, 59) < bossErr && scored[1]!.score > 0) {
+          return scored[1]!.action;
+        }
+      } else if (difficulty === 'EASY' && scored.length > 1 && scored[0]!.score < 170) {
         if (deterministicRoll(state, 47) < 0.32 && scored[1]!.score > 0) {
           return scored[1]!.action;
         }

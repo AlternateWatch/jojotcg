@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CAMPAIGN_FINAL_BOSS_ERROR_RATE,
+  CAMPAIGN_FIRST_BOSS_ERROR_RATE,
   CAMPAIGN_PARTS,
+  getCampaignBossErrorRate,
   getCampaignStageById,
   isCampaignStageUnlocked,
 } from '../../data/campaignData';
@@ -387,6 +390,19 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(rP4S10.firstClear).toBe(true);
     expect(rP4S10.pack?.id).toBe('pack-part-4');
     expect(rP4S10.packOutcomes).toHaveLength(2);
+
+    // Progressive campaign boss error rate scales from 42% (first boss) down to 18% (final boss)
+    expect(getCampaignBossErrorRate(s1)).toBeUndefined();
+    for (const part of CAMPAIGN_PARTS) {
+      const bosses = part.stages.filter((st) => st.isBoss);
+      expect(bosses.length).toBeGreaterThanOrEqual(2);
+      const rates = bosses.map((b) => getCampaignBossErrorRate(b)!);
+      expect(rates[0]).toBe(CAMPAIGN_FIRST_BOSS_ERROR_RATE);
+      expect(rates[rates.length - 1]).toBe(CAMPAIGN_FINAL_BOSS_ERROR_RATE);
+      for (let i = 1; i < rates.length; i++) {
+        expect(rates[i]).toBeLessThan(rates[i - 1]!);
+      }
+    }
   });
 
   it('validates all milestones (pack completions + card sets) and grants strictly one-time extra coin rewards', () => {

@@ -53,6 +53,7 @@ export interface StartBattleConfig {
   p2DeckIds: string[];
   firstPlayerId: PlayerId;
   aiDifficulty?: AiDifficulty;
+  aiErrorRate?: number;
   campaignStageId?: string;
   tutorialLessonId?: string;
   p2GuaranteedOpeningCardId?: string;
@@ -63,6 +64,7 @@ interface BattleStoreState {
   gameState: GameState | null;
   mode: BattleMode;
   aiDifficulty: AiDifficulty;
+  aiErrorRate: number | undefined;
   lastConfig: StartBattleConfig | null;
   rng: RngProvider;
   lastError: string | null;
@@ -286,6 +288,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   gameState: null,
   mode: 'VS_AI',
   aiDifficulty: 'NORMAL',
+  aiErrorRate: undefined,
   lastConfig: null,
   rng: createSystemRng(),
   lastError: null,
@@ -331,6 +334,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       gameState: state,
       mode: config.mode,
       aiDifficulty: config.aiDifficulty ?? 'NORMAL',
+      aiErrorRate: config.aiErrorRate,
       lastConfig: config,
       rng,
       lastError: null,
@@ -445,6 +449,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       battleRewardClaimed: true,
       lastBattleReward: null,
       activeCampaignStageId: null,
+      aiErrorRate: undefined,
       activeTutorialLessonId: null,
       activeBattleTrackId: battleTrackId ?? null,
       campaignPackReward: null,
@@ -624,7 +629,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   },
 
   stepAiIfNeeded: () => {
-    const { gameState, mode, aiDifficulty, rng, coinShowcase, aiPaused, recentTicker } = get();
+    const { gameState, mode, aiDifficulty, aiErrorRate, rng, coinShowcase, aiPaused, recentTicker } = get();
     if (!gameState || mode !== 'VS_AI' || gameState.phase === 'GAME_OVER' || coinShowcase || aiPaused) {
       set({ isAiThinking: false });
       return;
@@ -636,7 +641,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       return;
     }
 
-    const aiAction = chooseAiAction(gameState, actor, aiDifficulty);
+    const aiAction = chooseAiAction(gameState, actor, aiDifficulty, aiErrorRate);
     if (!aiAction) {
       set({ isAiThinking: false });
       return;
@@ -707,6 +712,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       battleRewardClaimed: false,
       lastBattleReward: null,
       activeCampaignStageId: null,
+      aiErrorRate: undefined,
       activeTutorialLessonId: null,
       campaignPackReward: null,
       onlineRoomCode: null,

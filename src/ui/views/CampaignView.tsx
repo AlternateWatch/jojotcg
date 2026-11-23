@@ -16,6 +16,7 @@ import {
 import { getBattleTrackForCampaignStage } from '../../data/battleMusic';
 import {
   CAMPAIGN_PARTS,
+  getCampaignBossErrorRate,
   isCampaignStageUnlocked,
 } from '../../data/campaignData';
 import { getCardById } from '../../data/cardRegistry';
@@ -130,6 +131,7 @@ export function CampaignView() {
         p2DeckIds: selectedStage.opponentDeckIds,
         firstPlayerId: 'P1',
         aiDifficulty: selectedStage.difficulty,
+        aiErrorRate: getCampaignBossErrorRate(selectedStage),
         campaignStageId: selectedStage.id,
         p2GuaranteedOpeningCardId: selectedStage.featuredCardId,
         battleTrackId: stageTrack?.id ?? null,
