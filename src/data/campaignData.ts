@@ -1608,10 +1608,14 @@ const PART_3_STAGES: CampaignStageDef[] = [
       [
         'char-n-doul',
         'char-pet-shop',
+        'char-forever',
+        'char-capitan-tenille',
         'char-hol-horse',
         'char-mariah',
         'stand-geb',
         'stand-horus',
+        'stand-strength',
+        'stand-dark-blue-moon',
         'stand-emperor',
         'stand-bastet',
       ],
@@ -1621,7 +1625,7 @@ const PART_3_STAGES: CampaignStageDef[] = [
         ...rep('item-suministros-speedwagon', 3),
       ],
       [
-        ['energy-water', 16],
+        ['energy-water', 18],
         ['energy-psychic', 8],
       ],
     ),
@@ -1647,9 +1651,13 @@ const PART_3_STAGES: CampaignStageDef[] = [
     opponentDeckIds: buildPart1Deck(
       [
         'char-mariah',
+        'char-forever',
+        'char-capitan-tenille',
         'char-hol-horse',
         'char-n-doul',
         'stand-bastet',
+        'stand-strength',
+        'stand-dark-blue-moon',
         'stand-emperor',
         'stand-geb',
       ],
@@ -1659,8 +1667,8 @@ const PART_3_STAGES: CampaignStageDef[] = [
         ...rep('item-suministros-speedwagon', 2),
       ],
       [
-        ['energy-psychic', 16],
-        ['energy-water', 11],
+        ['energy-psychic', 14],
+        ['energy-water', 15],
       ],
     ),
     storyDeckName: P3_STORY_MID_NAME,

@@ -928,7 +928,7 @@ export function executeAttack(
             player.bench.push(outgoing);
             cleanseBurn(state, eventsOut, playerId, outgoing.instanceId, 'retirada a la banca');
             cleanseBurn(state, eventsOut, playerId, incoming.instanceId, 'promoción al Puesto Activo');
-            triggerOnMoveToActiveAbility(state, eventsOut, playerId, incoming);
+            triggerOnMoveToActiveAbility(state, eventsOut, playerId, incoming, outgoing);
             pushEvent(state, eventsOut, {
               type: 'BENCH_SWAP',
               playerId,
@@ -1367,7 +1367,7 @@ export function resolvePendingPrompt(
         player.bench.push(outgoing);
         cleanseBurn(state, eventsOut, playerId, outgoing.instanceId, 'retirada a la banca');
         cleanseBurn(state, eventsOut, playerId, incoming.instanceId, 'promoción al Puesto Activo');
-        triggerOnMoveToActiveAbility(state, eventsOut, playerId, incoming);
+        triggerOnMoveToActiveAbility(state, eventsOut, playerId, incoming, outgoing);
         pushEvent(state, eventsOut, {
           type: 'BENCH_SWAP',
           playerId,

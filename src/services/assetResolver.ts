@@ -23,8 +23,10 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'bruford',
   'bruno-bucciarati',
   'caesar-zeppeli',
+  'capitan-tenille',
   'crazy-diamond',
   'cream',
+  'dark-blue-moon',
   'devo-el-maldito',
   'dio-brando',
   'dio',
@@ -35,6 +37,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'emperor',
   'erina-pendleton',
   'esidisi',
+  'forever',
   'geb',
   'giorno-giovanna',
   'gold-experience',
@@ -84,6 +87,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'straizo',
   'straizo-vampiro',
   'stray-cat',
+  'strength',
   'tarkus',
   'the-fool',
   'the-hand',
@@ -128,12 +132,24 @@ export const OFFICIAL_ENERGY_IMAGE_IDS = new Set<string>([
   'energy-stand',
 ]);
 
+export const OFFICIAL_CARD_EXTENSIONS: Record<string, 'webp'> = {
+  'capitan-tenille': 'webp',
+  'dark-blue-moon': 'webp',
+  strength: 'webp',
+};
+
+export function getOfficialCardFilename(imageId: string): string {
+  const ext = OFFICIAL_CARD_EXTENSIONS[imageId] ?? 'png';
+  return `${imageId}.${ext}`;
+}
+
 export function resolveCardAsset(
   imageId: string,
   folder: AssetCardFolder = 'official',
   _customOverrides?: Record<string, string>,
 ): { url: string | null; isFullCardRender: boolean; expectedPath: string } {
-  const expectedPath = `/assets/cards/${folder}/${imageId}.png`;
+  const ext = folder === 'official' ? (OFFICIAL_CARD_EXTENSIONS[imageId] ?? 'png') : 'png';
+  const expectedPath = `/assets/cards/${folder}/${imageId}.${ext}`;
   if (folder === 'official' && OFFICIAL_CARD_IMAGE_IDS.has(imageId)) {
     return {
       url: expectedPath,

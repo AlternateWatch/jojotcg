@@ -91,6 +91,11 @@ export interface CharacterInstance {
   nextAttackDamageReduction?: number;
   /** Gray Fly — Asesinato en Masa: +20 damage on next attack if owner KO'd an opponent last turn */
   grayFlyMassMurderBonus?: boolean;
+  /** Forever — Primate Avanzado: permanent +30 max HP stacks gained when swapped from Bench into Active */
+  foreverHpBonus?: number;
+  /** "Capitán Tenille" — Apnea Inhumana: turn number when moved from Bench to Active, and accumulated +10 permanent damage stacks */
+  tenilleEnteredActiveFromBenchTurn?: number | null;
+  tenilleDamageBonus?: number;
 }
 
 export interface PlayerState {

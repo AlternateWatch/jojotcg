@@ -146,6 +146,10 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
     requiredCardIds: [
       'char-devo-el-maldito',
       'stand-ebony-devil',
+      'char-forever',
+      'stand-strength',
+      'char-capitan-tenille',
+      'stand-dark-blue-moon',
       'char-hol-horse',
       'char-n-doul',
       'char-mariah',

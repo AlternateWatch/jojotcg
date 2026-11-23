@@ -857,7 +857,7 @@ export function applyPlayItem(
         player.bench.push(outgoing);
         cleanseBurn(state, eventsOut, playerId, outgoing.instanceId, 'Cambio Táctico');
         cleanseBurn(state, eventsOut, playerId, incoming.instanceId, 'Cambio Táctico');
-        triggerOnMoveToActiveAbility(state, eventsOut, playerId, incoming);
+        triggerOnMoveToActiveAbility(state, eventsOut, playerId, incoming, outgoing);
         const outProf = getEffectiveCharacterProfile(outgoing);
         const inProf = getEffectiveCharacterProfile(incoming);
         pushEvent(state, eventsOut, {
@@ -1238,7 +1238,7 @@ export function applySwapOrRetreat(
   // Rulebook: Burn is cleared IMMEDIATELY upon leaving Active OR being promoted to Active!
   cleanseBurn(state, eventsOut, playerId, outgoing.instanceId, 'retirada a la banca');
   cleanseBurn(state, eventsOut, playerId, incoming.instanceId, 'promoción al Puesto Activo');
-  triggerOnMoveToActiveAbility(state, eventsOut, playerId, incoming);
+  triggerOnMoveToActiveAbility(state, eventsOut, playerId, incoming, outgoing);
 
   const incomingProfile = getEffectiveCharacterProfile(incoming);
 

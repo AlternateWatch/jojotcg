@@ -176,6 +176,9 @@ export function computeAttackDamageBonus(
   if (attackerInst.tarkusDamageBonus && attackerInst.tarkusDamageBonus > 0) {
     bonus += attackerInst.tarkusDamageBonus;
   }
+  if (attackerInst.tenilleDamageBonus && attackerInst.tenilleDamageBonus > 0) {
+    bonus += attackerInst.tenilleDamageBonus;
+  }
 
   // 5. Horus — Caída de las Temperaturas (+10 per stack to WATER attacks)
   if (player.permanentWaterAttackBonus > 0 && attack.energyCost.includes('WATER')) {
@@ -221,15 +224,16 @@ export function computeAttackDamageBonus(
 }
 
 /**
- * Dire — IMAGEN RESIDUAL:
- * When moving from Bench to the Active slot with more than 1 Energy attached,
- * Dire's next attack deals +10 extra damage.
+ * Triggers passive abilities when a character moves from Bench to the Active slot
+ * (Dire's Imagen Residual, Forever's Primate Avanzado when swapped with an active ally,
+ * and "Capitán Tenille"'s Apnea Inhumana turn tracking & return-to-bench buff).
  */
 export function triggerOnMoveToActiveAbility(
   state: GameState,
   eventsOut: CombatEvent[],
   playerId: PlayerId,
   inst: CharacterInstance,
+  swappedFromActive?: CharacterInstance,
 ): void {
   const profile = getEffectiveCharacterProfile(inst);
   if (profile.signatureAbility.id === 'AFTERIMAGE_DIRE' && inst.attachedEnergies.length > 1) {
@@ -240,6 +244,45 @@ export function triggerOnMoveToActiveAbility(
       abilityName: 'Imagen Residual',
       message: `¡Imagen Residual! ${profile.name} entra al Puesto Activo con ${inst.attachedEnergies.length} energías (+10 daño en su siguiente ataque).`,
     });
+  }
+
+  // Forever — PRIMATE AVANZADO: +30 permanent max & current HP when swapped in for another Active character
+  if (profile.signatureAbility.id === 'ADVANCED_PRIMATE_FOREVER' && swappedFromActive) {
+    inst.foreverHpBonus = (inst.foreverHpBonus ?? 0) + 30;
+    inst.currentHp += 30;
+    pushEvent(state, eventsOut, {
+      type: 'ABILITY_TRIGGERED',
+      playerId,
+      abilityName: 'Primate Avanzado',
+      message: `¡Primate Avanzado! ${profile.name} recibe +30 puntos de vida extra permanentes.`,
+    });
+  }
+
+  // "Capitán Tenille" — APNEA INHUMANA: record turn when entering Active from Bench
+  if (profile.signatureAbility.id === 'INHUMAN_APNEA_TENILLE') {
+    inst.tenilleEnteredActiveFromBenchTurn = state.turnNumber;
+  }
+
+  // "Capitán Tenille" — APNEA INHUMANA: if swapped back to Bench within 3 turns of entering Active from Bench -> +10 permanent damage!
+  if (swappedFromActive) {
+    const outProfile = getEffectiveCharacterProfile(swappedFromActive);
+    if (
+      outProfile.signatureAbility.id === 'INHUMAN_APNEA_TENILLE' &&
+      swappedFromActive.tenilleEnteredActiveFromBenchTurn !== undefined &&
+      swappedFromActive.tenilleEnteredActiveFromBenchTurn !== null
+    ) {
+      const turnsElapsed = state.turnNumber - swappedFromActive.tenilleEnteredActiveFromBenchTurn;
+      swappedFromActive.tenilleEnteredActiveFromBenchTurn = null;
+      if (turnsElapsed <= 3) {
+        swappedFromActive.tenilleDamageBonus = (swappedFromActive.tenilleDamageBonus ?? 0) + 10;
+        pushEvent(state, eventsOut, {
+          type: 'ABILITY_TRIGGERED',
+          playerId,
+          abilityName: 'Apnea Inhumana',
+          message: `¡Apnea Inhumana! ${outProfile.name} regresa a la banca en ${turnsElapsed} turno(s) y gana +10 de daño permanente (total +${swappedFromActive.tenilleDamageBonus}).`,
+        });
+      }
+    }
   }
 }
 

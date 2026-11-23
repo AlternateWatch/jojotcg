@@ -6,6 +6,7 @@ import { chooseAiAction } from '../../engine/ai/tacticalAi';
 import { createGame, dispatchAction } from '../../engine/gameEngine';
 import { createSeededRng } from '../../engine/rng';
 import {
+  getOfficialCardFilename,
   OFFICIAL_CARD_IMAGE_IDS,
   OFFICIAL_ENERGY_IMAGE_IDS,
   OFFICIAL_ITEM_IMAGE_IDS,
@@ -13,15 +14,22 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 78 official PNG cards, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 82 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(78);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(82);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
-      const filePath = path.join(projectRoot, 'public', 'assets', 'cards', 'official', `${imageId}.png`);
-      expect(fs.existsSync(filePath), `Missing official PNG: ${filePath}`).toBe(true);
+      const filePath = path.join(
+        projectRoot,
+        'public',
+        'assets',
+        'cards',
+        'official',
+        getOfficialCardFilename(imageId),
+      );
+      expect(fs.existsSync(filePath), `Missing official card asset: ${filePath}`).toBe(true);
     }
 
     for (const imageId of OFFICIAL_ITEM_IMAGE_IDS) {
@@ -1315,5 +1323,77 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     );
     expect(lanzaTails.players.P2.active!.currentHp).toBe(80);
     expect(lanzaTails.players.P2.active!.statuses.bleedStacks).toHaveLength(1);
+  });
+
+  it('resolves Forever (Primate Avanzado), Strength (A la Deriva), "Capitán Tenille" (Apnea Inhumana) & Dark Blue Moon (Percebes)', () => {
+    const headsRng = {
+      nextFloat: () => 0.1,
+      flipCoin: () => 'HEADS' as const,
+      shuffle: <T,>(items: readonly T[]) => [...items],
+    };
+
+    // 1. "Capitán Tenille" moves from Bench -> Active (Turn 2), equips Strength, attacks with A la Deriva (20 dmg)
+    //    and retreats back to Bench in <= 3 turns -> gains +10 permanent damage!
+    //    Meanwhile Forever is swapped in from Bench for Tenille -> triggers Primate Avanzado (+30 permanent max & current HP: 100 -> 130)!
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-forever', // 100 HP, DG 3
+      p1BenchIds: ['char-capitan-tenille'], // 110 HP, DG 3
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'PREPARATION',
+    });
+    state.turnNumber = 2;
+    state.players.P1.bench[0]!.attachedStand = {
+      instanceId: 'std-str-1',
+      cardId: 'stand-strength',
+      evolvedCardIds: [],
+      permanentDamageBonus: 0,
+      damageDebuff: 0,
+    };
+    state.players.P1.bench[0]!.attachedEnergies = ['WATER'];
+
+    // Swap Tenille from Bench -> Active (ends P1 turn -> P2 ends -> P1 turn 4, elapsed = 2 turns <= 3)
+    const tenilleId = state.players.P1.bench[0]!.instanceId;
+    state = mustDispatch(state, {
+      type: 'SWAP_ACTIVE_WITH_BENCH',
+      playerId: 'P1',
+      benchInstanceId: tenilleId,
+    });
+    expect(state.players.P1.active!.cardId).toBe('char-capitan-tenille');
+    expect(state.players.P1.active!.tenilleEnteredActiveFromBenchTurn).toBe(2);
+
+    // Advance P2's turn -> back to P1 Turn 4
+    state = mustDispatch(state, { type: 'END_TURN', playerId: 'P2' });
+    state = mustDispatch(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-a-la-deriva', // 20 dmg + retreats Tenille to bench, bringing Forever in!
+    });
+
+    // DIO took 20 dmg (160 -> 140), Forever is now Active with 130 HP (+30 permanent), Tenille is on Bench with +10 permanent dmg!
+    expect(state.players.P2.active!.currentHp).toBe(140);
+    expect(state.players.P1.active!.cardId).toBe('char-forever');
+    expect(state.players.P1.active!.currentHp).toBe(130);
+    expect(state.players.P1.active!.foreverHpBonus).toBe(30);
+    const tenilleOnBench = state.players.P1.bench.find((b) => b.cardId === 'char-capitan-tenille')!;
+    expect(tenilleOnBench.tenilleDamageBonus).toBe(10);
+
+    // 2. Dark Blue Moon — Percebes (WATER, WATER, COLORLESS): 50 base + 2x20 on 2 HEADS + Stunned (+10 from Tenille's Apnea Inhumana = 100!)
+    const dbmState = buildControlledBattleState({
+      p1ActiveId: 'char-capitan-tenille',
+      p1ActiveStandId: 'stand-dark-blue-moon',
+      p1ActiveEnergies: ['WATER', 'WATER', 'COLORLESS'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    dbmState.players.P1.active!.tenilleDamageBonus = 10;
+    const afterPercebes = mustDispatch(
+      dbmState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-percebes' },
+      headsRng,
+    );
+    // 50 base + 40 (2 HEADS * 20) + 10 (Apnea Inhumana) = 100 dmg -> 160 - 100 = 60 HP + Stunned!
+    expect(afterPercebes.players.P2.active!.currentHp).toBe(60);
+    expect(afterPercebes.players.P2.active!.statuses.stunned).toBe(true);
   });
 });

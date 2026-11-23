@@ -145,6 +145,8 @@ export type SignatureEffectId =
   | 'GERMAN_ELITE_DONOVAN'
   | 'MASS_MURDER_GRAY_FLY'
   | 'MASOCHISM_DEVO'
+  | 'ADVANCED_PRIMATE_FOREVER'
+  | 'INHUMAN_APNEA_TENILLE'
   | 'NONE';
 
 export interface SignatureAbilityDef {

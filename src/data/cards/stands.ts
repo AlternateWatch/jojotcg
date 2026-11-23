@@ -59,6 +59,67 @@ export const STAND_CARDS: StandCard[] = [
     ],
   },
   {
+    id: 'stand-strength',
+    name: 'Strength',
+    type: 'STAND',
+    part: 3,
+    imageId: 'strength',
+    assetFolder: 'official',
+    requiredDg: 3,
+    attacks: [
+      {
+        id: 'atk-a-la-deriva',
+        name: 'A la Deriva',
+        energyCost: ['WATER'],
+        baseDamage: 20,
+        damageLabel: '20',
+        effectText: 'El usuario de Strength puede retirarse a la banca tras el ataque.',
+        specialEffects: [{ kind: 'RETREAT_SELF_AFTER_ATTACK' }],
+      },
+      {
+        id: 'atk-barco-manipulable',
+        name: 'Barco Manipulable',
+        energyCost: ['COLORLESS', 'COLORLESS'],
+        baseDamage: 40,
+        damageLabel: '2x20',
+      },
+    ],
+  },
+  {
+    id: 'stand-dark-blue-moon',
+    name: 'Dark Blue Moon',
+    type: 'STAND',
+    part: 3,
+    imageId: 'dark-blue-moon',
+    assetFolder: 'official',
+    requiredDg: 3,
+    attacks: [
+      {
+        id: 'atk-escamas-afiladas',
+        name: 'Escamas Afiladas',
+        energyCost: ['WATER', 'COLORLESS'],
+        baseDamage: 20,
+        damageLabel: '2x10',
+      },
+      {
+        id: 'atk-percebes',
+        name: 'Percebes',
+        energyCost: ['WATER', 'WATER', 'COLORLESS'],
+        baseDamage: 50,
+        damageLabel: '50',
+        effectText:
+          'Lanza dos monedas. Si sale cara, el oponente pasa a estar aturdido y recibe 20 puntos de daño extra.',
+        coinFlip: {
+          count: 2,
+          onHeads: [
+            { kind: 'STATUS', status: 'STUNNED', target: 'DEFENDER' },
+            { kind: 'DAMAGE', target: 'DEFENDER', amount: 20 },
+          ],
+        },
+      },
+    ],
+  },
+  {
     id: 'stand-star-platinum',
     name: 'Star Platinum',
     type: 'STAND',
