@@ -14,9 +14,9 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 84 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 85 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(84);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(85);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1489,5 +1489,40 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(swapState.players.P1.active!.currentHp).toBe(130);
     expect(swapState.players.P1.hand).toContain('char-hol-horse');
     expect(swapState.players.P1.hand).toContain('stand-yellow-temperance');
+  });
+
+  it('resolves J. Geil (100 HP, DG 3): Crueldad Absoluta (+10 Stand attack dmg when enemy active has <= 50 HP, from Active or Bench)', () => {
+    // 1. Enemy at 60 HP (> 50) -> Asimilación deals base 30 dmg (60 -> 30)
+    let stateHigh = buildControlledBattleState({
+      p1ActiveId: 'char-j-geil',
+      p1ActiveStandId: 'stand-yellow-temperance',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS'],
+      p2ActiveId: 'char-dio',
+      phase: 'COMBAT',
+    });
+    stateHigh.players.P2.active!.currentHp = 60;
+    stateHigh = mustDispatch(stateHigh, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-asimilacion',
+    });
+    expect(stateHigh.players.P2.active!.currentHp).toBe(30); // 60 - 30 (no bonus)
+
+    // 2. Enemy at 50 HP (<= 50) with J. Geil on Bench supporting Rubber Soul + Yellow Temperance -> 30 + 10 = 40 dmg (50 -> 10)
+    let stateLow = buildControlledBattleState({
+      p1ActiveId: 'char-rubber-soul',
+      p1ActiveStandId: 'stand-yellow-temperance',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS'],
+      p1BenchIds: ['char-j-geil'],
+      p2ActiveId: 'char-dio',
+      phase: 'COMBAT',
+    });
+    stateLow.players.P2.active!.currentHp = 50;
+    stateLow = mustDispatch(stateLow, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-asimilacion',
+    });
+    expect(stateLow.players.P2.active!.currentHp).toBe(10); // 50 - (30 + 10)
   });
 });

@@ -1569,6 +1569,7 @@ const PART_3_STAGES: CampaignStageDef[] = [
     opponentDeckIds: buildPart1Deck(
       [
         'char-hol-horse',
+        'char-j-geil',
         'char-devo-el-maldito',
         'char-rubber-soul',
         'char-mariah',
@@ -1693,6 +1694,7 @@ const PART_3_STAGES: CampaignStageDef[] = [
     opponentDeckIds: buildPart1Deck(
       [
         'char-hol-horse',
+        'char-j-geil',
         'char-devo-el-maldito',
         'char-rubber-soul',
         'char-mariah',

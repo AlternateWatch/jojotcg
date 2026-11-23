@@ -51,6 +51,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'hol-horse',
   'horus',
   'iggy',
+  'j-geil',
   'jean-pierre-polnareff',
   'jonathan-joestar',
   'joseph-joestar-viejo',

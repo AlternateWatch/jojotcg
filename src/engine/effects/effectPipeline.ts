@@ -125,6 +125,16 @@ export function computeAttackDamageBonus(
       }
     }
 
+    // J. Geil — Crueldad Absoluta: if enemy active has <= 50 HP while J. Geil is on player's board, active Stand attacks deal +10 damage
+    const hasJGeilOnBoard =
+      profile.signatureAbility.id === 'ABSOLUTE_CRUELTY_J_GEIL' ||
+      player.bench.some(
+        (b) => getEffectiveCharacterProfile(b).signatureAbility.id === 'ABSOLUTE_CRUELTY_J_GEIL',
+      );
+    if (hasJGeilOnBoard && opponent.active && opponent.active.currentHp <= 50) {
+      bonus += 10;
+    }
+
     // Josuke Hair Rage: permanent +10 once HP reached <= 60
     if (profile.signatureAbility.id === 'HAIR_RAGE_JOSUKE' && attackerInst.hairRageTriggered) {
       bonus += 10;
