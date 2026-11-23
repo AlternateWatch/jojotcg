@@ -90,6 +90,7 @@ interface AppStoreState {
   craftCard: (
     recipeId: CraftRecipeId,
     customSelection?: Record<string, number>,
+    targetCardId?: string,
   ) => CraftOutcome;
   awardBattleReward: (coins: number, won: boolean) => void;
   completeCampaignStage: (stageId: string) => CampaignClearResult | null;
@@ -365,9 +366,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     return outcomes;
   },
 
-  craftCard: (recipeId, customSelection) => {
+  craftCard: (recipeId, customSelection, targetCardId) => {
     const current = get().progression;
-    const outcome = craftRandomCard(current, recipeId, customSelection);
+    const outcome = craftRandomCard(current, recipeId, customSelection, undefined, targetCardId);
     if (outcome.ok) {
       if (get().authUser) {
         void authService.syncAccountData({ progression: outcome.nextProgression });

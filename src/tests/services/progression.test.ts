@@ -218,6 +218,57 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(getRarityInventoryStats(prog, 'BIZARRE_RARE').totalCopies).toBe(urBefore3 + 1);
     expect(prog.ownedCards['char-wamuu']).toBeGreaterThanOrEqual(1);
     expect(prog.ownedCards['char-esidisi']).toBeGreaterThanOrEqual(1);
+
+    // 4. 5 duplicate Bizarre Rares (UR) -> 1 chosen Bizarre Rare (UR)
+    const urCards = ALL_CARDS.filter(
+      (c) => c.type !== 'ENERGY' && getCardRarity(c.id) === 'BIZARRE_RARE',
+    );
+    expect(urCards.length).toBeGreaterThanOrEqual(2);
+    const sacrificeUr = urCards[0]!;
+    const desiredUr = urCards.find((c) => c.id !== sacrificeUr.id && !(prog.ownedCards[c.id] > 0)) ?? urCards[1]!;
+
+    prog = {
+      ...prog,
+      ownedCards: {
+        ...prog.ownedCards,
+        [sacrificeUr.id]: 6, // 5 duplicates + 1 base copy
+        [desiredUr.id]: 0,
+      },
+    };
+    delete prog.ownedCards[desiredUr.id];
+
+    // Fails without choosing a target UR
+    const failNoTarget = craftRandomCard(prog, 'BIZARRE_RARE_TO_CHOSEN_UR', undefined, rng);
+    expect(failNoTarget.ok).toBe(false);
+
+    // Fails if target card is not UR
+    const failWrongTarget = craftRandomCard(
+      prog,
+      'BIZARRE_RARE_TO_CHOSEN_UR',
+      undefined,
+      rng,
+      'char-jonathan-joestar',
+    );
+    expect(failWrongTarget.ok).toBe(false);
+
+    // Succeeds when sacrificing 5 duplicate URs for a valid chosen UR
+    const urBefore4 = getRarityInventoryStats(prog, 'BIZARRE_RARE').totalCopies;
+    const craft4 = craftRandomCard(
+      prog,
+      'BIZARRE_RARE_TO_CHOSEN_UR',
+      undefined,
+      rng,
+      desiredUr.id,
+    );
+    expect(craft4.ok, craft4.error).toBe(true);
+    expect(craft4.rewardCardId).toBe(desiredUr.id);
+    expect(craft4.rewardRarity).toBe('BIZARRE_RARE');
+    expect(craft4.isNew).toBe(true);
+    expect(craft4.newOwnedCount).toBe(1);
+    prog = craft4.nextProgression;
+    expect(getRarityInventoryStats(prog, 'BIZARRE_RARE').totalCopies).toBe(urBefore4 - 4);
+    expect(prog.ownedCards[sacrificeUr.id]).toBe(1);
+    expect(prog.ownedCards[desiredUr.id]).toBe(1);
   });
 
   it('computes battle rewards scaled by difficulty and outcome', () => {

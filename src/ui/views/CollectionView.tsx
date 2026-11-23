@@ -32,6 +32,7 @@ const RECIPE_ORDER: CraftRecipeId[] = [
   'COMMON_TO_RARE',
   'RARE_TO_SUPER_RARE',
   'SUPER_RARE_TO_BIZARRE_RARE',
+  'BIZARRE_RARE_TO_CHOSEN_UR',
 ];
 
 export function CollectionView() {
@@ -54,6 +55,7 @@ export function CollectionView() {
   const [craftSelection, setCraftSelection] = useState<Record<string, number>>(() =>
     buildAutoCraftSelection(progression, 'COMMON_TO_RARE'),
   );
+  const [targetCraftCardId, setTargetCraftCardId] = useState<string>('');
   const [craftError, setCraftError] = useState<string | null>(null);
   const [craftOutcome, setCraftOutcome] = useState<CraftOutcome | null>(null);
 
@@ -66,6 +68,21 @@ export function CollectionView() {
     () => inputRarityStats.cards.filter((entry) => entry.surplusOne > 0),
     [inputRarityStats],
   );
+  const selectableTargetCards = useMemo(() => {
+    if (!activeRecipe.selectableTarget) return [];
+    return ALL_CARDS.filter(
+      (c) => c.type !== 'ENERGY' && getCardRarity(c.id) === activeRecipe.outputRarity,
+    ).sort((a, b) => {
+      const aOwned = getOwnedCount(progression, a.id) > 0 ? 1 : 0;
+      const bOwned = getOwnedCount(progression, b.id) > 0 ? 1 : 0;
+      if (aOwned !== bOwned) return aOwned - bOwned;
+      return a.name.localeCompare(b.name, 'es');
+    });
+  }, [activeRecipe.outputRarity, activeRecipe.selectableTarget, progression]);
+  const selectedTargetCard = useMemo(
+    () => (targetCraftCardId ? getCardById(targetCraftCardId) : undefined),
+    [targetCraftCardId],
+  );
 
   const totalSelectedForCraft = useMemo(
     () => Object.values(craftSelection).reduce((sum, n) => sum + n, 0),
@@ -75,6 +92,7 @@ export function CollectionView() {
   const selectRecipe = (recipeId: CraftRecipeId) => {
     setActiveRecipeId(recipeId);
     setCraftError(null);
+    setTargetCraftCardId('');
     setCraftSelection(buildAutoCraftSelection(progression, recipeId));
   };
 
@@ -101,7 +119,11 @@ export function CollectionView() {
 
   const handleExecuteCraft = () => {
     setCraftError(null);
-    const outcome = craftCard(activeRecipeId, craftSelection);
+    const outcome = craftCard(
+      activeRecipeId,
+      craftSelection,
+      activeRecipe.selectableTarget ? targetCraftCardId : undefined,
+    );
     if (!outcome.ok) {
       setCraftError(outcome.error ?? 'No se pudo completar el crafteo.');
       return;
@@ -320,8 +342,8 @@ export function CollectionView() {
                   </h2>
                   <p className="text-xs text-zinc-300">
                     Las cartas repetidas se guardan en tu colección. Combínalas para crear una carta
-                    aleatoria de rareza superior (5 Comunes → 1 Rara · 10 Raras → 1 Súper Rara · 15
-                    Súper Raras → 1 Bizarre Rare).
+                    de rareza superior o elegir una UR concreta (5 Comunes → 1 Rara · 10 Raras → 1
+                    Súper Rara · 15 Súper Raras → 1 UR · 5 UR → 1 UR a tu elección).
                   </p>
                 </div>
                 <button
@@ -334,8 +356,8 @@ export function CollectionView() {
                 </button>
               </div>
 
-              {/* 3 Recipe Selector Cards */}
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {/* Recipe Selector Cards */}
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                 {RECIPE_ORDER.map((rid) => {
                   const rec = CRAFT_RECIPES[rid];
                   const stats = getRarityInventoryStats(progression, rec.inputRarity);
@@ -366,7 +388,9 @@ export function CollectionView() {
                           <span
                             className={`border border-[#060508] px-1.5 py-0.5 font-mono text-[10px] font-black uppercase ${outMeta.badgeClass}`}
                           >
-                            1× {outMeta.short} ({outMeta.label})
+                            {rec.selectableTarget
+                              ? `1× ${outMeta.short} (A elección)`
+                              : `1× ${outMeta.short} (${outMeta.label})`}
                           </span>
                         </div>
                         <div className="font-jojo-display text-lg text-[#f5efe0] uppercase">
@@ -433,12 +457,19 @@ export function CollectionView() {
                     </button>
                     <button
                       type="button"
-                      disabled={totalSelectedForCraft !== activeRecipe.inputCount}
+                      disabled={
+                        totalSelectedForCraft !== activeRecipe.inputCount ||
+                        (activeRecipe.selectableTarget && !targetCraftCardId)
+                      }
                       onClick={handleExecuteCraft}
                       className="jojo-btn-primary inline-flex items-center gap-1.5 px-4 py-1.5 font-jojo-heading text-sm tracking-widest uppercase disabled:opacity-35"
                     >
-                      <Hammer size={14} /> Craftear 1×{' '}
-                      {RARITY_META[activeRecipe.outputRarity].label}
+                      <Hammer size={14} />{' '}
+                      {activeRecipe.selectableTarget
+                        ? selectedTargetCard
+                          ? `Forjar ${selectedTargetCard.name}`
+                          : 'Elige una UR objetivo'
+                        : `Craftear 1× ${RARITY_META[activeRecipe.outputRarity].label}`}
                     </button>
                   </div>
                 </div>
@@ -446,6 +477,75 @@ export function CollectionView() {
                 {craftError && (
                   <div className="border-l-4 border-[#e6194b] bg-[#2a0c16] px-3 py-1.5 text-xs font-bold text-rose-200">
                     {craftError}
+                  </div>
+                )}
+
+                {activeRecipe.selectableTarget && (
+                  <div className="space-y-2 border-2 border-[#f2c12e]/40 bg-[#140f1e] p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-jojo-heading text-xs tracking-wider text-[#f2c12e] uppercase">
+                        <Sparkles size={12} className="mr-1 inline" />
+                        Paso 1: Elige la carta {RARITY_META[activeRecipe.outputRarity].label} que
+                        quieres obtener
+                      </span>
+                      {selectedTargetCard && (
+                        <span className="border border-[#060508] bg-[#f2c12e] px-2 py-0.5 font-mono text-[11px] font-black text-[#0b090e]">
+                          Objetivo: {selectedTargetCard.name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid max-h-[220px] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                      {selectableTargetCards.map((card) => {
+                        const owned = getOwnedCount(progression, card.id);
+                        const isPicked = targetCraftCardId === card.id;
+                        const asset = resolveCardAsset(card.imageId, card.assetFolder, overrides);
+                        return (
+                          <div
+                            key={card.id}
+                            className={`flex items-center justify-between gap-2 border p-2 text-xs transition ${
+                              isPicked
+                                ? 'border-[#f2c12e] bg-[#241b35] shadow-[2px_2px_0_#060508]'
+                                : 'border-[#060508] bg-[#0e0b14] hover:border-zinc-500'
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCraftError(null);
+                                setTargetCraftCardId(card.id);
+                              }}
+                              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                            >
+                              {asset.url && (
+                                <img
+                                  src={asset.url}
+                                  alt={card.name}
+                                  className="h-10 w-7 shrink-0 border border-[#060508] object-cover"
+                                />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate font-bold text-[#f5efe0]">{card.name}</div>
+                                <div className="font-mono text-[10px]">
+                                  {owned === 0 ? (
+                                    <span className="font-bold text-[#00e599]">NO LA TIENES</span>
+                                  ) : (
+                                    <span className="text-zinc-400">En colección: ×{owned}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openInspector(card.id)}
+                              className="jojo-btn-ink shrink-0 px-1.5 py-1 font-mono text-[10px] text-zinc-300"
+                              title="Inspeccionar carta"
+                            >
+                              Ver
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 

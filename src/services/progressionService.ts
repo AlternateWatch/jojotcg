@@ -55,13 +55,18 @@ export interface OpenPackOutcome {
   nextProgression: PlayerProgression;
 }
 
-export type CraftRecipeId = 'COMMON_TO_RARE' | 'RARE_TO_SUPER_RARE' | 'SUPER_RARE_TO_BIZARRE_RARE';
+export type CraftRecipeId =
+  | 'COMMON_TO_RARE'
+  | 'RARE_TO_SUPER_RARE'
+  | 'SUPER_RARE_TO_BIZARRE_RARE'
+  | 'BIZARRE_RARE_TO_CHOSEN_UR';
 
 export interface CraftRecipeDef {
   id: CraftRecipeId;
   inputRarity: CardRarity;
   inputCount: number;
   outputRarity: CardRarity;
+  selectableTarget?: boolean;
   label: string;
   description: string;
 }
@@ -91,6 +96,16 @@ export const CRAFT_RECIPES: Record<CraftRecipeId, CraftRecipeDef> = {
     label: '15 Súper Raras → 1 Bizarre Rare (UR)',
     description:
       'Sacrifica 15 cartas Súper Raras (SR) para forjar 1 carta Bizarre Rare (UR) aleatoria.',
+  },
+  BIZARRE_RARE_TO_CHOSEN_UR: {
+    id: 'BIZARRE_RARE_TO_CHOSEN_UR',
+    inputRarity: 'BIZARRE_RARE',
+    inputCount: 5,
+    outputRarity: 'BIZARRE_RARE',
+    selectableTarget: true,
+    label: '5 UR → 1 UR a tu elección',
+    description:
+      'Sacrifica 5 cartas Bizarre Rare (UR) repetidas para forjar la carta Bizarre Rare (UR) que tú elijas.',
   },
 };
 
@@ -519,14 +534,16 @@ export function buildAutoCraftSelection(
 }
 
 /**
- * Crafts a random card of the target rarity by sacrificing the required number of DUPLICATE cards
- * of the input rarity (at least 1 base copy of every card must remain in the player's collection).
+ * Crafts a card of the target rarity (random or player-chosen when recipe.selectableTarget is true)
+ * by sacrificing the required number of DUPLICATE cards of the input rarity
+ * (at least 1 base copy of every card must remain in the player's collection).
  */
 export function craftRandomCard(
   currentProgression: PlayerProgression,
   recipeId: CraftRecipeId,
   customSelection?: Record<string, number>,
   rng: RngProvider = createSystemRng(),
+  targetCardId?: string,
 ): CraftOutcome {
   const recipe = CRAFT_RECIPES[recipeId];
   const selection = customSelection ?? buildAutoCraftSelection(currentProgression, recipeId);
@@ -594,6 +611,33 @@ export function craftRandomCard(
     };
   }
 
+  let rewardCard = candidatePool[0]!;
+  if (recipe.selectableTarget) {
+    if (!targetCardId) {
+      return {
+        ok: false,
+        error: `Debes elegir qué carta ${RARITY_META[recipe.outputRarity].label} deseas forjar.`,
+        recipeId,
+        consumedCards: {},
+        nextProgression: currentProgression,
+      };
+    }
+    const chosen = candidatePool.find((c) => c.id === targetCardId);
+    if (!chosen) {
+      return {
+        ok: false,
+        error: `La carta elegida no es una carta ${RARITY_META[recipe.outputRarity].label} válida.`,
+        recipeId,
+        consumedCards: {},
+        nextProgression: currentProgression,
+      };
+    }
+    rewardCard = chosen;
+  } else {
+    const pickedIdx = Math.floor(rng.nextFloat() * candidatePool.length) % candidatePool.length;
+    rewardCard = candidatePool[pickedIdx]!;
+  }
+
   const nextOwned: Record<string, number> = { ...currentProgression.ownedCards };
   for (const [cardId, count] of Object.entries(consumedCards)) {
     const remaining = (nextOwned[cardId] ?? 0) - count;
@@ -604,8 +648,6 @@ export function craftRandomCard(
     }
   }
 
-  const pickedIdx = Math.floor(rng.nextFloat() * candidatePool.length) % candidatePool.length;
-  const rewardCard = candidatePool[pickedIdx]!;
   const prevRewardOwned = nextOwned[rewardCard.id] ?? 0;
   const newRewardOwned = prevRewardOwned + 1;
   nextOwned[rewardCard.id] = newRewardOwned;
