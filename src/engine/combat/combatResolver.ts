@@ -532,7 +532,31 @@ export function executeAttack(
   let defenderKoTriggered = false;
 
   if (isDamagingAttack) {
-    const totalDamage = Math.max(0, rawBase + bonusInfo.bonus);
+    let conditionalBonus = 0;
+    for (const eff of attack.specialEffects ?? []) {
+      if (eff.kind === 'BONUS_IF_MIRROR_CHARACTER_ON_BOARD') {
+        const ownIds = new Set<string>(
+          [...(player.active ? [player.active] : []), ...player.bench].flatMap((ch) => [
+            ch.cardId,
+            getEffectiveCharacterProfile(ch).currentCardId,
+          ]),
+        );
+        const oppChars = [...(opponent.active ? [opponent.active] : []), ...opponent.bench];
+        const hasMirror = oppChars.some(
+          (ch) => ownIds.has(ch.cardId) || ownIds.has(getEffectiveCharacterProfile(ch).currentCardId),
+        );
+        if (hasMirror) {
+          conditionalBonus += eff.bonusDamage;
+          pushEvent(state, eventsOut, {
+            type: 'ABILITY_TRIGGERED',
+            playerId,
+            abilityName: attack.name,
+            message: `¡${attack.name}! Coincidencia de reflejo en el campo (+${eff.bonusDamage} de daño extra).`,
+          });
+        }
+      }
+    }
+    const totalDamage = Math.max(0, rawBase + bonusInfo.bonus + conditionalBonus);
     consumeAttackBonuses();
     const res = dealDamageToCharacter(state, eventsOut, {
       targetPlayerId: opponentId,

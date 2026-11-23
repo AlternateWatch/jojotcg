@@ -351,6 +351,39 @@ export const STAND_CARDS: StandCard[] = [
     ],
   },
   {
+    id: 'stand-hanged-man',
+    name: 'Hanged Man',
+    type: 'STAND',
+    part: 3,
+    imageId: 'hanged-man',
+    assetFolder: 'official',
+    requiredDg: 3,
+    attacks: [
+      {
+        id: 'atk-ataque-reflejo-manipulacion-luz',
+        name: 'Ataque Reflejo: Manipulación de la Luz',
+        energyCost: ['LIGHT', 'LIGHT'],
+        baseDamage: 30,
+        damageLabel: '30',
+        effectText:
+          'Si el rival tiene tanto en banca como en el puesto activo uno de los personajes que tú tienes tanto en banca como en el puesto activo, este ataque inflige 30 puntos de daño extra.',
+        specialEffects: [{ kind: 'BONUS_IF_MIRROR_CHARACTER_ON_BOARD', bonusDamage: 30 }],
+      },
+      {
+        id: 'atk-cuchillos-de-muneca',
+        name: 'Cuchillos de Muñeca',
+        energyCost: ['COLORLESS', 'COLORLESS', 'COLORLESS'],
+        baseDamage: 80,
+        damageLabel: '80',
+        effectText: 'Lanza una moneda. Si sale cara, el oponente pasa a tener sangrado.',
+        coinFlip: {
+          count: 1,
+          onHeads: [{ kind: 'STATUS', status: 'BLEED', target: 'DEFENDER' }],
+        },
+      },
+    ],
+  },
+  {
     id: 'stand-emperor',
     name: 'Emperor',
     type: 'STAND',

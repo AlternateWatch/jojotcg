@@ -14,9 +14,9 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 85 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 86 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(85);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(86);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1524,5 +1524,63 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       attackId: 'atk-asimilacion',
     });
     expect(stateLow.players.P2.active!.currentHp).toBe(10); // 50 - (30 + 10)
+  });
+
+  it('resolves Hanged Man (DG 3): Ataque Reflejo (+30 dmg if mirrored character on board) and Cuchillos de Muñeca (80 dmg + Bleed on HEADS)', () => {
+    const headsRng = {
+      nextFloat: () => 0.1,
+      flipCoin: () => 'HEADS' as const,
+      shuffle: <T,>(items: readonly T[]) => [...items],
+    };
+
+    // 1. Ataque Reflejo without mirrored character -> 30 dmg (160 -> 130)
+    let noMirror = buildControlledBattleState({
+      p1ActiveId: 'char-j-geil',
+      p1ActiveStandId: 'stand-hanged-man',
+      p1ActiveEnergies: ['LIGHT', 'LIGHT'],
+      p1BenchIds: ['char-hol-horse'],
+      p2ActiveId: 'char-dio', // 160 HP
+      p2BenchIds: ['char-iggy'],
+      phase: 'COMBAT',
+    });
+    noMirror = mustDispatch(noMirror, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-ataque-reflejo-manipulacion-luz',
+    });
+    expect(noMirror.players.P2.active!.currentHp).toBe(130);
+
+    // 2. Ataque Reflejo WITH mirrored character (Hol Horse on P1 bench & P2 bench) -> 30 + 30 = 60 dmg (160 -> 100)
+    let withMirror = buildControlledBattleState({
+      p1ActiveId: 'char-j-geil',
+      p1ActiveStandId: 'stand-hanged-man',
+      p1ActiveEnergies: ['LIGHT', 'LIGHT'],
+      p1BenchIds: ['char-hol-horse'],
+      p2ActiveId: 'char-dio', // 160 HP
+      p2BenchIds: ['char-hol-horse'],
+      phase: 'COMBAT',
+    });
+    withMirror = mustDispatch(withMirror, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-ataque-reflejo-manipulacion-luz',
+    });
+    expect(withMirror.players.P2.active!.currentHp).toBe(100);
+
+    // 3. Cuchillos de Muñeca (3 Colorless, 80 dmg + Bleed on HEADS) -> 160 - 80 = 80 HP + Bleed
+    let knives = buildControlledBattleState({
+      p1ActiveId: 'char-j-geil',
+      p1ActiveStandId: 'stand-hanged-man',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS', 'COLORLESS'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    knives = mustDispatch(
+      knives,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-cuchillos-de-muneca' },
+      headsRng,
+    );
+    expect(knives.players.P2.active!.currentHp).toBe(80);
+    expect(knives.players.P2.active!.statuses.bleedStacks).toHaveLength(1);
   });
 });

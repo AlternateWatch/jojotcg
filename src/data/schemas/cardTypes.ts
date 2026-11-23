@@ -78,7 +78,8 @@ export type AttackSpecialEffect =
   | { kind: 'RETURN_ENEMY_BENCH_TO_DECK' }
   | { kind: 'HEAL_SELF_ON_KO'; amount: number }
   | { kind: 'CAP_NEXT_INCOMING_ATTACK_DAMAGE'; maxDamage: number }
-  | { kind: 'SWAP_ACTIVE_WITH_HAND_CHARACTER' };
+  | { kind: 'SWAP_ACTIVE_WITH_HAND_CHARACTER' }
+  | { kind: 'BONUS_IF_MIRROR_CHARACTER_ON_BOARD'; bonusDamage: number };
 
 export interface AttackDef {
   id: string;

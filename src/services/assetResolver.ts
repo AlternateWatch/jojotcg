@@ -44,6 +44,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'gold-experience-requiem',
   'gray-fly',
   'guido-mista',
+  'hanged-man',
   'harvest',
   'heavens-door',
   'hermit-purple',

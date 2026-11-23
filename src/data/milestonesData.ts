@@ -153,6 +153,7 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
       'char-rubber-soul',
       'stand-yellow-temperance',
       'char-j-geil',
+      'stand-hanged-man',
       'char-hol-horse',
       'char-n-doul',
       'char-mariah',
