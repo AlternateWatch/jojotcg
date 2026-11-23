@@ -17,7 +17,8 @@ export type PromptResponsePayload =
   | { kind: 'PEEK_TOP_DECK'; target: 'SELF' | 'OPPONENT' }
   | { kind: 'CHOOSE_PRIZE_CARD'; prizeIndex: number }
   | { kind: 'CHOOSE_STAND_FROM_DECK'; standCardId: string }
-  | { kind: 'CHOOSE_ENEMY_EQUIPPED_ITEM'; characterInstanceId: string; itemInstanceId: string };
+  | { kind: 'CHOOSE_ENEMY_EQUIPPED_ITEM'; characterInstanceId: string; itemInstanceId: string }
+  | { kind: 'CHOOSE_HAND_CHARACTER_SWAP'; handIndex: number };
 
 export type GameAction =
   | { type: 'PERFORM_MULLIGAN'; playerId: PlayerId }

@@ -99,6 +99,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'wamuu',
   'wang-chan',
   'will-a-zeppeli',
+  'yellow-temperance',
   'yoshikage-kira',
   'yukako-yamagishi',
 ]);

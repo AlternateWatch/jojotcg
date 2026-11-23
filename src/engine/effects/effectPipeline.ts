@@ -666,6 +666,25 @@ export function dealDamageToCharacter(
     });
   }
 
+  // 4c. Yellow Temperance — Defensa Física (caps next incoming enemy attack damage to 10)
+  if (
+    isEnemyAttack &&
+    typeof character.nextIncomingAttackDamageCap === 'number' &&
+    finalDamage > 0
+  ) {
+    const cap = character.nextIncomingAttackDamageCap;
+    character.nextIncomingAttackDamageCap = null;
+    if (finalDamage > cap) {
+      finalDamage = cap;
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId: params.targetPlayerId,
+        abilityName: 'Defensa Física',
+        message: `¡Defensa Física! ${profile.name} absorbe el impacto y solo recibe ${cap} de daño.`,
+      });
+    }
+  }
+
   if (finalDamage <= 0) {
     return { dodged: false, immune: false, finalDamage: 0, koTriggered: false };
   }

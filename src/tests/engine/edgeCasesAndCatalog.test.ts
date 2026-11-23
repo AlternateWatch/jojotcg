@@ -14,9 +14,9 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 83 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 84 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(83);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(84);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1421,5 +1421,73 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     state.players.P2.bench = [];
     expect(rubberSoul.currentHp).toBe(140);
     expect(rubberSoul.rubberSoulHpBonus).toBe(20);
+  });
+
+  it('resolves Yellow Temperance (DG 3): Asimilación (+20 heal on KO), Defensa Física (caps next enemy attack to 10 dmg), and Réplica de Apariencia (swaps Active with hand character)', () => {
+    // 1. Asimilación (2 Colorless, 30 dmg): KOs 30 HP enemy -> heals attacker +20 HP (80 -> 100)
+    let asymState = buildControlledBattleState({
+      p1ActiveId: 'char-rubber-soul',
+      p1ActiveStandId: 'stand-yellow-temperance',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS'],
+      p2ActiveId: 'char-hol-horse',
+      p2BenchIds: ['char-mariah'],
+      phase: 'COMBAT',
+    });
+    asymState.players.P1.active!.currentHp = 80;
+    asymState.players.P2.active!.currentHp = 30;
+
+    asymState = mustDispatch(asymState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-asimilacion',
+    });
+    expect(asymState.players.P1.active!.currentHp).toBe(100); // healed +20 on KO!
+
+    // 2. Defensa Física (2 Colorless + 1 Psychic): next enemy attack deals max 10 dmg (60 -> 10)
+    let defState = buildControlledBattleState({
+      p1ActiveId: 'char-rubber-soul', // 120 HP
+      p1ActiveStandId: 'stand-yellow-temperance',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS', 'PSYCHIC'],
+      p2ActiveId: 'char-jotaro-kujo',
+      p2ActiveStandId: 'stand-star-platinum',
+      p2ActiveEnergies: ['PSYCHIC', 'PSYCHIC', 'PSYCHIC'],
+      phase: 'COMBAT',
+    });
+    defState = mustDispatch(defState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-defensa-fisica',
+    });
+    expect(defState.players.P1.active!.nextIncomingAttackDamageCap).toBe(10);
+
+    // P2 attacks with Ora Ora (60 dmg) -> capped to 10 dmg (120 -> 110)!
+    defState = mustDispatch(defState, { type: 'ENTER_COMBAT_PHASE', playerId: 'P2' });
+    defState = mustDispatch(defState, {
+      type: 'USE_ATTACK',
+      playerId: 'P2',
+      attackId: 'atk-ora-ora',
+    });
+    expect(defState.players.P1.active!.currentHp).toBe(110);
+    expect(defState.players.P1.active!.nextIncomingAttackDamageCap).toBeNull();
+
+    // 3. Réplica de Apariencia (2 Colorless + 2 Psychic): swaps Active with character from hand
+    let swapState = buildControlledBattleState({
+      p1ActiveId: 'char-hol-horse',
+      p1ActiveStandId: 'stand-yellow-temperance',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS', 'PSYCHIC', 'PSYCHIC'],
+      p1Hand: ['char-rubber-soul'],
+      p2ActiveId: 'char-jotaro-kujo',
+      p2BenchIds: ['char-iggy'], // 1 bench -> Rubber Soul triggers Narcisismo (+10 HP -> 130)!
+      phase: 'COMBAT',
+    });
+    swapState = mustDispatch(swapState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-replica-de-apariencia',
+    });
+    expect(swapState.players.P1.active!.cardId).toBe('char-rubber-soul');
+    expect(swapState.players.P1.active!.currentHp).toBe(130);
+    expect(swapState.players.P1.hand).toContain('char-hol-horse');
+    expect(swapState.players.P1.hand).toContain('stand-yellow-temperance');
   });
 });

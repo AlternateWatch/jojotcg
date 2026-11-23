@@ -98,6 +98,8 @@ export interface CharacterInstance {
   tenilleDamageBonus?: number;
   /** Rubber Soul — Narcisismo: permanent +10 HP per enemy bench character at the moment it enters play */
   rubberSoulHpBonus?: number;
+  /** Yellow Temperance — Defensa Física: caps the next incoming enemy attack damage to this value */
+  nextIncomingAttackDamageCap?: number | null;
 }
 
 export interface PlayerState {
@@ -258,6 +260,12 @@ export type PlayerPrompt =
       playerId: PlayerId;
       targetPlayerId: PlayerId;
       drawCount: number;
+      sourceLabel: string;
+    }
+  | {
+      kind: 'CHOOSE_HAND_CHARACTER_SWAP';
+      playerId: PlayerId;
+      eligibleHandIndices: number[];
       sourceLabel: string;
     };
 

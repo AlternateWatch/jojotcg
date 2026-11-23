@@ -1,4 +1,4 @@
-import { getCardById } from '../../data/cardRegistry';
+import { getCardById, getCharacterCard } from '../../data/cardRegistry';
 import type { AttackDef, EnergyType } from '../../data/schemas/cardTypes';
 import {
   computeEffectiveMaxHp,
@@ -8,6 +8,7 @@ import {
 } from '../helpers/cardStats';
 import {
   checkImmediateDeckOut,
+  createCharacterInstance,
   enqueuePrompt,
   findCharacterOnBoard,
   getOpponentId,
@@ -30,7 +31,7 @@ import {
   triggerOnMoveToActiveAbility,
   triggerOpponentExtraDrawReaction,
 } from '../effects/effectPipeline';
-import { attachSummonedStandFromDeck } from '../rules/turnRules';
+import { attachSummonedStandFromDeck, triggerOnEnterFieldAbility } from '../rules/turnRules';
 import type { PromptResponsePayload } from '../types/actions';
 import type { CombatEvent } from '../types/events';
 import type { GameState, PlayerId, PlayerPrompt } from '../types/state';
@@ -528,6 +529,7 @@ export function executeAttack(
 
   const isDamagingAttack = rawBase > 0;
   let defenderDodgedOrImmune = false;
+  let defenderKoTriggered = false;
 
   if (isDamagingAttack) {
     const totalDamage = Math.max(0, rawBase + bonusInfo.bonus);
@@ -542,6 +544,7 @@ export function executeAttack(
       rng,
     });
     defenderDodgedOrImmune = res.dodged || res.immune;
+    defenderKoTriggered = res.koTriggered;
   } else if (instantKoDefender) {
     // Check Wamuu's Wind Sense / Cream's Dodge / N'Doul Water Immunity on Instant KO attacks
     const probeTarget = findCharacterOnBoard(state, opponentId, defender.instanceId);
@@ -916,6 +919,56 @@ export function executeAttack(
             attack.name,
             rng,
           );
+        }
+        break;
+      }
+      case 'HEAL_SELF_ON_KO': {
+        if (defenderKoTriggered && findCharacterOnBoard(state, playerId, attacker.instanceId)) {
+          healCharacter(state, eventsOut, playerId, attacker.instanceId, eff.amount, attack.name);
+        }
+        break;
+      }
+      case 'CAP_NEXT_INCOMING_ATTACK_DAMAGE': {
+        if (findCharacterOnBoard(state, playerId, attacker.instanceId)) {
+          attacker.nextIncomingAttackDamageCap = eff.maxDamage;
+          pushEvent(state, eventsOut, {
+            type: 'ABILITY_TRIGGERED',
+            playerId,
+            abilityName: attack.name,
+            message: `¡${attack.name}! El siguiente ataque rival solo infligirá ${eff.maxDamage} puntos de daño a ${attackerProfile.name}.`,
+          });
+        }
+        break;
+      }
+      case 'SWAP_ACTIVE_WITH_HAND_CHARACTER': {
+        if (player.active?.instanceId === attacker.instanceId) {
+          const eligibleHandIndices: number[] = [];
+          player.hand.forEach((cid, idx) => {
+            if (getCharacterCard(cid)) eligibleHandIndices.push(idx);
+          });
+          if (eligibleHandIndices.length === 0) {
+            pushEvent(state, eventsOut, {
+              type: 'ABILITY_TRIGGERED',
+              playerId,
+              abilityName: attack.name,
+              message: `${attack.name}: ${player.name} no tiene personajes en la mano para intercambiar.`,
+            });
+          } else if (eligibleHandIndices.length === 1) {
+            swapActiveWithHandCharacter(
+              state,
+              eventsOut,
+              playerId,
+              eligibleHandIndices[0]!,
+              attack.name,
+            );
+          } else {
+            enqueuePrompt(state, {
+              kind: 'CHOOSE_HAND_CHARACTER_SWAP',
+              playerId,
+              eligibleHandIndices,
+              sourceLabel: attack.name,
+            });
+          }
         }
         break;
       }
@@ -1296,7 +1349,66 @@ export function validatePromptResponse(
       }
       return { ok: true };
     }
+    case 'CHOOSE_HAND_CHARACTER_SWAP': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_HAND_CHARACTER_SWAP' }>;
+      if (
+        !prompt.eligibleHandIndices.includes(r.handIndex) ||
+        !player.hand[r.handIndex] ||
+        !getCharacterCard(player.hand[r.handIndex]!)
+      ) {
+        return { ok: false, reason: 'Debes seleccionar un personaje válido de tu mano.' };
+      }
+      return { ok: true };
+    }
   }
+}
+
+function swapActiveWithHandCharacter(
+  state: GameState,
+  eventsOut: CombatEvent[],
+  playerId: PlayerId,
+  handIndex: number,
+  sourceLabel: string,
+): void {
+  const player = state.players[playerId];
+  const outgoing = player.active;
+  const incomingCardId = player.hand[handIndex];
+  if (!outgoing || !incomingCardId || !getCharacterCard(incomingCardId)) return;
+
+  player.hand.splice(handIndex, 1);
+  const outgoingProfile = getEffectiveCharacterProfile(outgoing);
+
+  // Return outgoing character (+ evolutions) and attached Stand (+ evolutions) to hand; discard items & energies
+  player.hand.push(outgoing.cardId);
+  for (const evoId of outgoing.evolvedCardIds) player.hand.push(evoId);
+  if (outgoing.attachedStand) {
+    player.hand.push(outgoing.attachedStand.cardId);
+    for (const evoId of outgoing.attachedStand.evolvedCardIds) player.hand.push(evoId);
+  }
+  for (const item of outgoing.attachedItems) player.discard.push(item.cardId);
+  for (const eType of outgoing.attachedEnergies) {
+    player.discard.push(`energy-${eType.toLowerCase()}`);
+  }
+
+  const incoming = createCharacterInstance(state, incomingCardId);
+  player.active = incoming;
+  const incomingProfile = getEffectiveCharacterProfile(incoming);
+
+  pushEvent(state, eventsOut, {
+    type: 'ABILITY_TRIGGERED',
+    playerId,
+    abilityName: sourceLabel,
+    message: `¡${sourceLabel}! ${outgoingProfile.name} regresa a la mano y ${incomingProfile.name} entra al Puesto Activo.`,
+  });
+  pushEvent(state, eventsOut, {
+    type: 'BENCH_SWAP',
+    playerId,
+    newActiveCardId: incomingProfile.currentCardId,
+    endedTurn: false,
+    message: `${incomingProfile.name} ocupa el Puesto Activo de ${player.name}.`,
+  });
+
+  triggerOnEnterFieldAbility(state, eventsOut, playerId, incoming);
 }
 
 export function resolvePendingPrompt(
@@ -1658,6 +1770,11 @@ export function resolvePendingPrompt(
         checkImmediateDeckOut(state, eventsOut, playerId);
         triggerOpponentExtraDrawReaction(state, eventsOut, playerId);
       }
+      break;
+    }
+    case 'CHOOSE_HAND_CHARACTER_SWAP': {
+      const r = response as Extract<PromptResponsePayload, { kind: 'CHOOSE_HAND_CHARACTER_SWAP' }>;
+      swapActiveWithHandCharacter(state, eventsOut, playerId, r.handIndex, prompt.sourceLabel);
       break;
     }
   }

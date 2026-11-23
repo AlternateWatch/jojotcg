@@ -75,7 +75,10 @@ export type AttackSpecialEffect =
   | { kind: 'RECOVER_ITEM_FROM_DISCARD'; destination: 'HAND' | 'DECK' }
   | { kind: 'COPY_ENEMY_STAND_ATTACK' }
   | { kind: 'SOUL_SWAP_HP' }
-  | { kind: 'RETURN_ENEMY_BENCH_TO_DECK' };
+  | { kind: 'RETURN_ENEMY_BENCH_TO_DECK' }
+  | { kind: 'HEAL_SELF_ON_KO'; amount: number }
+  | { kind: 'CAP_NEXT_INCOMING_ATTACK_DAMAGE'; maxDamage: number }
+  | { kind: 'SWAP_ACTIVE_WITH_HAND_CHARACTER' };
 
 export interface AttackDef {
   id: string;

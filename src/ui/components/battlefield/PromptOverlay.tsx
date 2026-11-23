@@ -674,6 +674,44 @@ export function PromptOverlay({ state, prompt, onRespond }: PromptOverlayProps) 
         )}
 
         {/* 12. PEEK TOP DECK (Tonpetty — Precognición) */}
+        {prompt.kind === 'CHOOSE_HAND_CHARACTER_SWAP' && (
+          <div className="space-y-4">
+            <h3 className="font-jojo-display text-2xl text-[#f5efe0] uppercase">
+              {prompt.sourceLabel} — Cambiar Activo por Personaje de tu Mano
+            </h3>
+            <p className="text-xs text-zinc-300">
+              Elige un personaje de tu mano para ocupar el Puesto Activo (tu activo actual volverá a
+              tu mano).
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              {prompt.eligibleHandIndices.map((hIdx) => {
+                const cid = player.hand[hIdx];
+                const card = cid ? getCardById(cid) : undefined;
+                if (!card) return null;
+                return (
+                  <div key={`${hIdx}-${card.id}`} className="flex flex-col items-center gap-1.5">
+                    <CardView
+                      card={card}
+                      size="md"
+                      highlighted
+                      badgeText="A ACTIVO"
+                      onClick={() =>
+                        onRespond({
+                          kind: 'CHOOSE_HAND_CHARACTER_SWAP',
+                          handIndex: hIdx,
+                        })
+                      }
+                    />
+                    <span className="font-jojo-heading text-sm tracking-wider text-[#f2c12e]">
+                      {card.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {prompt.kind === 'PEEK_TOP_DECK' && (
           <div className="space-y-4">
             <h3 className="font-jojo-display text-2xl text-[#f5efe0] uppercase">

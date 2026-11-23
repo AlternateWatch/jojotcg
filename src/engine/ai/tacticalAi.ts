@@ -465,6 +465,17 @@ function buildPromptResponse(
       });
       return { kind: 'CHOOSE_STAND_FROM_DECK', standCardId: sorted[0] ?? prompt.eligibleStandCardIds[0]! };
     }
+    case 'CHOOSE_HAND_CHARACTER_SWAP': {
+      const sorted = [...prompt.eligibleHandIndices].sort((a, b) => {
+        const cA = getCharacterCard(player.hand[a] ?? '');
+        const cB = getCharacterCard(player.hand[b] ?? '');
+        return (cB?.maxHp ?? 0) - (cA?.maxHp ?? 0);
+      });
+      return {
+        kind: 'CHOOSE_HAND_CHARACTER_SWAP',
+        handIndex: sorted[0] ?? prompt.eligibleHandIndices[0]!,
+      };
+    }
     case 'SEARCH_DECK_CARDS': {
       const boardChars = [...(player.active ? [player.active] : []), ...player.bench];
       const candidates: { idx: number; score: number }[] = [];
