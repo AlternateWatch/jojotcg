@@ -144,6 +144,7 @@ export type SignatureEffectId =
   | 'DIO_LACKEY_WANG_CHAN'
   | 'GERMAN_ELITE_DONOVAN'
   | 'MASS_MURDER_GRAY_FLY'
+  | 'MASOCHISM_DEVO'
   | 'NONE';
 
 export interface SignatureAbilityDef {

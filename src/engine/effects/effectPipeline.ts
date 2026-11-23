@@ -116,6 +116,15 @@ export function computeAttackDamageBonus(
       bonus += 20;
     }
 
+    // Devo el Maldito — Masoquismo: +10 Stand dmg at <= 70 HP, +20 Stand dmg at <= 30 HP
+    if (profile.signatureAbility.id === 'MASOCHISM_DEVO') {
+      if (attackerInst.currentHp <= 30) {
+        bonus += 20;
+      } else if (attackerInst.currentHp <= 70) {
+        bonus += 10;
+      }
+    }
+
     // Josuke Hair Rage: permanent +10 once HP reached <= 60
     if (profile.signatureAbility.id === 'HAIR_RAGE_JOSUKE' && attackerInst.hairRageTriggered) {
       bonus += 10;

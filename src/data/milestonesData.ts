@@ -138,12 +138,13 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
   {
     id: 'milestone-set-egypt-villains',
     title: 'La Mansión de DIO y Egipto',
-    description: 'Reúne a los asesinos de DIO: Hol Horse, N\'Doul, Mariah, Pet Shop, Vanilla Ice, DIO y The World.',
+    description: 'Reúne a los asesinos de DIO: Devo el Maldito, Hol Horse, N\'Doul, Mariah, Pet Shop, Vanilla Ice, DIO y The World.',
     category: 'CARD_SET',
     badge: 'PARTE 3',
     accentHex: '#e6194b',
     rewardCoins: 1050,
     requiredCardIds: [
+      'char-devo-el-maldito',
       'char-hol-horse',
       'char-n-doul',
       'char-mariah',

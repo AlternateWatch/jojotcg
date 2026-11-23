@@ -25,6 +25,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'caesar-zeppeli',
   'crazy-diamond',
   'cream',
+  'devo-el-maldito',
   'dio-brando',
   'dio',
   'dire',
