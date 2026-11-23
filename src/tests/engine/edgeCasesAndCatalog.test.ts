@@ -14,9 +14,9 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 82 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 83 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(82);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(83);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1395,5 +1395,31 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     // 50 base + 40 (2 HEADS * 20) + 10 (Apnea Inhumana) = 100 dmg -> 160 - 100 = 60 HP + Stunned!
     expect(afterPercebes.players.P2.active!.currentHp).toBe(60);
     expect(afterPercebes.players.P2.active!.statuses.stunned).toBe(true);
+  });
+
+  it('resolves Rubber Soul (120 HP, DG 3): Narcisismo (+10 permanent HP per enemy bench character at the moment of playing)', () => {
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-hol-horse',
+      p1Hand: ['char-rubber-soul'],
+      p2ActiveId: 'char-jotaro-kujo',
+      p2BenchIds: ['char-muhammad-avdol', 'char-iggy'], // 2 enemy bench characters -> +20 HP!
+      phase: 'PREPARATION',
+    });
+
+    state = mustDispatch(state, {
+      type: 'PLAY_TO_BENCH',
+      playerId: 'P1',
+      handIndex: 0,
+    });
+
+    const rubberSoul = state.players.P1.bench.find((b) => b.cardId === 'char-rubber-soul')!;
+    expect(rubberSoul).toBeDefined();
+    expect(rubberSoul.rubberSoulHpBonus).toBe(20);
+    expect(rubberSoul.currentHp).toBe(140); // 120 base + 20 (2 enemy bench chars)
+
+    // Snapshot check: if enemy bench count changes later, Rubber Soul keeps its +20 bonus
+    state.players.P2.bench = [];
+    expect(rubberSoul.currentHp).toBe(140);
+    expect(rubberSoul.rubberSoulHpBonus).toBe(20);
   });
 });

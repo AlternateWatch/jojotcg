@@ -147,6 +147,7 @@ export type SignatureEffectId =
   | 'MASOCHISM_DEVO'
   | 'ADVANCED_PRIMATE_FOREVER'
   | 'INHUMAN_APNEA_TENILLE'
+  | 'NARCISSISM_RUBBER_SOUL'
   | 'NONE';
 
 export interface SignatureAbilityDef {

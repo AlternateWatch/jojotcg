@@ -146,7 +146,8 @@ export function computeEffectiveMaxHp(
     inst.maxHpPenalty +
     (inst.erinaHpBonus ?? 0) +
     (inst.wangChanHpBonus ?? 0) +
-    (inst.foreverHpBonus ?? 0);
+    (inst.foreverHpBonus ?? 0) +
+    (inst.rubberSoulHpBonus ?? 0);
 
   // Okuyasu + Josuke on bench: +20 max HP while Okuyasu is active
   if (

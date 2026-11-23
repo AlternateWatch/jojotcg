@@ -150,6 +150,7 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
       'stand-strength',
       'char-capitan-tenille',
       'stand-dark-blue-moon',
+      'char-rubber-soul',
       'char-hol-horse',
       'char-n-doul',
       'char-mariah',

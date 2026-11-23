@@ -96,6 +96,22 @@ export function triggerOnEnterFieldAbility(
     });
   }
 
+  if (profile.signatureAbility.id === 'NARCISSISM_RUBBER_SOUL') {
+    const enemyBenchCount = opponent.bench.length;
+    if (enemyBenchCount > 0) {
+      const bonusHp = enemyBenchCount * 10;
+      inst.rubberSoulHpBonus = (inst.rubberSoulHpBonus ?? 0) + bonusHp;
+      inst.currentHp += bonusHp;
+      const newMax = computeEffectiveMaxHp(state, playerId, inst);
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: 'Narcisismo',
+        message: `¡Narcisismo! ${profile.name} gana +${bonusHp} HP extra por los ${enemyBenchCount} personaje(s) en la banca enemiga (${inst.currentHp}/${newMax} HP).`,
+      });
+    }
+  }
+
   if (profile.signatureAbility.id === 'MAGNETIC_ATTRACTION_MARIAH' && opponent.active) {
     let stolen = 0;
     const remaining: typeof opponent.active.attachedEnergies = [];

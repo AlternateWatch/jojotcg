@@ -1570,6 +1570,7 @@ const PART_3_STAGES: CampaignStageDef[] = [
       [
         'char-hol-horse',
         'char-devo-el-maldito',
+        'char-rubber-soul',
         'char-mariah',
         'char-n-doul',
         'stand-emperor',
@@ -1692,6 +1693,7 @@ const PART_3_STAGES: CampaignStageDef[] = [
       [
         'char-hol-horse',
         'char-devo-el-maldito',
+        'char-rubber-soul',
         'char-mariah',
         'char-n-doul',
         'char-pet-shop',

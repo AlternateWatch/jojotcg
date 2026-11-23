@@ -75,6 +75,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'red-hot-chilli-pepper',
   'robert-e-o-speedwagon',
   'rohan-kishibe',
+  'rubber-soul',
   'rudol-von-stroheim',
   'santana',
   'sex-pistols',

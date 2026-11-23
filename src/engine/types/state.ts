@@ -96,6 +96,8 @@ export interface CharacterInstance {
   /** "Capitán Tenille" — Apnea Inhumana: turn number when moved from Bench to Active, and accumulated +10 permanent damage stacks */
   tenilleEnteredActiveFromBenchTurn?: number | null;
   tenilleDamageBonus?: number;
+  /** Rubber Soul — Narcisismo: permanent +10 HP per enemy bench character at the moment it enters play */
+  rubberSoulHpBonus?: number;
 }
 
 export interface PlayerState {
