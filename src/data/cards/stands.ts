@@ -27,6 +27,38 @@ export const STAND_CARDS: StandCard[] = [
     ],
   },
   {
+    id: 'stand-ebony-devil',
+    name: 'Ebony Devil',
+    type: 'STAND',
+    part: 3,
+    imageId: 'ebony-devil',
+    assetFolder: 'official',
+    requiredDg: 4,
+    attacks: [
+      {
+        id: 'atk-botella-rota',
+        name: 'Botella Rota',
+        energyCost: ['COLORLESS'],
+        baseDamage: 20,
+        damageLabel: '20',
+      },
+      {
+        id: 'atk-lanza',
+        name: 'Lanza',
+        energyCost: ['COLORLESS', 'COLORLESS', 'COLORLESS'],
+        baseDamage: 60,
+        damageLabel: '60',
+        effectText:
+          'Lanza una moneda. Si sale cara, el oponente pasa a estar aturdido. Si sale cruz, el oponente pasa a tener sangrado.',
+        coinFlip: {
+          count: 1,
+          onHeads: [{ kind: 'STATUS', status: 'STUNNED', target: 'DEFENDER' }],
+          onTails: [{ kind: 'STATUS', status: 'BLEED', target: 'DEFENDER' }],
+        },
+      },
+    ],
+  },
+  {
     id: 'stand-star-platinum',
     name: 'Star Platinum',
     type: 'STAND',

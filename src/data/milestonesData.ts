@@ -145,6 +145,7 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
     rewardCoins: 1050,
     requiredCardIds: [
       'char-devo-el-maldito',
+      'stand-ebony-devil',
       'char-hol-horse',
       'char-n-doul',
       'char-mariah',

@@ -13,9 +13,9 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 77 official PNG cards, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 78 official PNG cards, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(77);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(78);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1259,12 +1259,23 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(afterNeedleTails.players.P1.active!.statuses.stunned).toBe(true);
   });
 
-  it('resolves Devo el Maldito Masoquismo (+10 Stand dmg at <= 70 HP, +20 Stand dmg at <= 30 HP)', () => {
+  it('resolves Devo el Maldito Masoquismo (+10 at <= 70 HP, +20 at <= 30 HP) and Ebony Devil (Botella Rota & Lanza)', () => {
+    const headsRng = {
+      nextFloat: () => 0.1,
+      flipCoin: () => 'HEADS' as const,
+      shuffle: <T,>(items: readonly T[]) => [...items],
+    };
+    const tailsRng = {
+      nextFloat: () => 0.9,
+      flipCoin: () => 'TAILS' as const,
+      shuffle: <T,>(items: readonly T[]) => [...items],
+    };
+
     const makeDevoState = (hp: number) => {
       const s = buildControlledBattleState({
         p1ActiveId: 'char-devo-el-maldito', // 110 HP, DG 4
-        p1ActiveStandId: 'stand-hermit-purple', // DG 3, 40 base dmg
-        p1ActiveEnergies: ['PSYCHIC', 'PSYCHIC'],
+        p1ActiveStandId: 'stand-ebony-devil', // DG 4, Botella Rota (20) & Lanza (60 + coin)
+        p1ActiveEnergies: ['COLORLESS', 'COLORLESS', 'COLORLESS'],
         p2ActiveId: 'char-dio', // 160 HP
         phase: 'COMBAT',
       });
@@ -1272,28 +1283,37 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       return s;
     };
 
-    // At 110 HP -> +0 bonus (40 dmg -> 120 HP)
+    // At 110 HP -> Botella Rota deals 20 (+0 bonus -> 140 HP)
     const atFull = mustDispatch(makeDevoState(110), {
       type: 'USE_ATTACK',
       playerId: 'P1',
-      attackId: 'atk-hermit-purple',
+      attackId: 'atk-botella-rota',
     });
-    expect(atFull.players.P2.active!.currentHp).toBe(120);
+    expect(atFull.players.P2.active!.currentHp).toBe(140);
 
-    // At 70 HP -> +10 bonus (50 dmg -> 110 HP)
+    // At 70 HP -> Botella Rota deals 20 + 10 = 30 (130 HP)
     const at70 = mustDispatch(makeDevoState(70), {
       type: 'USE_ATTACK',
       playerId: 'P1',
-      attackId: 'atk-hermit-purple',
+      attackId: 'atk-botella-rota',
     });
-    expect(at70.players.P2.active!.currentHp).toBe(110);
+    expect(at70.players.P2.active!.currentHp).toBe(130);
 
-    // At 30 HP -> +20 bonus (60 dmg -> 100 HP)
-    const at30 = mustDispatch(makeDevoState(30), {
-      type: 'USE_ATTACK',
-      playerId: 'P1',
-      attackId: 'atk-hermit-purple',
-    });
-    expect(at30.players.P2.active!.currentHp).toBe(100);
+    // At 30 HP -> Lanza deals 60 + 20 = 80 (80 HP); HEADS stuns, TAILS bleeds
+    const lanzaHeads = mustDispatch(
+      makeDevoState(30),
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-lanza' },
+      headsRng,
+    );
+    expect(lanzaHeads.players.P2.active!.currentHp).toBe(80);
+    expect(lanzaHeads.players.P2.active!.statuses.stunned).toBe(true);
+
+    const lanzaTails = mustDispatch(
+      makeDevoState(30),
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-lanza' },
+      tailsRng,
+    );
+    expect(lanzaTails.players.P2.active!.currentHp).toBe(80);
+    expect(lanzaTails.players.P2.active!.statuses.bleedStacks).toHaveLength(1);
   });
 });
