@@ -8,6 +8,7 @@ import { createSeededRng } from '../../engine/rng';
 import {
   buyShopEnergyPack,
   buyShopOffer,
+  claimTreasureBonusCard,
   computeRelicRulesOverrides,
   computeRoguelikeMetaReward,
   createRoguelikeRun,
@@ -136,13 +137,25 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
     expect(overrides.p1BonusMaxHp).toBe(10);
     expect(overrides.p1BonusDamage).toBe(10);
 
-    // Test Treasure room: grants gold + relic choices, NO card draft (card draft is combat-only)
+    // Test Treasure room: grants gold + relic choices (+ optional single bonus card), NO 1-of-3 card draft
     const treasureNode = run.map.find((n) => n.type === 'TREASURE')!;
     const treasureRun = enterRoguelikeNode(run, treasureNode.id).nextRun;
     expect(treasureRun.status).toBe('REWARD');
     expect(treasureRun.pendingReward?.sourceType).toBe('TREASURE');
     expect(treasureRun.pendingReward?.cardChoices).toHaveLength(0);
     expect(treasureRun.pendingReward?.goldAwarded).toBeGreaterThan(0);
+
+    // Claiming a chest bonus card adds it once and marks treasureCardClaimed
+    const withChestCard = claimTreasureBonusCard({
+      ...treasureRun,
+      pendingReward: {
+        ...treasureRun.pendingReward!,
+        treasureFoundCardId: 'energy-electric',
+        treasureCardClaimed: false,
+      },
+    });
+    expect(withChestCard.deckCardIds).toHaveLength(treasureRun.deckCardIds.length + 1);
+    expect(withChestCard.pendingReward?.treasureCardClaimed).toBe(true);
 
     // Test Shop node: buy offer, buy energy pack, purge card (allowed when > 16 cards)
     const shopNode = run.map.find((n) => n.type === 'SHOP')!;

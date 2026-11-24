@@ -50,6 +50,9 @@ export interface RoguelikeRewardState {
   cardChoices: string[];
   relicChoices?: string[];
   energyPickCount?: number;
+  /** Optional single bonus card (regular or Energy) randomly discovered inside a Treasure chest */
+  treasureFoundCardId?: string;
+  treasureCardClaimed?: boolean;
 }
 
 export interface RoguelikeEventState {
@@ -721,6 +724,23 @@ export function enterRoguelikeNode(
       unownedRelics.length > 0
         ? rng.shuffle(unownedRelics).slice(0, Math.min(2, unownedRelics.length)).map((r) => r.id)
         : undefined;
+
+    // 60% chance to also discover 1 bonus card (either a regular card or an Energy card) in the chest
+    let treasureFoundCardId: string | undefined;
+    if (rng.nextFloat() < 0.6) {
+      if (rng.nextFloat() < 0.45) {
+        // Energy card: prefer an energy type already in the deck, or random basic energy
+        const deckEnergies = baseRun.deckCardIds.filter((cid) =>
+          BASIC_ENERGY_IDS.includes(cid as (typeof BASIC_ENERGY_IDS)[number]),
+        );
+        const energyPool = deckEnergies.length > 0 ? deckEnergies : [...BASIC_ENERGY_IDS];
+        treasureFoundCardId = pickRandom(energyPool, rng);
+      } else {
+        const normalDraft = generateCardDraftChoices(baseRun, 'TREASURE', rng);
+        treasureFoundCardId = normalDraft[0];
+      }
+    }
+
     return {
       nextRun: {
         ...baseRun,
@@ -731,6 +751,8 @@ export function enterRoguelikeNode(
           goldAwarded,
           cardChoices: [],
           relicChoices,
+          treasureFoundCardId,
+          treasureCardClaimed: false,
         },
       },
     };
@@ -851,6 +873,24 @@ export function pickRoguelikeRewardRelic(
     pendingReward: withRelic.pendingReward
       ? { ...withRelic.pendingReward, relicChoices: undefined }
       : null,
+  };
+}
+
+export function claimTreasureBonusCard(run: RoguelikeRunState): RoguelikeRunState {
+  if (
+    !run.pendingReward ||
+    !run.pendingReward.treasureFoundCardId ||
+    run.pendingReward.treasureCardClaimed
+  ) {
+    return run;
+  }
+  return {
+    ...run,
+    deckCardIds: [...run.deckCardIds, run.pendingReward.treasureFoundCardId],
+    pendingReward: {
+      ...run.pendingReward,
+      treasureCardClaimed: true,
+    },
   };
 }
 

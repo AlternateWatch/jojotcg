@@ -30,6 +30,7 @@ import {
 import {
   buyShopEnergyPack,
   buyShopOffer,
+  claimTreasureBonusCard,
   computeRelicRulesOverrides,
   computeRoguelikeMetaReward,
   enterRoguelikeNode,
@@ -677,7 +678,46 @@ export function RoguelikeView() {
                 )}
               </>
             ) : (
-              <div className="flex flex-col items-center gap-3 border-t border-white/10 pt-4 text-center">
+              <div className="flex flex-col items-center gap-4 border-t border-white/10 pt-4 text-center">
+                {roguelikeRun.pendingReward.treasureFoundCardId &&
+                  (() => {
+                    const foundCard = getCardById(roguelikeRun.pendingReward.treasureFoundCardId);
+                    if (!foundCard) return null;
+                    const claimed = Boolean(roguelikeRun.pendingReward.treasureCardClaimed);
+                    return (
+                      <div className="flex flex-col items-center gap-2 border-2 border-[#00e599]/50 bg-[#0b2019] px-6 py-4">
+                        <div className="font-jojo-heading text-xs tracking-widest text-[#00e599] uppercase">
+                          <Gift size={13} className="mr-1 inline" /> ¡Carta encontrada en el cofre!
+                        </div>
+                        <CardView
+                          card={foundCard}
+                          size="sm"
+                          highlighted={!claimed}
+                          badgeText={claimed ? 'GUARDADA' : 'BOTÍN'}
+                          onClick={() => openInspector(foundCard.id)}
+                        />
+                        <div className="text-xs font-bold text-[#f5efe0]">{foundCard.name}</div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openInspector(foundCard.id)}
+                            className="jojo-btn-ink px-3 py-1 text-[11px] font-bold uppercase"
+                          >
+                            Inspeccionar
+                          </button>
+                          <button
+                            type="button"
+                            disabled={claimed}
+                            onClick={() => setRoguelikeRun(claimTreasureBonusCard(roguelikeRun))}
+                            className="jojo-btn-primary px-3.5 py-1 text-[11px] font-bold uppercase disabled:opacity-45"
+                          >
+                            {claimed ? 'Añadida al Mazo ✓' : 'Guardar en mi Mazo'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                 <p className="text-xs text-zinc-300">
                   {roguelikeRun.pendingReward.relicChoices &&
                   roguelikeRun.pendingReward.relicChoices.length > 0
