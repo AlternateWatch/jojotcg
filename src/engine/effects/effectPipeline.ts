@@ -59,7 +59,7 @@ export function computeAttackDamageBonus(
   const opponent = state.players[getOpponentId(attackerPlayerId)];
   const profile = getEffectiveCharacterProfile(attackerInst);
 
-  let bonus = 0;
+  let bonus = attackerPlayerId === 'P1' ? (state.rules.p1BonusDamage ?? 0) : 0;
   let consumedHotBlood = false;
   let consumedLuckyShot = false;
   let consumedLastHamon = false;

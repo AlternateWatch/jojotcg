@@ -244,7 +244,7 @@ export function createGame(options: CreateGameOptions): GameState {
     options.p1Name,
     options.p1Deck,
     options.p1IsAi ?? false,
-    rules.initialHandSize,
+    rules.initialHandSize + (rules.p1ExtraInitialHand ?? 0),
     rules.prizeCardCount,
     rng,
     options.p1GuaranteedOpeningCardId,

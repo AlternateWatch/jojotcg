@@ -24,6 +24,11 @@ import {
   type PlayerProgression,
 } from '../services/progressionService';
 import {
+  computeRoguelikeMetaReward,
+  createRoguelikeRun,
+  type RoguelikeRunState,
+} from '../services/roguelikeService';
+import {
   DEFAULT_SETTINGS,
   type PlaymatThemeId,
   type SavedDeck,
@@ -34,6 +39,7 @@ export type AppScreen =
   | 'HOME'
   | 'TUTORIAL'
   | 'CAMPAIGN'
+  | 'ROGUELIKE'
   | 'BATTLE_SETUP'
   | 'BATTLE'
   | 'COLLECTION'
@@ -54,6 +60,8 @@ interface AppStoreState {
   preferredBattleMode: 'VS_AI' | 'HOTSEAT' | 'ONLINE';
   preselectedDeckId: string | null;
   selectedCampaignPart: 1 | 2 | 3 | 4 | 5;
+  roguelikeRun: RoguelikeRunState | null;
+  bestRoguelikeFloor: number;
 
   setScreen: (screen: AppScreen) => void;
   setSelectedCampaignPart: (part: 1 | 2 | 3 | 4 | 5) => void;
@@ -99,6 +107,11 @@ interface AppStoreState {
   claimAllMilestones: () => ClaimAllMilestonesResult;
   grantTestCoins: (amount: number) => void;
   resetProgression: () => void;
+
+  startRoguelikeRun: (starterId: string) => RoguelikeRunState;
+  setRoguelikeRun: (run: RoguelikeRunState | null) => void;
+  claimRoguelikeEndReward: () => { coins: number; breakdown: string } | null;
+  abandonRoguelikeRun: () => void;
 }
 
 // Legacy localStorage cleanup so guest mode never persists data across window closes
@@ -454,4 +467,85 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       if (state.authUser) void authService.syncAccountData({ progression: fresh });
       return { progression: fresh };
     }),
+
+  roguelikeRun: (() => {
+    if (typeof window === 'undefined' || !window.localStorage) return null;
+    try {
+      const raw = window.localStorage.getItem('jojo_tcg_roguelike_v1');
+      if (!raw) return null;
+      return JSON.parse(raw) as RoguelikeRunState;
+    } catch {
+      return null;
+    }
+  })(),
+
+  bestRoguelikeFloor: (() => {
+    if (typeof window === 'undefined' || !window.localStorage) return 0;
+    try {
+      return Number(window.localStorage.getItem('jojo_tcg_roguelike_best_v1') ?? '0') || 0;
+    } catch {
+      return 0;
+    }
+  })(),
+
+  startRoguelikeRun: (starterId) => {
+    const run = createRoguelikeRun(starterId);
+    try {
+      window.localStorage?.setItem('jojo_tcg_roguelike_v1', JSON.stringify(run));
+    } catch {
+      // Ignore storage quota errors
+    }
+    set({ roguelikeRun: run });
+    return run;
+  },
+
+  setRoguelikeRun: (run) => {
+    const prevBest = get().bestRoguelikeFloor;
+    const nextBest = run ? Math.max(prevBest, run.currentFloor) : prevBest;
+    try {
+      if (run) {
+        window.localStorage?.setItem('jojo_tcg_roguelike_v1', JSON.stringify(run));
+      } else {
+        window.localStorage?.removeItem('jojo_tcg_roguelike_v1');
+      }
+      if (nextBest > prevBest) {
+        window.localStorage?.setItem('jojo_tcg_roguelike_best_v1', String(nextBest));
+      }
+    } catch {
+      // Ignore storage errors
+    }
+    set({ roguelikeRun: run, bestRoguelikeFloor: nextBest });
+  },
+
+  claimRoguelikeEndReward: () => {
+    const run = get().roguelikeRun;
+    if (!run || run.metaCoinsClaimed !== null) return null;
+    const reward = computeRoguelikeMetaReward(run);
+    const updatedRun: RoguelikeRunState = {
+      ...run,
+      metaCoinsClaimed: reward.coins,
+    };
+    const nextProg: PlayerProgression = {
+      ...get().progression,
+      coins: get().progression.coins + reward.coins,
+      wins: get().progression.wins + (run.status === 'VICTORY' ? 1 : 0),
+    };
+    if (get().authUser) void authService.syncAccountData({ progression: nextProg });
+    try {
+      window.localStorage?.setItem('jojo_tcg_roguelike_v1', JSON.stringify(updatedRun));
+    } catch {
+      // Ignore
+    }
+    set({ roguelikeRun: updatedRun, progression: nextProg });
+    return { coins: reward.coins, breakdown: reward.breakdown };
+  },
+
+  abandonRoguelikeRun: () => {
+    try {
+      window.localStorage?.removeItem('jojo_tcg_roguelike_v1');
+    } catch {
+      // Ignore
+    }
+    set({ roguelikeRun: null });
+  },
 }));

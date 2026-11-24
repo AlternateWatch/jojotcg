@@ -30,6 +30,8 @@ export function HomeView() {
   const progression = useAppStore((s) => s.progression);
   const authUser = useAppStore((s) => s.authUser);
   const setShowAuthModal = useAppStore((s) => s.setShowAuthModal);
+  const roguelikeRun = useAppStore((s) => s.roguelikeRun);
+  const bestRoguelikeFloor = useAppStore((s) => s.bestRoguelikeFloor);
 
   const coll = getCollectionProgress(progression);
   const campaignTotal = CAMPAIGN_PARTS.reduce((sum, p) => sum + (p.available ? p.stages.length : 0), 0);
@@ -52,27 +54,36 @@ export function HomeView() {
     },
     {
       index: '02',
+      title: roguelikeRun
+        ? `EXPEDICIÓN ROGUELIKE · PISO ${roguelikeRun.currentFloor}/30`
+        : `MODO ROGUELIKE (30 NIVELES${bestRoguelikeFloor > 0 ? ` · RÉCORD PISO ${bestRoguelikeFloor}` : ''})`,
+      sub: 'Empieza con 16 cartas, elige ruta entre batallas, tiendas, eventos y jefes · Recompensas al final',
+      accent: 'bg-[#9333ea] text-white',
+      onClick: () => setScreen('ROGUELIKE'),
+    },
+    {
+      index: '03',
       title: 'MULTIJUGADOR ONLINE 1V1',
       sub: 'Busca partida automática o crea/únete a una sala privada con código',
       accent: 'bg-[#00b87c] text-[#0b090e]',
       onClick: () => openBattleSetup('ONLINE'),
     },
     {
-      index: '03',
+      index: '04',
       title: 'COMBATE VS IA & LOCAL',
       sub: 'Duelos contra la IA (Fácil / Normal / Difícil) o 1v1 en el mismo equipo',
       accent: 'bg-[#f2c12e] text-[#0b090e]',
       onClick: () => openBattleSetup('VS_AI'),
     },
     {
-      index: '04',
+      index: '05',
       title: 'TIENDA DE SOBRES',
       sub: `Abre sobres por Parte o Correlación · ${progression.coins.toLocaleString()} monedas`,
       accent: 'bg-[#e6194b] text-white',
       onClick: () => setScreen('SHOP'),
     },
     {
-      index: '05',
+      index: '06',
       title:
         milestonesReady > 0
           ? `CARTAS, MAZOS & HITOS (${milestonesReady} ¡LISTO!)`

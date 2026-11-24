@@ -19,6 +19,10 @@ export interface GameRulesConfig {
   vampireRegenAmount: number;
   /** Prevents infinite back-to-back stun-locking on the same character */
   preventConsecutiveStun: boolean;
+  /** Optional Roguelike run relic bonuses for P1 (default 0 in normal matches) */
+  p1BonusMaxHp?: number;
+  p1BonusDamage?: number;
+  p1ExtraInitialHand?: number;
 }
 
 /**

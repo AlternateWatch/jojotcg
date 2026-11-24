@@ -18,6 +18,7 @@ import { CollectionView } from './views/CollectionView';
 import { DeckBuilderView } from './views/DeckBuilderView';
 import { HomeView } from './views/HomeView';
 import { MilestonesView } from './views/MilestonesView';
+import { RoguelikeView } from './views/RoguelikeView';
 import { ShopView } from './views/ShopView';
 import { TutorialView } from './views/TutorialView';
 
@@ -31,26 +32,28 @@ interface NavGroupItem {
 const NAV_ITEMS: NavGroupItem[] = [
   { id: 'HOME', num: '01', label: 'Portada', matchScreens: ['HOME'] },
   { id: 'CAMPAIGN', num: '02', label: 'Historia', matchScreens: ['CAMPAIGN', 'TUTORIAL'] },
-  { id: 'BATTLE_SETUP', num: '03', label: 'Combate', matchScreens: ['BATTLE_SETUP'] },
+  { id: 'ROGUELIKE', num: '03', label: 'Roguelike', matchScreens: ['ROGUELIKE'] },
+  { id: 'BATTLE_SETUP', num: '04', label: 'Combate', matchScreens: ['BATTLE_SETUP'] },
   {
     id: 'COLLECTION',
-    num: '04',
+    num: '05',
     label: 'Cartas',
     matchScreens: ['COLLECTION', 'DECK_BUILDER', 'MILESTONES'],
   },
-  { id: 'SHOP', num: '05', label: 'Tienda', matchScreens: ['SHOP'] },
+  { id: 'SHOP', num: '06', label: 'Tienda', matchScreens: ['SHOP'] },
 ];
 
 const SCREEN_ORDER: Record<AppScreen, number> = {
   HOME: 0,
   TUTORIAL: 1,
   CAMPAIGN: 2,
-  BATTLE_SETUP: 3,
-  COLLECTION: 4,
-  DECK_BUILDER: 5,
-  SHOP: 6,
-  MILESTONES: 7,
-  BATTLE: 8,
+  ROGUELIKE: 3,
+  BATTLE_SETUP: 4,
+  COLLECTION: 5,
+  DECK_BUILDER: 6,
+  SHOP: 7,
+  MILESTONES: 8,
+  BATTLE: 9,
 };
 
 const pageVariants = {
@@ -346,6 +349,7 @@ export function App() {
               {screen === 'HOME' && <HomeView />}
               {screen === 'TUTORIAL' && <TutorialView />}
               {screen === 'CAMPAIGN' && <CampaignView />}
+              {screen === 'ROGUELIKE' && <RoguelikeView />}
               {screen === 'BATTLE_SETUP' && <BattleSetupView />}
               {screen === 'BATTLE' && <BattleView />}
               {screen === 'COLLECTION' && <CollectionView />}

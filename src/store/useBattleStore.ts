@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { getCardById } from '../data/cardRegistry';
 import { getTutorialLessonById } from '../data/tutorialData';
 import type { BoosterPackDef } from '../data/progressionData';
+import type { GameRulesConfig } from '../data/rulesConfig';
 import { chooseAiAction, type AiDifficulty } from '../engine/ai/tacticalAi';
 import { createGame, dispatchAction } from '../engine/gameEngine';
 import { createSystemRng, type CoinResult, type RngProvider } from '../engine/rng';
@@ -56,6 +57,8 @@ export interface StartBattleConfig {
   aiErrorRate?: number;
   campaignStageId?: string;
   tutorialLessonId?: string;
+  roguelikeNodeId?: string;
+  rules?: Partial<GameRulesConfig>;
   p2GuaranteedOpeningCardId?: string;
   battleTrackId?: string | null;
 }
@@ -84,6 +87,7 @@ interface BattleStoreState {
   lastBattleReward: { coins: number; label: string } | null;
   activeCampaignStageId: string | null;
   activeTutorialLessonId: string | null;
+  activeRoguelikeNodeId: string | null;
   activeBattleTrackId: string | null;
   campaignPackReward: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null;
   onlineRoomCode: string | null;
@@ -308,6 +312,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   lastBattleReward: null,
   activeCampaignStageId: null,
   activeTutorialLessonId: null,
+  activeRoguelikeNodeId: null,
   activeBattleTrackId: null,
   campaignPackReward: null,
   onlineRoomCode: null,
@@ -328,6 +333,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       p2IsAi: config.mode === 'VS_AI',
       p2GuaranteedOpeningCardId: config.p2GuaranteedOpeningCardId,
       firstPlayerId: config.firstPlayerId,
+      rules: config.rules,
       rng,
     });
     set({
@@ -354,6 +360,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       lastBattleReward: null,
       activeCampaignStageId: config.campaignStageId ?? null,
       activeTutorialLessonId: config.tutorialLessonId ?? null,
+      activeRoguelikeNodeId: config.roguelikeNodeId ?? null,
       activeBattleTrackId: config.battleTrackId ?? null,
       campaignPackReward: null,
       onlineRoomCode: null,

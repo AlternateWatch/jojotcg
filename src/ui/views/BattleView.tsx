@@ -32,6 +32,7 @@ import type { GamePhase } from '../../engine/types/state';
 import { CARD_BACK_PATTERN_URL, PLAYMAT_THEMES } from '../../services/assetResolver';
 import { onlineService } from '../../services/onlineService';
 import { computeBattleReward } from '../../services/progressionService';
+import { resolveRoguelikeBattleOutcome } from '../../services/roguelikeService';
 import type { PlaymatThemeId, UserSettings } from '../../services/storageService';
 import { useAppStore } from '../../store/useAppStore';
 import {
@@ -117,6 +118,7 @@ export function BattleView() {
   const claimBattleReward = useBattleStore((s) => s.claimBattleReward);
   const activeCampaignStageId = useBattleStore((s) => s.activeCampaignStageId);
   const activeTutorialLessonId = useBattleStore((s) => s.activeTutorialLessonId);
+  const activeRoguelikeNodeId = useBattleStore((s) => s.activeRoguelikeNodeId);
   const activeBattleTrackId = useBattleStore((s) => s.activeBattleTrackId);
   const campaignPackReward = useBattleStore((s) => s.campaignPackReward);
   const setCampaignPackReward = useBattleStore((s) => s.setCampaignPackReward);
@@ -132,6 +134,8 @@ export function BattleView() {
   const awardBattleReward = useAppStore((s) => s.awardBattleReward);
   const completeCampaignStage = useAppStore((s) => s.completeCampaignStage);
   const completeTutorialLesson = useAppStore((s) => s.completeTutorialLesson);
+  const roguelikeRun = useAppStore((s) => s.roguelikeRun);
+  const setRoguelikeRun = useAppStore((s) => s.setRoguelikeRun);
   const setPlaymatTheme = useAppStore((s) => s.setPlaymatTheme);
   const setAnimationSpeed = useAppStore((s) => s.setAnimationSpeed);
   const setEnable3dVfx = useAppStore((s) => s.setEnable3dVfx);
@@ -226,7 +230,24 @@ export function BattleView() {
       mode === 'ONLINE' && (onlineRole === 'P1' || onlineRole === 'P2') ? onlineRole : 'P1';
     const didWin = gameState.winnerId === localPlayerId;
 
-    if (activeTutorialLessonId) {
+    if (activeRoguelikeNodeId && roguelikeRun) {
+      const nextRun = resolveRoguelikeBattleOutcome(roguelikeRun, didWin);
+      setRoguelikeRun(nextRun);
+      if (didWin) {
+        claimBattleReward({
+          coins: nextRun.pendingReward?.goldAwarded ?? 0,
+          label:
+            nextRun.status === 'VICTORY'
+              ? '¡EXPEDICIÓN ROGUELIKE COMPLETADA (PISO 30)!'
+              : `Piso ${nextRun.currentFloor} superado · Elige 1 carta y recibe Oro de Expedición`,
+        });
+      } else {
+        claimBattleReward({
+          coins: 0,
+          label: `Derrota en el Piso ${roguelikeRun.currentFloor} · Vuelve a la Expedición para cobrar tus Monedas`,
+        });
+      }
+    } else if (activeTutorialLessonId) {
       const lesson = getTutorialLessonById(activeTutorialLessonId);
       if (didWin && lesson) {
         const res = completeTutorialLesson(activeTutorialLessonId);
@@ -1443,8 +1464,13 @@ export function BattleView() {
         battleReward={lastBattleReward}
         isCampaign={Boolean(activeCampaignStageId)}
         isTutorial={Boolean(activeTutorialLessonId)}
+        isRoguelike={Boolean(activeRoguelikeNodeId)}
         campaignPackReward={campaignPackReward}
         onOpenCampaignPacks={() => setShowCampaignPacks(true)}
+        onReturnToRoguelike={() => {
+          resetBattle();
+          setScreen('ROGUELIKE');
+        }}
         onReturnToTutorial={() => {
           resetBattle();
           setScreen('TUTORIAL');
