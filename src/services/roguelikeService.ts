@@ -110,12 +110,27 @@ export function generateRoguelikeMap(seed: number): RoguelikeMapNode[] {
   const rng = createSeededRng(seed ^ 0x5f3759df);
   const floors: RoguelikeMapNode[][] = [];
 
+  const twoLanePatterns: number[][] = [
+    [1, 2], // gap in Lane 1 (Left)
+    [0, 2], // gap in Lane 2 (Center)
+    [0, 1], // gap in Lane 3 (Right)
+  ];
+
   for (let floor = 1; floor <= ROGUELIKE_TOTAL_FLOORS; floor++) {
     const isBossFloor = floor === 10 || floor === 20 || floor === 30;
     const isPreBossFloor = floor === 9 || floor === 19 || floor === 29;
     const isMiniEliteFloor = floor === 5 || floor === 15 || floor === 25;
 
-    const lanes = isBossFloor ? [1] : [0, 1, 2];
+    let lanes: number[];
+    if (isBossFloor) {
+      lanes = [1]; // Boss ALWAYS in Lane 2 (Center)
+    } else if (floor === 1 || isPreBossFloor || isMiniEliteFloor) {
+      lanes = [0, 1, 2];
+    } else if (rng.nextFloat() < 0.52) {
+      lanes = [0, 1, 2];
+    } else {
+      lanes = pickRandom(twoLanePatterns, rng);
+    }
     const row: RoguelikeMapNode[] = [];
 
     for (const lane of lanes) {

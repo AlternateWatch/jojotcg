@@ -473,7 +473,12 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     try {
       const raw = window.localStorage.getItem('jojo_tcg_roguelike_v1');
       if (!raw) return null;
-      return JSON.parse(raw) as RoguelikeRunState;
+      const parsed = JSON.parse(raw) as RoguelikeRunState;
+      // Ensure any legacy saved Boss node is centered in Lane 2 (lane = 1)
+      if (parsed && Array.isArray(parsed.map)) {
+        parsed.map = parsed.map.map((n) => (n.type === 'BOSS' ? { ...n, lane: 1 } : n));
+      }
+      return parsed;
     } catch {
       return null;
     }
