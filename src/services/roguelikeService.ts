@@ -250,6 +250,8 @@ export function computeRelicRulesOverrides(relicIds: readonly string[]): Partial
   return {
     minDeckSize: ROGUELIKE_MIN_DECK_SIZE,
     maxDeckSize: 60,
+    initialHandSize: 5,
+    disableDeckOutLoss: true,
     p1BonusMaxHp: bonusMaxHp,
     p1BonusDamage: bonusDamage,
     p1ExtraInitialHand: extraInitialHand,

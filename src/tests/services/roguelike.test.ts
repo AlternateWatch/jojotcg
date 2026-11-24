@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ROGUELIKE_MIN_DECK_SIZE,
   ROGUELIKE_STARTER_DECKS,
   ROGUELIKE_TOTAL_FLOORS,
 } from '../../data/roguelikeData';
-import { createGame } from '../../engine/gameEngine';
+import { createGame, dispatchAction } from '../../engine/gameEngine';
 import { createSeededRng } from '../../engine/rng';
 import {
   buyShopEnergyPack,
@@ -22,8 +21,9 @@ import {
 } from '../../services/roguelikeService';
 
 describe('Roguelike Expedition Mode (30 Floors)', () => {
-  it('all 3 starter decks have exactly 16 cards (10 deck + 6 prizes) and launch cleanly in createGame', () => {
+  it('all 3 starter decks have exactly 16 cards (10 deck + 6 prizes), launch cleanly with 5-card hand, and never lose by deck-out', () => {
     const rng = createSeededRng(12345);
+    const rules = computeRelicRulesOverrides([]);
     for (const starter of ROGUELIKE_STARTER_DECKS) {
       expect(starter.cardIds).toHaveLength(16);
       const state = createGame({
@@ -31,12 +31,22 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
         p2Name: 'Enemy',
         p1Deck: starter.cardIds,
         p2Deck: starter.cardIds,
-        rules: { minDeckSize: ROGUELIKE_MIN_DECK_SIZE, maxDeckSize: 60 },
+        rules,
         rng,
       });
       expect(state.players.P1.prizeCards).toHaveLength(6);
-      expect(state.players.P1.hand).toHaveLength(7);
-      expect(state.players.P1.deck).toHaveLength(3); // 16 - 6 prizes - 7 hand = 3 in deck
+      expect(state.players.P1.hand).toHaveLength(5);
+      expect(state.players.P1.deck).toHaveLength(5); // 16 - 6 prizes - 5 hand = 5 in deck
+
+      // Verify disableDeckOutLoss: even if both deck and discard are empty on turn start, game continues cleanly!
+      state.phase = 'PREPARATION';
+      state.activePlayerId = 'P1';
+      state.players.P2.deck = [];
+      state.players.P2.discard = [];
+      const afterEnd = dispatchAction(state, { type: 'END_TURN', playerId: 'P1' }, rng).state;
+      expect(afterEnd.phase).toBe('PREPARATION');
+      expect(afterEnd.activePlayerId).toBe('P2');
+      expect(afterEnd.winnerId).toBeNull();
     }
   });
 

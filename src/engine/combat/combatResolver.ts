@@ -66,22 +66,24 @@ export function startNextTurn(
     message: `Turno ${state.turnNumber} — Fase de Robo de ${player.name}.`,
   });
 
-  // Mandatory draw: if deck is empty, reshuffle discard pile (or lose by deck-out if both are empty)
+  // Mandatory draw: if deck is empty, reshuffle discard pile (or lose by deck-out unless disabled in Roguelike)
   if (checkImmediateDeckOut(state, eventsOut, nextPlayerId, rng)) {
     return;
   }
 
-  const drawn = player.deck.shift()!;
-  player.hand.push(drawn);
-  pushEvent(state, eventsOut, {
-    type: 'CARD_DRAWN',
-    playerId: nextPlayerId,
-    count: 1,
-    message: `${player.name} roba una carta.`,
-  });
+  if (player.deck.length > 0) {
+    const drawn = player.deck.shift()!;
+    player.hand.push(drawn);
+    pushEvent(state, eventsOut, {
+      type: 'CARD_DRAWN',
+      playerId: nextPlayerId,
+      count: 1,
+      message: `${player.name} roba una carta.`,
+    });
 
-  if (checkImmediateDeckOut(state, eventsOut, nextPlayerId, rng)) {
-    return;
+    if (checkImmediateDeckOut(state, eventsOut, nextPlayerId, rng)) {
+      return;
+    }
   }
 
   // Straizo — ESTUDIOSO DEL HAMON: while Straizo is on bench and Tonpetty or Dire is Active, draw 1 extra card!

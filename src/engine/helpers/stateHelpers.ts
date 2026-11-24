@@ -152,6 +152,9 @@ export function checkImmediateDeckOut(
       });
       return false;
     }
+    if (state.rules.disableDeckOutLoss) {
+      return false;
+    }
     setGameOver(
       state,
       eventsOut,

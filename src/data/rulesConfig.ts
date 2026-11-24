@@ -23,6 +23,8 @@ export interface GameRulesConfig {
   p1BonusMaxHp?: number;
   p1BonusDamage?: number;
   p1ExtraInitialHand?: number;
+  /** When true (e.g. small-deck Roguelike mode), running out of cards with an empty discard simply skips drawing instead of causing instant deck-out loss */
+  disableDeckOutLoss?: boolean;
 }
 
 /**
