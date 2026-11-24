@@ -307,6 +307,49 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(valOkuyasu.valid, valOkuyasu.errors.map((e) => e.message).join('; ')).toBe(true);
     expect(valOkuyasu.warnings, valOkuyasu.warnings.map((w) => w.message).join('; ')).toHaveLength(0);
 
+    // Full-collection ratio check: Stand deck (7-9 Chars, 6-8 Stands+Evos, 9-12 Items, 18-22 Energies)
+    const ratioFullOwned: Record<string, number> = {};
+    for (const c of ALL_CARDS) {
+      if (c.type === 'ENERGY') continue;
+      ratioFullOwned[c.id] = c.type === 'ITEM' ? 3 : 1;
+    }
+    const ratioFullProg = { ...baseProg, ownedCards: ratioFullOwned };
+
+    const countType = (ids: string[], type: string) =>
+      ids.filter((id) => getCardById(id)?.type === type).length;
+
+    const standDeckRes = autoCompleteDeck(['char-jotaro-kujo'], ratioFullProg);
+    const standVal = validateDeck(standDeckRes.cardIds);
+    expect(standVal.valid, standVal.errors.map((e) => e.message).join('; ')).toBe(true);
+    expect(countType(standDeckRes.cardIds, 'CHARACTER')).toBeGreaterThanOrEqual(7);
+    expect(countType(standDeckRes.cardIds, 'CHARACTER')).toBeLessThanOrEqual(9);
+    expect(
+      countType(standDeckRes.cardIds, 'STAND') + countType(standDeckRes.cardIds, 'EVOLUTION'),
+    ).toBeGreaterThanOrEqual(6);
+    expect(
+      countType(standDeckRes.cardIds, 'STAND') + countType(standDeckRes.cardIds, 'EVOLUTION'),
+    ).toBeLessThanOrEqual(8);
+    expect(countType(standDeckRes.cardIds, 'ITEM')).toBeGreaterThanOrEqual(9);
+    expect(countType(standDeckRes.cardIds, 'ITEM')).toBeLessThanOrEqual(12);
+    expect(countType(standDeckRes.cardIds, 'ENERGY')).toBeGreaterThanOrEqual(18);
+    expect(countType(standDeckRes.cardIds, 'ENERGY')).toBeLessThanOrEqual(22);
+
+    // Full-collection ratio check: Non-Stand Hamon deck (9-11 Chars+Evos, 0 Stands, 13-16 Items, 19-22 Energies)
+    const hamonDeckRes = autoCompleteDeck(['char-jonathan-joestar'], ratioFullProg);
+    const hamonVal = validateDeck(hamonDeckRes.cardIds);
+    expect(hamonVal.valid, hamonVal.errors.map((e) => e.message).join('; ')).toBe(true);
+    expect(
+      countType(hamonDeckRes.cardIds, 'CHARACTER') + countType(hamonDeckRes.cardIds, 'EVOLUTION'),
+    ).toBeGreaterThanOrEqual(9);
+    expect(
+      countType(hamonDeckRes.cardIds, 'CHARACTER') + countType(hamonDeckRes.cardIds, 'EVOLUTION'),
+    ).toBeLessThanOrEqual(11);
+    expect(countType(hamonDeckRes.cardIds, 'STAND')).toBe(0);
+    expect(countType(hamonDeckRes.cardIds, 'ITEM')).toBeGreaterThanOrEqual(13);
+    expect(countType(hamonDeckRes.cardIds, 'ITEM')).toBeLessThanOrEqual(16);
+    expect(countType(hamonDeckRes.cardIds, 'ENERGY')).toBeGreaterThanOrEqual(19);
+    expect(countType(hamonDeckRes.cardIds, 'ENERGY')).toBeLessThanOrEqual(22);
+
     // Also works from a completely empty deck
     const resEmpty = autoCompleteDeck([], baseProg);
     expect(resEmpty.cardIds).toHaveLength(46);
@@ -333,8 +376,8 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(resKq.cardIds).toContain('energy-fire');
     expect(resKq.cardIds.filter((id) => id === 'energy-stand').length).toBeLessThanOrEqual(4);
     const kqEnergyCount = resKq.cardIds.filter((id) => getCardById(id)?.type === 'ENERGY').length;
-    expect(kqEnergyCount).toBeGreaterThanOrEqual(14);
-    expect(kqEnergyCount).toBeLessThanOrEqual(18);
+    expect(kqEnergyCount).toBeGreaterThanOrEqual(18);
+    expect(kqEnergyCount).toBeLessThanOrEqual(22);
   });
 
   it('validates Part 1–4 Campaigns (20 stages in Parts 1–2 with bosses every 5; 10 stages in Parts 3–4; legal decks & strict one-time pickup)', () => {

@@ -19,7 +19,7 @@ function collectAttackColors(attacks: readonly AttackDef[]): Set<EnergyType> {
   const colors = new Set<EnergyType>();
   for (const atk of attacks) {
     for (const e of atk.energyCost) {
-      if (e !== 'COLORLESS') colors.add(e);
+      if (e !== 'COLORLESS' && e !== 'STAND') colors.add(e);
     }
   }
   return colors;
@@ -138,9 +138,23 @@ export function autoCompleteDeck(
         c.type === 'CHARACTER' &&
         (c.categories.includes('VAMPIRE') || c.categories.includes('PILLAR_MAN')),
     );
+  const seedIsExplicitNonStand =
+    seedHasHamonArchetype || seedHasConventionalArchetype || seedHasVampirePillarArchetype;
 
-  // Reserve space for Energies so the deck always has enough fuel (~15-18 energies, not flooded)
-  const MIN_ENERGIES = 15;
+  // For completely open/empty seeds, check if player owns enough Stand Users + Stands to build a Stand deck
+  const ownedStandUserCount = ALL_CARDS.filter(
+    (c) => c.type === 'CHARACTER' && c.categories.includes('STAND_USER') && getOwnedCount(progression, c.id) > 0,
+  ).length;
+  const ownedStandCount = ALL_CARDS.filter(
+    (c) => c.type === 'STAND' && getOwnedCount(progression, c.id) > 0,
+  ).length;
+  const isStandDeckProfile =
+    seedHasStandArchetype || (!seedIsExplicitNonStand && ownedStandUserCount >= 4 && ownedStandCount >= 4);
+
+  // Ideal 46-card ratios:
+  // - Stand deck: 7-9 Characters (target 8), 6-8 Stands+Evos (target 7), 9-12 Items (target 11-12), 18-22 Energies (min 19)
+  // - Non-Stand deck: 9-11 Characters+Evos (target 10), 0 Stands, 13-16 Items (target 15-16), 19-22 Energies (min 20)
+  const MIN_ENERGIES = isStandDeckProfile ? 19 : 20;
   const nonEnergyBudget = () => Math.max(0, maxDeck - MIN_ENERGIES - (nextIds.length - countByType('ENERGY')));
 
   // 1. Evolution prerequisites (base card + catalyst items + bench partners)
@@ -171,8 +185,8 @@ export function autoCompleteDeck(
   }
 
   // 2. Direct synergy partners for cards already placed by the player
-  const TARGET_CHARS = seedHasStandArchetype ? 10 : 12;
-  const TARGET_STANDS = seedHasStandArchetype ? 8 : 5;
+  const TARGET_CHARS = isStandDeckProfile ? 8 : 10;
+  const TARGET_STANDS_AND_EVOS = isStandDeckProfile ? 7 : 0;
 
   for (const id of [...nextIds]) {
     const syn = CARD_SYNERGIES[id];
@@ -182,7 +196,12 @@ export function autoCompleteDeck(
       const partner = getCardById(partnerId);
       if (!partner) continue;
       if (partner.type === 'CHARACTER' && countByType('CHARACTER') >= TARGET_CHARS) continue;
-      if (partner.type === 'STAND' && countByType('STAND') >= TARGET_STANDS) continue;
+      if (
+        partner.type === 'STAND' &&
+        (!isStandDeckProfile || countByType('STAND') + countByType('EVOLUTION') >= TARGET_STANDS_AND_EVOS)
+      ) {
+        continue;
+      }
       if (partner.type === 'EVOLUTION') continue; // Don't force unrequested evolutions
       tryAdd(partnerId);
     }
@@ -213,7 +232,7 @@ export function autoCompleteDeck(
   // Score and add owned Characters up to TARGET_CHARS
   while (countByType('CHARACTER') < TARGET_CHARS && nonEnergyBudget() > 0) {
     const deckColors = getDeckRequiredColors(nextIds);
-    const hasStandInDeckNow = seedHasStandArchetype || countByType('STAND') > 0 || getDeckStandUsers().length > 0;
+    const hasStandInDeckNow = isStandDeckProfile || countByType('STAND') > 0 || getDeckStandUsers().length > 0;
     const TURN_1_MAX_DG = 4;
     const turn1StartersCount = nextIds.filter((id) => {
       const ch = getCharacterCard(id);
@@ -235,42 +254,41 @@ export function autoCompleteDeck(
         const newColors = [...colors].filter((col) => !deckColors.has(col)).length;
 
         // Archetype fidelity: strongly keep Stand decks as Stand Users, Hamon decks as Hamon, etc.
-        if (seedHasStandArchetype) {
+        if (isStandDeckProfile) {
           if (ch.categories.includes('STAND_USER')) {
             s += 130;
             if (maxNeededDg > 0 && (ch.dg ?? 0) >= maxNeededDg) s += 35;
-            // Ensure at least 2 Turn-1 playable Stand Users (DG <= 4) so the deck never bricks
-            if (turn1StartersCount < 2 && (ch.dg ?? 99) <= TURN_1_MAX_DG) {
-              s += 65;
+            // Ensure at least 4-5 Turn-1 playable Stand Users (DG <= 4) so the deck starts smoothly
+            if (turn1StartersCount < 5 && (ch.dg ?? 99) <= TURN_1_MAX_DG) {
+              s += 75;
             }
           } else {
             // Heavily penalize off-archetype non-Stand fighters (Hamon, Vampires, etc.)
             s -= 140;
           }
         } else if (seedHasHamonArchetype) {
-          if (ch.categories.includes('HAMON_USER')) s += 130;
-          else if (ch.categories.includes('STAND_USER')) s -= 110;
+          if (ch.categories.includes('HAMON_USER')) s += 140;
+          else if (ch.categories.includes('STAND_USER')) s -= 150;
           else s -= 40;
         } else if (seedHasConventionalArchetype) {
-          if (ch.categories.includes('CONVENTIONAL_FIGHTER')) s += 130;
-          else if (ch.categories.includes('STAND_USER')) s -= 110;
+          if (ch.categories.includes('CONVENTIONAL_FIGHTER')) s += 140;
+          else if (ch.categories.includes('STAND_USER')) s -= 150;
           else s -= 30;
         } else if (seedHasVampirePillarArchetype) {
-          if (ch.categories.includes('VAMPIRE') || ch.categories.includes('PILLAR_MAN')) s += 130;
-          else if (ch.categories.includes('STAND_USER')) s -= 110;
+          if (ch.categories.includes('VAMPIRE') || ch.categories.includes('PILLAR_MAN')) s += 140;
+          else if (ch.categories.includes('STAND_USER')) s -= 150;
           else s -= 30;
         } else {
-          // Open / empty seed: balanced approach
-          if (!hasSelfSufficient && ch.attacks.length > 0) s += 60;
-          if (ch.attacks.length > 0) s += 20;
-          if (ch.categories.includes('STAND_USER') && (ch.dg ?? 0) >= 4) s += 20;
+          // Open / empty seed without enough Stands: prefer self-sufficient fighters
+          if (!hasSelfSufficient && ch.attacks.length > 0) s += 70;
+          if (ch.attacks.length > 0) s += 30;
         }
 
-        // Color discipline: avoid introducing extra energy colors unnecessarily
+        // Strict 1-2 color discipline: strongly avoid introducing a 3rd energy color
         if (deckColors.size > 0 && newColors > 0) {
-          s -= deckColors.size + newColors > 2 ? newColors * 80 : newColors * 35;
+          s -= deckColors.size + newColors > 2 ? newColors * 220 : newColors * 35;
         } else if (colors.size > 0 && newColors === 0 && deckColors.size > 0) {
-          s += 35;
+          s += 40;
         }
 
         // Same-Part affinity (e.g. Part 4 Morioh allies with Killer Queen)
@@ -295,10 +313,12 @@ export function autoCompleteDeck(
     if (!tryAdd(candidates[0]!.id)) break;
   }
 
-  // 4. Fill compatible Stands up to TARGET_STANDS if the deck has Stand Users
+  // 4. Fill compatible Stands up to TARGET_STANDS_AND_EVOS (6-8 total Stands + Evolutions) for Stand decks
   const standUsers = getDeckStandUsers();
   const desiredStands =
-    standUsers.length > 0 ? Math.min(TARGET_STANDS, Math.max(4, standUsers.length - 1)) : 0;
+    isStandDeckProfile && standUsers.length > 0
+      ? Math.max(0, Math.min(8, Math.max(6, Math.min(TARGET_STANDS_AND_EVOS, standUsers.length))) - countByType('EVOLUTION'))
+      : 0;
 
   while (countByType('STAND') < desiredStands && nonEnergyBudget() > 0) {
     const deckColors = getDeckRequiredColors(nextIds);
@@ -324,9 +344,9 @@ export function autoCompleteDeck(
         const newColors = [...colors].filter((col) => !deckColors.has(col)).length;
         let s = 50;
         if (deckColors.size > 0 && newColors > 0) {
-          s -= deckColors.size + newColors > 2 ? newColors * 90 : newColors * 30;
+          s -= deckColors.size + newColors > 2 ? newColors * 220 : newColors * 30;
         } else if (colors.size === 0 || newColors === 0) {
-          s += 50;
+          s += 55;
         }
         // Synergy with users already in deck
         const syn = CARD_SYNERGIES[st.id];
@@ -344,7 +364,7 @@ export function autoCompleteDeck(
     if (!tryAdd(candidates[0]!.id)) break;
   }
 
-  // 5. Fill Utility Items (preserving at least MIN_ENERGIES slots for Basic Energies)
+  // 5. Fill Utility Items (Stand deck: 9-12 Items; Non-Stand deck: 13-16 Items; preserving 18-22 Energies)
   const hasStandsInDeck = countByType('STAND') > 0;
   const hasHamonInDeck = nextIds.some((id) => {
     const ch = getCharacterCard(id);
@@ -360,11 +380,11 @@ export function autoCompleteDeck(
   });
 
   const itemPlan: { id: string; target: number }[] = [
-    ...(hasStandsInDeck ? [{ id: 'item-flecha-de-stand', target: 3 }] : []),
-    ...(hasStandEvoInDeck ? [{ id: 'item-flecha-requiem', target: 2 }] : []),
-    { id: 'item-atraccion-usuarios-stand', target: 3 },
-    { id: 'item-comida-de-tonio', target: 3 },
+    ...(hasStandsInDeck ? [{ id: 'item-atraccion-usuarios-stand', target: 3 }] : []),
     { id: 'item-suministros-speedwagon', target: 3 },
+    { id: 'item-comida-de-tonio', target: 3 },
+    ...(hasStandsInDeck ? [{ id: 'item-flecha-de-stand', target: 2 }] : []),
+    ...(hasStandEvoInDeck ? [{ id: 'item-flecha-requiem', target: 2 }] : []),
     ...(hasHamonInDeck
       ? [
           { id: 'item-clackers', target: 3 },
@@ -372,16 +392,18 @@ export function autoCompleteDeck(
         ]
       : []),
     ...(hasConventionalInDeck ? [{ id: 'item-estilo-de-combate-ogre-street', target: 3 }] : []),
-    { id: 'item-muerte-de-danny', target: 2 },
+    ...(!hasStandsInDeck ? [{ id: 'item-atraccion-usuarios-stand', target: 2 }] : []),
     { id: 'item-pluck', target: 2 },
-    { id: 'item-cinta-de-caesar', target: 2 },
-    { id: 'item-mechero-de-polpo', target: 2 },
-    { id: 'item-ataud-de-dio', target: 2 },
     { id: 'item-mascara-de-piedra', target: 2 },
+    { id: 'item-cinta-de-caesar', target: 2 },
+    { id: 'item-muerte-de-danny', target: 2 },
+    { id: 'item-mechero-de-polpo', target: 2 },
+    { id: 'item-carterista-de-nueva-york', target: 2 },
+    { id: 'item-ataud-de-dio', target: 2 },
     { id: 'item-piedra-roja-de-aja', target: 2 },
   ];
 
-  const MAX_ITEMS_AUTO = hasStandsInDeck ? 13 : 16;
+  const MAX_ITEMS_AUTO = isStandDeckProfile ? 12 : 16;
   for (const plan of itemPlan) {
     while (
       countByType('ITEM') < MAX_ITEMS_AUTO &&
@@ -416,7 +438,7 @@ export function autoCompleteDeck(
       for (const atk of attacks) {
         const atkCounts = new Map<EnergyType, number>();
         for (const req of atk.energyCost) {
-          if (req === 'COLORLESS') continue;
+          if (req === 'COLORLESS' || req === 'STAND') continue;
           atkCounts.set(req, (atkCounts.get(req) ?? 0) + 1);
           weightPerColor.set(req, (weightPerColor.get(req) ?? 0) + 1);
         }
@@ -439,7 +461,7 @@ export function autoCompleteDeck(
       // Deck only has COLORLESS attacks -> use a single elemental color (Psychic) so it pays COLORLESS cleanly
       const existingEnergyCard = nextIds.find((id) => {
         const c = getCardById(id);
-        return c?.type === 'ENERGY' && c.energyType !== 'COLORLESS';
+        return c?.type === 'ENERGY' && c.energyType !== 'COLORLESS' && c.energyType !== 'STAND';
       });
       const fallbackEnergyId = existingEnergyCard ?? 'energy-psychic';
       for (let i = 0; i < remainingSlots; i++) {
@@ -478,14 +500,23 @@ export function autoCompleteDeck(
         }
       }
 
-      // Round-robin any leftover 1-2 slots across top colors
+      // Round-robin any leftover slots across top colors (skipping any capped color)
       let idx = 0;
+      let consecutiveFails = 0;
       while (slotsLeft > 0 && nextIds.length < maxDeck) {
         const col = sortedColors[idx % sortedColors.length]!;
         if (tryAdd(`energy-${col.toLowerCase()}`)) {
           slotsLeft--;
+          consecutiveFails = 0;
         } else {
-          break;
+          consecutiveFails++;
+          if (consecutiveFails >= sortedColors.length) {
+            if (tryAdd('energy-psychic')) {
+              slotsLeft--;
+            } else {
+              break;
+            }
+          }
         }
         idx++;
       }
