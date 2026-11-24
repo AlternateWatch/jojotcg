@@ -153,6 +153,7 @@ export type SignatureEffectId =
   | 'INHUMAN_APNEA_TENILLE'
   | 'NARCISSISM_RUBBER_SOUL'
   | 'ABSOLUTE_CRUELTY_J_GEIL'
+  | 'SEDUCTION_NENA'
   | 'NONE';
 
 export interface SignatureAbilityDef {

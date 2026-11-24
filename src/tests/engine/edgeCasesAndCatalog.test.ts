@@ -14,9 +14,9 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 86 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 87 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(86);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(87);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1582,5 +1582,42 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     );
     expect(knives.players.P2.active!.currentHp).toBe(80);
     expect(knives.players.P2.active!.statuses.bleedStacks).toHaveLength(1);
+  });
+
+  it('resolves Nena (100 HP, DG 3): Seducción (steals 1 energy of any type from enemy active, or steals 1 card from enemy deck if none)', () => {
+    // 1. Enemy active has FIRE energy -> Nena steals it onto herself
+    let energyStealState = buildControlledBattleState({
+      p1ActiveId: 'char-hol-horse',
+      p1Hand: ['char-nena'],
+      p2ActiveId: 'char-dio',
+      p2ActiveEnergies: ['FIRE'],
+      phase: 'PREPARATION',
+    });
+    energyStealState = mustDispatch(energyStealState, {
+      type: 'PLAY_TO_BENCH',
+      playerId: 'P1',
+      handIndex: 0,
+    });
+    const nena1 = energyStealState.players.P1.bench.find((b) => b.cardId === 'char-nena')!;
+    expect(nena1.attachedEnergies).toEqual(['FIRE']);
+    expect(energyStealState.players.P2.active!.attachedEnergies).toHaveLength(0);
+
+    // 2. Enemy active has 0 energies -> Nena steals top card of enemy deck into P1's hand
+    let deckStealState = buildControlledBattleState({
+      p1ActiveId: 'char-hol-horse',
+      p1Hand: ['char-nena'],
+      p2ActiveId: 'char-dio',
+      p2ActiveEnergies: [],
+      p2Deck: ['item-comida-de-tonio', 'energy-psychic', 'energy-water'],
+      phase: 'PREPARATION',
+    });
+    deckStealState = mustDispatch(deckStealState, {
+      type: 'PLAY_TO_BENCH',
+      playerId: 'P1',
+      handIndex: 0,
+    });
+    expect(deckStealState.players.P1.hand).toContain('item-comida-de-tonio');
+    // P1 stole item-comida-de-tonio, then PLAY_TO_BENCH ended P1's turn so P2 drew energy-psychic -> energy-water remains!
+    expect(deckStealState.players.P2.deck).toEqual(['energy-water']);
   });
 });

@@ -1655,6 +1655,7 @@ const PART_3_STAGES: CampaignStageDef[] = [
     opponentDeckIds: buildPart1Deck(
       [
         'char-mariah',
+        'char-nena',
         'char-forever',
         'char-capitan-tenille',
         'char-hol-horse',

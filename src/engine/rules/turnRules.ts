@@ -119,6 +119,29 @@ export function triggerOnEnterFieldAbility(
     }
   }
 
+  if (profile.signatureAbility.id === 'SEDUCTION_NENA') {
+    if (opponent.active && opponent.active.attachedEnergies.length > 0) {
+      const stolenEnergy = opponent.active.attachedEnergies.pop()!;
+      inst.attachedEnergies.push(stolenEnergy);
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: 'Seducción',
+        message: `¡Seducción! Nena roba 1 energía (${stolenEnergy}) del personaje activo rival y la une a sí misma.`,
+      });
+    } else if (opponent.deck.length > 0) {
+      const stolenCardId = opponent.deck.shift()!;
+      player.hand.push(stolenCardId);
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: 'Seducción',
+        message: `¡Seducción! El activo rival no tenía energías: Nena roba 1 carta del mazo de ${opponent.name} a la mano de ${player.name}.`,
+      });
+      checkImmediateDeckOut(state, eventsOut, opponentId);
+    }
+  }
+
   if (profile.signatureAbility.id === 'MAGNETIC_ATTRACTION_MARIAH' && opponent.active) {
     let stolen = 0;
     const remaining: typeof opponent.active.attachedEnergies = [];
