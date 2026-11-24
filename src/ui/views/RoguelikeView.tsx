@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  BookOpen,
   Coins,
   Compass,
   Crown,
@@ -117,6 +118,7 @@ export function RoguelikeView() {
   const startBattle = useBattleStore((s) => s.startBattle);
 
   const [showDeckModal, setShowDeckModal] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
   const [showPurgePicker, setShowPurgePicker] = useState(false);
   const [showEnergyPicker, setShowEnergyPicker] = useState(false);
   const [activeActTab, setActiveActTab] = useState<1 | 2 | 3>(() => {
@@ -173,12 +175,61 @@ export function RoguelikeView() {
                 llegues.
               </p>
             </div>
-            {bestRoguelikeFloor > 0 && (
-              <div className="border-2 border-[#060508] bg-[#1d1727] px-4 py-2 font-mono text-xs text-[#f2c12e] shadow-[3px_3px_0_#060508]">
-                <Trophy size={14} className="mr-1.5 inline" />
-                RÉCORD PERSONAL: <strong>PISO {bestRoguelikeFloor}/30</strong>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowGuideModal(true)}
+                className="jojo-btn-ink inline-flex items-center gap-1.5 px-3.5 py-2 font-jojo-heading text-xs tracking-wider text-[#f2c12e] uppercase"
+              >
+                <BookOpen size={14} /> Instrucciones del Roguelike
+              </button>
+              {bestRoguelikeFloor > 0 && (
+                <div className="border-2 border-[#060508] bg-[#1d1727] px-4 py-2 font-mono text-xs text-[#f2c12e] shadow-[3px_3px_0_#060508]">
+                  <Trophy size={14} className="mr-1.5 inline" />
+                  RÉCORD PERSONAL: <strong>PISO {bestRoguelikeFloor}/30</strong>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Inline Guide Strip */}
+          <div className="jojo-panel grid grid-cols-1 gap-3 p-4 text-xs sm:grid-cols-2 lg:grid-cols-4">
+            <div className="border-l-4 border-[#9333ea] bg-[#0e0b14] p-2.5">
+              <div className="font-jojo-heading text-xs text-purple-300 uppercase">
+                1. Mazo Compacto (16 cartas)
               </div>
-            )}
+              <p className="mt-1 text-[11px] text-zinc-300">
+                Sales con 10 cartas en mazo + 6 Premios, mano inicial de 5 y{' '}
+                <strong>sin derrota por deck-out</strong> (el descarte se recicla).
+              </p>
+            </div>
+            <div className="border-l-4 border-[#2952d9] bg-[#0e0b14] p-2.5">
+              <div className="font-jojo-heading text-xs text-sky-300 uppercase">
+                2. Ruta por 3 Carriles
+              </div>
+              <p className="mt-1 text-[11px] text-zinc-300">
+                Solo avanzas a <strong>carriles adyacentes</strong> (líneas doradas). Los{' '}
+                <strong>Jefes</strong> esperan en el Carril Central en los Pisos 10, 20 y 30.
+              </p>
+            </div>
+            <div className="border-l-4 border-[#00e599] bg-[#0e0b14] p-2.5">
+              <div className="font-jojo-heading text-xs text-[#00e599] uppercase">
+                3. Crece tras cada Combate
+              </div>
+              <p className="mt-1 text-[11px] text-zinc-300">
+                Al ganar combates eliges <strong>1 carta entre 3</strong> para tu mazo y ganas{' '}
+                <strong>Oro de Expedición</strong> para Tiendas y Reliquias.
+              </p>
+            </div>
+            <div className="border-l-4 border-[#f2c12e] bg-[#0e0b14] p-2.5">
+              <div className="font-jojo-heading text-xs text-[#f2c12e] uppercase">
+                4. Recompensa Final Real
+              </div>
+              <p className="mt-1 text-[11px] text-zinc-300">
+                Al caer o conquistar el Piso 30 recibes <strong>Monedas Speedwagon</strong> reales
+                para la Tienda según tu avance.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
@@ -256,6 +307,7 @@ export function RoguelikeView() {
             })}
           </div>
         </div>
+        <RoguelikeGuideModal open={showGuideModal} onClose={() => setShowGuideModal(false)} />
       </div>
     );
   }
@@ -340,6 +392,13 @@ export function RoguelikeView() {
               className="jojo-btn-ink inline-flex items-center gap-1.5 px-3 py-1 font-jojo-heading text-xs tracking-wider text-[#f5efe0] uppercase"
             >
               <Layers size={13} /> Mi Mazo ({roguelikeRun.deckCardIds.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowGuideModal(true)}
+              className="jojo-btn-ink inline-flex items-center gap-1.5 px-3 py-1 font-jojo-heading text-xs tracking-wider text-[#f2c12e] uppercase"
+            >
+              <BookOpen size={13} /> Instrucciones
             </button>
           </div>
 
@@ -1103,6 +1162,166 @@ export function RoguelikeView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <RoguelikeGuideModal open={showGuideModal} onClose={() => setShowGuideModal(false)} />
     </div>
+  );
+}
+
+function RoguelikeGuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Instrucciones del Modo Roguelike"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#060508]/90 p-4"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            transition={{ duration: 0.16 }}
+            onClick={(e) => e.stopPropagation()}
+            className="jojo-panel max-h-[88vh] w-full max-w-3xl space-y-4 overflow-y-auto p-6"
+          >
+            <div className="flex items-center justify-between border-b-2 border-[#060508] pb-3">
+              <div>
+                <div className="font-jojo-heading text-xs tracking-[0.22em] text-[#9333ea] uppercase">
+                  MANUAL DE EXPEDICIÓN · 30 NIVELES
+                </div>
+                <h3 className="font-jojo-display text-3xl text-[#f2c12e] uppercase">
+                  INSTRUCCIONES DEL ROGUELIKE
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="jojo-btn-ink flex h-8 w-8 items-center justify-center"
+                title="Cerrar"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="border-2 border-[#060508] bg-[#0e0b14] p-3.5 text-xs text-zinc-300 space-y-1.5">
+                <h4 className="font-jojo-heading text-sm tracking-wider text-[#f2c12e] uppercase">
+                  Reglas de la Expedición
+                </h4>
+                <ul className="space-y-1">
+                  <li>
+                    • Empiezas con un mazo inicial de <strong>16 cartas</strong> (10 en baraja + 6
+                    Premios) y <strong>60 de Oro de Expedición</strong>.
+                  </li>
+                  <li>
+                    • Mano inicial de <strong>5 cartas</strong> y{' '}
+                    <strong>sin derrota por mazo vacío</strong>: si tu mazo llega a 0 se recicla el
+                    descarte, y si ambos están vacíos simplemente no robas ese turno.
+                  </li>
+                  <li>
+                    • Si pierdes un combate, la expedición termina (sin revancha) y cobras tu
+                    recompensa final en <strong>Monedas Speedwagon</strong> reales.
+                  </li>
+                  <li>
+                    • Tu progreso se guarda automáticamente: puedes salir y continuar más tarde.
+                  </li>
+                </ul>
+              </div>
+
+              <div className="border-2 border-[#060508] bg-[#0e0b14] p-3.5 text-xs text-zinc-300 space-y-1.5">
+                <h4 className="font-jojo-heading text-sm tracking-wider text-[#00e599] uppercase">
+                  Carriles y Hoja de Ruta (30 Pisos)
+                </h4>
+                <ul className="space-y-1">
+                  <li>
+                    • El mapa tiene <strong>3 Actos</strong> (Pisos 1–10, 11–20 y 21–30) repartidos
+                    en <strong>3 carriles</strong>: Izquierdo, Central y Derecho.
+                  </li>
+                  <li>
+                    • Desde tu sala actual solo puedes avanzar a{' '}
+                    <strong>carriles adyacentes</strong> del siguiente piso (marcados con líneas
+                    doradas).
+                  </li>
+                  <li>
+                    • Los <strong>Jefes de Acto</strong> aparecen siempre en el{' '}
+                    <strong>Carril Central</strong> en los Pisos <strong>10, 20 y 30</strong>.
+                  </li>
+                </ul>
+              </div>
+
+              <div className="border-2 border-[#060508] bg-[#0e0b14] p-3.5 text-xs text-zinc-300 space-y-1.5">
+                <h4 className="font-jojo-heading text-sm tracking-wider text-sky-300 uppercase">
+                  Tipos de Salas
+                </h4>
+                <ul className="space-y-1">
+                  <li>
+                    • <strong className="text-sky-300">Combate</strong>: rival escalado; al vencer
+                    ganas Oro y eliges <strong>1 carta entre 3</strong> para tu mazo.
+                  </li>
+                  <li>
+                    • <strong className="text-[#f2c12e]">Élite</strong>: rival más duro con más Oro,
+                    mejores rarezas y elección de <strong>Reliquia</strong>.
+                  </li>
+                  <li>
+                    • <strong className="text-[#00e599]">Tesoro</strong>: cofre gratuito con gran
+                    botín de Oro y <strong>Reliquia pasiva</strong>.
+                  </li>
+                  <li>
+                    • <strong className="text-amber-300">Tienda</strong>: compra cartas, Reliquias,
+                    packs de <strong>+2 Energías</strong> o <strong>purga</strong> una carta de tu
+                    mazo (mín. 16).
+                  </li>
+                  <li>
+                    • <strong className="text-purple-300">Evento</strong>: encuentros temáticos de
+                    JoJo con decisiones de riesgo y recompensa.
+                  </li>
+                  <li>
+                    • <strong className="text-[#ff4d79]">Jefe</strong>: gran combate de cierre de
+                    Acto con cartas de alta rareza y Reliquias.
+                  </li>
+                </ul>
+              </div>
+
+              <div className="border-2 border-[#060508] bg-[#0e0b14] p-3.5 text-xs text-zinc-300 space-y-1.5">
+                <h4 className="font-jojo-heading text-sm tracking-wider text-purple-300 uppercase">
+                  Reliquias y Recompensa Final
+                </h4>
+                <ul className="space-y-1">
+                  <li>
+                    • Las <strong>Reliquias Bizarras</strong> dan mejoras permanentes durante toda
+                    la expedición (+PV, +daño, +mano inicial, descuentos en Tienda, +Oro, o elegir
+                    entre 4 cartas).
+                  </li>
+                  <li>
+                    • El <strong>Oro de Expedición</strong> solo sirve dentro del Roguelike.
+                  </li>
+                  <li>
+                    • Al finalizar la expedición recibes <strong>Monedas Speedwagon</strong> reales
+                    según los pisos superados (+18/piso), élites (+35), jefes (+90) y un gran bonus
+                    de <strong>+400 monedas</strong> si conquistas el Piso 30.
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="jojo-btn-primary px-6 py-2 font-jojo-heading text-xs tracking-widest uppercase"
+              >
+                ¡Entendido!
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
