@@ -131,6 +131,20 @@ export function RoguelikeView() {
     [roguelikeRun],
   );
 
+  const currentActDef = ROGUELIKE_ACTS.find((a) => a.act === activeActTab) ?? ROGUELIKE_ACTS[0];
+  const actFloors = useMemo(() => {
+    if (!roguelikeRun) return [];
+    const [minF, maxF] = currentActDef.floorRange;
+    const grouped: { floor: number; nodes: RoguelikeMapNode[] }[] = [];
+    for (let f = minF; f <= maxF; f++) {
+      grouped.push({
+        floor: f,
+        nodes: roguelikeRun.map.filter((n) => n.floor === f),
+      });
+    }
+    return grouped;
+  }, [roguelikeRun, currentActDef]);
+
   // ==================== 1. STARTER SELECTION SCREEN ====================
   if (!roguelikeRun) {
     return (
@@ -290,19 +304,6 @@ export function RoguelikeView() {
     if (nextFloor >= 21) setActiveActTab(3);
     else if (nextFloor >= 11) setActiveActTab(2);
   };
-
-  const currentActDef = ROGUELIKE_ACTS.find((a) => a.act === activeActTab) ?? ROGUELIKE_ACTS[0];
-  const actFloors = useMemo(() => {
-    const [minF, maxF] = currentActDef.floorRange;
-    const grouped: { floor: number; nodes: RoguelikeMapNode[] }[] = [];
-    for (let f = minF; f <= maxF; f++) {
-      grouped.push({
-        floor: f,
-        nodes: roguelikeRun.map.filter((n) => n.floor === f),
-      });
-    }
-    return grouped;
-  }, [roguelikeRun.map, currentActDef]);
 
   const activeEventDef = roguelikeRun.activeEvent
     ? ROGUELIKE_EVENTS.find((e) => e.id === roguelikeRun.activeEvent?.eventId)
