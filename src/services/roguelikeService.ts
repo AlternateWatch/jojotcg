@@ -635,11 +635,13 @@ export function enterRoguelikeNode(
 
   if (node.type === 'TREASURE') {
     const mult = getGoldMultiplier(run.relicIds);
-    const goldAwarded = Math.round((45 + node.floor * 2) * mult);
-    const cardChoices = generateCardDraftChoices(baseRun, 'TREASURE', rng);
     const unownedRelics = ROGUELIKE_RELICS.filter((r) => !run.relicIds.includes(r.id));
+    const bonusIfNoRelics = unownedRelics.length === 0 ? 90 : 0;
+    const goldAwarded = Math.round((75 + node.floor * 3 + bonusIfNoRelics) * mult);
     const relicChoices =
-      unownedRelics.length > 0 ? [pickRandom(unownedRelics, rng).id] : undefined;
+      unownedRelics.length > 0
+        ? rng.shuffle(unownedRelics).slice(0, Math.min(2, unownedRelics.length)).map((r) => r.id)
+        : undefined;
     return {
       nextRun: {
         ...baseRun,
@@ -648,7 +650,7 @@ export function enterRoguelikeNode(
         pendingReward: {
           sourceType: 'TREASURE',
           goldAwarded,
-          cardChoices,
+          cardChoices: [],
           relicChoices,
         },
       },

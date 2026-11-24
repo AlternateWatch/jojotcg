@@ -100,6 +100,14 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
     expect(overrides.p1BonusMaxHp).toBe(15);
     expect(overrides.p1BonusDamage).toBe(10);
 
+    // Test Treasure room: grants gold + relic choices, NO card draft (card draft is combat-only)
+    const treasureNode = run.map.find((n) => n.type === 'TREASURE')!;
+    const treasureRun = enterRoguelikeNode(run, treasureNode.id).nextRun;
+    expect(treasureRun.status).toBe('REWARD');
+    expect(treasureRun.pendingReward?.sourceType).toBe('TREASURE');
+    expect(treasureRun.pendingReward?.cardChoices).toHaveLength(0);
+    expect(treasureRun.pendingReward?.goldAwarded).toBeGreaterThan(0);
+
     // Test Shop node: buy offer, buy energy pack, purge card (allowed when > 16 cards)
     const shopNode = run.map.find((n) => n.type === 'SHOP')!;
     run = { ...run, gold: 500 };

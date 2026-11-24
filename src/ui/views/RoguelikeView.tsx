@@ -474,7 +474,9 @@ export function RoguelikeView() {
                     : `¡VICTORIA EN PISO ${roguelikeRun.currentFloor}!`}
                 </div>
                 <h2 className="font-jojo-display text-3xl text-[#f2c12e] uppercase">
-                  ELIGE 1 CARTA PERMANENTE PARA TU MAZO
+                  {roguelikeRun.pendingReward.sourceType === 'TREASURE'
+                    ? 'COFRE DE EXPEDICIÓN'
+                    : 'ELIGE 1 CARTA PERMANENTE PARA TU MAZO'}
                 </h2>
               </div>
               <span className="border-2 border-[#060508] bg-[#1e170a] px-3 py-1.5 font-mono text-sm font-black text-[#f2c12e]">
@@ -515,95 +517,115 @@ export function RoguelikeView() {
                 </div>
               )}
 
-            {/* 1-of-3 (or 4) Card Choices */}
-            <div className="flex flex-wrap justify-center gap-5 py-2">
-              {roguelikeRun.pendingReward.cardChoices.map((cid) => {
-                const card = getCardById(cid);
-                if (!card) return null;
-                const rMeta = RARITY_META[getCardRarity(cid)];
-                return (
-                  <div key={cid} className="flex flex-col items-center gap-2">
-                    <span
-                      className={`border border-[#060508] px-2 py-0.5 font-mono text-[10px] font-black uppercase ${rMeta.badgeClass}`}
-                    >
-                      {rMeta.label}
-                    </span>
-                    <CardView
-                      card={card}
-                      size="md"
-                      highlighted
-                      onClick={() => {
-                        const next = pickRoguelikeRewardCard(roguelikeRun, cid);
-                        setRoguelikeRun(next);
-                        if (next.currentFloor + 1 >= 21) setActiveActTab(3);
-                        else if (next.currentFloor + 1 >= 11) setActiveActTab(2);
-                      }}
-                    />
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openInspector(cid)}
-                        className="jojo-btn-ink px-2.5 py-1 text-[11px] font-bold uppercase"
-                      >
-                        Inspeccionar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = pickRoguelikeRewardCard(roguelikeRun, cid);
-                          setRoguelikeRun(next);
-                          if (next.currentFloor + 1 >= 21) setActiveActTab(3);
-                          else if (next.currentFloor + 1 >= 11) setActiveActTab(2);
-                        }}
-                        className="jojo-btn-primary px-3 py-1 text-[11px] font-bold uppercase"
-                      >
-                        Añadir al Mazo
-                      </button>
-                    </div>
+            {/* 1-of-3 (or 4) Card Choices — ONLY after winning a Battle/Elite/Boss */}
+            {roguelikeRun.pendingReward.cardChoices.length > 0 ? (
+              <>
+                <div className="flex flex-wrap justify-center gap-5 py-2">
+                  {roguelikeRun.pendingReward.cardChoices.map((cid) => {
+                    const card = getCardById(cid);
+                    if (!card) return null;
+                    const rMeta = RARITY_META[getCardRarity(cid)];
+                    return (
+                      <div key={cid} className="flex flex-col items-center gap-2">
+                        <span
+                          className={`border border-[#060508] px-2 py-0.5 font-mono text-[10px] font-black uppercase ${rMeta.badgeClass}`}
+                        >
+                          {rMeta.label}
+                        </span>
+                        <CardView
+                          card={card}
+                          size="md"
+                          highlighted
+                          onClick={() => {
+                            const next = pickRoguelikeRewardCard(roguelikeRun, cid);
+                            setRoguelikeRun(next);
+                            if (next.currentFloor + 1 >= 21) setActiveActTab(3);
+                            else if (next.currentFloor + 1 >= 11) setActiveActTab(2);
+                          }}
+                        />
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openInspector(cid)}
+                            className="jojo-btn-ink px-2.5 py-1 text-[11px] font-bold uppercase"
+                          >
+                            Inspeccionar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = pickRoguelikeRewardCard(roguelikeRun, cid);
+                              setRoguelikeRun(next);
+                              if (next.currentFloor + 1 >= 21) setActiveActTab(3);
+                              else if (next.currentFloor + 1 >= 11) setActiveActTab(2);
+                            }}
+                            className="jojo-btn-primary px-3 py-1 text-[11px] font-bold uppercase"
+                          >
+                            Añadir al Mazo
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 border-t border-white/10 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowEnergyPicker((v) => !v)}
+                    className="jojo-btn-ink px-4 py-2 font-jojo-heading text-xs tracking-wider text-sky-300 uppercase"
+                  >
+                    O elegir +1 Energía Básica
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = pickRoguelikeRewardCard(roguelikeRun, null, 25);
+                      setRoguelikeRun(next);
+                    }}
+                    className="jojo-btn-ink px-4 py-2 font-jojo-heading text-xs tracking-wider text-[#f2c12e] uppercase"
+                  >
+                    Omitir carta (+25 Oro)
+                  </button>
+                </div>
+
+                {showEnergyPicker && (
+                  <div className="flex flex-wrap justify-center gap-2 border border-sky-400/30 bg-[#0e0b14] p-3">
+                    {BASIC_ENERGY_IDS.map((eid) => {
+                      const eCard = getCardById(eid);
+                      if (!eCard) return null;
+                      return (
+                        <button
+                          key={eid}
+                          type="button"
+                          onClick={() => {
+                            setShowEnergyPicker(false);
+                            setRoguelikeRun(pickRoguelikeRewardCard(roguelikeRun, eid));
+                          }}
+                          className="jojo-btn-ink px-3 py-1.5 text-xs font-bold text-zinc-100 hover:border-[#f2c12e]"
+                        >
+                          +1 {eCard.name}
+                        </button>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-3 border-t border-white/10 pt-4">
-              <button
-                type="button"
-                onClick={() => setShowEnergyPicker((v) => !v)}
-                className="jojo-btn-ink px-4 py-2 font-jojo-heading text-xs tracking-wider text-sky-300 uppercase"
-              >
-                O elegir +1 Energía Básica
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const next = pickRoguelikeRewardCard(roguelikeRun, null, 25);
-                  setRoguelikeRun(next);
-                }}
-                className="jojo-btn-ink px-4 py-2 font-jojo-heading text-xs tracking-wider text-[#f2c12e] uppercase"
-              >
-                Omitir carta (+25 Oro)
-              </button>
-            </div>
-
-            {showEnergyPicker && (
-              <div className="flex flex-wrap justify-center gap-2 border border-sky-400/30 bg-[#0e0b14] p-3">
-                {BASIC_ENERGY_IDS.map((eid) => {
-                  const eCard = getCardById(eid);
-                  if (!eCard) return null;
-                  return (
-                    <button
-                      key={eid}
-                      type="button"
-                      onClick={() => {
-                        setShowEnergyPicker(false);
-                        setRoguelikeRun(pickRoguelikeRewardCard(roguelikeRun, eid));
-                      }}
-                      className="jojo-btn-ink px-3 py-1.5 text-xs font-bold text-zinc-100 hover:border-[#f2c12e]"
-                    >
-                      +1 {eCard.name}
-                    </button>
-                  );
-                })}
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3 border-t border-white/10 pt-4 text-center">
+                <p className="text-xs text-zinc-300">
+                  {roguelikeRun.pendingReward.relicChoices &&
+                  roguelikeRun.pendingReward.relicChoices.length > 0
+                    ? 'Elige una Reliquia arriba antes de continuar, o vuelve directamente al mapa.'
+                    : '¡Tesoro recogido! Continúa tu expedición por la hoja de ruta.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleLeaveRoomToMap}
+                  className="jojo-btn-primary px-6 py-2.5 font-jojo-heading text-sm tracking-widest uppercase"
+                >
+                  Continuar al Mapa ➔
+                </button>
               </div>
             )}
           </div>

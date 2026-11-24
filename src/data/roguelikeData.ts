@@ -207,7 +207,7 @@ export const ROGUELIKE_RELICS: RoguelikeRelicDef[] = [
   {
     id: 'relic-gravedad-destino',
     name: 'Gravedad del Destino',
-    description: 'Tras ganar combates y tesoros eliges entre 4 cartas en lugar de 3.',
+    description: 'Tras ganar combates eliges entre 4 cartas en lugar de 3.',
     rarity: 'RARE',
     price: 140,
     icon: '🌀',
