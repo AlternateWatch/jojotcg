@@ -638,8 +638,8 @@ export function enterRoguelikeNode(
   if (node.type === 'TREASURE') {
     const mult = getGoldMultiplier(run.relicIds);
     const unownedRelics = ROGUELIKE_RELICS.filter((r) => !run.relicIds.includes(r.id));
-    const bonusIfNoRelics = unownedRelics.length === 0 ? 90 : 0;
-    const goldAwarded = Math.round((75 + node.floor * 3 + bonusIfNoRelics) * mult);
+    const bonusIfNoRelics = unownedRelics.length === 0 ? 50 : 0;
+    const goldAwarded = Math.round((40 + Math.floor(node.floor * 1.5) + bonusIfNoRelics) * mult);
     const relicChoices =
       unownedRelics.length > 0
         ? rng.shuffle(unownedRelics).slice(0, Math.min(2, unownedRelics.length)).map((r) => r.id)
@@ -708,10 +708,10 @@ export function resolveRoguelikeBattleOutcome(
   const mult = getGoldMultiplier(run.relicIds);
   const baseGold =
     roomType === 'BOSS'
-      ? 145
+      ? 85
       : roomType === 'ELITE'
-        ? 80 + floor
-        : 38 + Math.floor(floor * 1.2);
+        ? 45 + Math.floor(floor * 0.8)
+        : 20 + Math.floor(floor * 0.7);
   const goldAwarded = Math.round(baseGold * mult);
   const cardChoices = generateCardDraftChoices(run, roomType, rng);
   const unownedRelics = ROGUELIKE_RELICS.filter((r) => !run.relicIds.includes(r.id));
@@ -751,7 +751,7 @@ export function grantRelicToRun(run: RoguelikeRunState, relicId: string): Roguel
 export function pickRoguelikeRewardCard(
   run: RoguelikeRunState,
   cardId: string | null,
-  skipBonusGold = 25,
+  skipBonusGold = 15,
 ): RoguelikeRunState {
   const nextDeck = cardId ? [...run.deckCardIds, cardId] : run.deckCardIds;
   const nextGold = cardId ? run.gold : run.gold + skipBonusGold;
@@ -876,8 +876,8 @@ export function resolveRoguelikeEventChoice(
       nextRun = grantRelicToRun(nextRun, relic.id);
       msg = `¡Reliquia obtenida: ${relic.icon} ${relic.name} (${relic.description})!`;
     } else {
-      nextRun.gold += 80;
-      msg = 'Ya posees todas las Reliquias: recibes +80 Oro de Expedición.';
+      nextRun.gold += 45;
+      msg = 'Ya posees todas las Reliquias: recibes +45 Oro de Expedición.';
     }
   } else if (eff.kind === 'OPEN_ENERGY_PICK') {
     return {

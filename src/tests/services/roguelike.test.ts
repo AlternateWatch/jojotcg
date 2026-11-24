@@ -106,7 +106,7 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
   it('resolves battle victory -> 1-of-3 card draft + exclusive gold, shop purchases/purge, relics, and end-of-run meta coins', () => {
     let run = createRoguelikeRun('starter-hamon', 7777);
     expect(run.deckCardIds).toHaveLength(16);
-    expect(run.gold).toBe(60);
+    expect(run.gold).toBe(30);
 
     // Pick Floor 1 battle node
     const floor1Ids = Array.from(getSelectableNodeIds(run));
@@ -119,7 +119,7 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
     // Win Floor 1 battle -> grants gold + 3 card choices
     run = resolveRoguelikeBattleOutcome(run, true);
     expect(run.status).toBe('REWARD');
-    expect(run.gold).toBeGreaterThan(60);
+    expect(run.gold).toBeGreaterThan(30);
     expect(run.pendingReward?.cardChoices).toHaveLength(3);
 
     // Pick 1st offered card -> permanently added to run deck (17 cards)

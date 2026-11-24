@@ -248,7 +248,7 @@ export function RoguelikeView() {
                       >
                         {starter.badge}
                       </span>
-                      <span className="font-mono text-xs text-zinc-400">60 Oro inicial</span>
+                      <span className="font-mono text-xs text-zinc-400">30 Oro inicial</span>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -639,12 +639,12 @@ export function RoguelikeView() {
                   <button
                     type="button"
                     onClick={() => {
-                      const next = pickRoguelikeRewardCard(roguelikeRun, null, 25);
+                      const next = pickRoguelikeRewardCard(roguelikeRun, null, 15);
                       setRoguelikeRun(next);
                     }}
                     className="jojo-btn-ink px-4 py-2 font-jojo-heading text-xs tracking-wider text-[#f2c12e] uppercase"
                   >
-                    Omitir carta (+25 Oro)
+                    Omitir carta (+15 Oro)
                   </button>
                 </div>
 
@@ -1217,7 +1217,7 @@ function RoguelikeGuideModal({ open, onClose }: { open: boolean; onClose: () => 
                 <ul className="space-y-1">
                   <li>
                     • Empiezas con un mazo inicial de <strong>16 cartas</strong> (10 en baraja + 6
-                    Premios) y <strong>60 de Oro de Expedición</strong>.
+                    Premios) y <strong>30 de Oro de Expedición</strong>.
                   </li>
                   <li>
                     • Mano inicial de <strong>5 cartas</strong> y{' '}

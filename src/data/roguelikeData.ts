@@ -51,7 +51,7 @@ export interface RoguelikeEventDef {
 
 export const ROGUELIKE_TOTAL_FLOORS = 30;
 export const ROGUELIKE_MIN_DECK_SIZE = 16;
-export const ROGUELIKE_STARTING_GOLD = 60;
+export const ROGUELIKE_STARTING_GOLD = 30;
 
 export const ROGUELIKE_ACTS = [
   {
@@ -345,11 +345,11 @@ export const ROGUELIKE_RELICS: RoguelikeRelicDef[] = [
   {
     id: 'relic-cheque-speedwagon',
     name: 'Cheque Speedwagon',
-    description: 'Ganas +35% de Oro de Expedición en combates y tesoros.',
+    description: 'Ganas +25% de Oro de Expedición en combates y tesoros.',
     rarity: 'COMMON',
     price: 100,
     icon: '💼',
-    goldBonusPercent: 35,
+    goldBonusPercent: 25,
   },
   {
     id: 'relic-vip-tonio',
@@ -417,9 +417,9 @@ export const ROGUELIKE_EVENTS: RoguelikeEventDef[] = [
       },
       {
         id: 'tonio-work',
-        label: 'Ayudar en cocina (+65 Oro)',
-        description: 'Gana 65 de Oro de Expedición.',
-        effect: { kind: 'ADD_GOLD', amount: 65 },
+        label: 'Ayudar en cocina (+35 Oro)',
+        description: 'Gana 35 de Oro de Expedición.',
+        effect: { kind: 'ADD_GOLD', amount: 35 },
       },
     ],
   },
@@ -448,9 +448,9 @@ export const ROGUELIKE_EVENTS: RoguelikeEventDef[] = [
       },
       {
         id: 'spw-funds',
-        label: 'Solicitar Fondos (+80 Oro)',
-        description: 'Gana 80 de Oro de Expedición.',
-        effect: { kind: 'ADD_GOLD', amount: 80 },
+        label: 'Solicitar Fondos (+45 Oro)',
+        description: 'Gana 45 de Oro de Expedición.',
+        effect: { kind: 'ADD_GOLD', amount: 45 },
       },
     ],
   },
@@ -477,9 +477,9 @@ export const ROGUELIKE_EVENTS: RoguelikeEventDef[] = [
       },
       {
         id: 'arrow-sell',
-        label: 'Informar a la Fundación (+55 Oro)',
-        description: 'Gana 55 de Oro de Expedición sin riesgos.',
-        effect: { kind: 'ADD_GOLD', amount: 55 },
+        label: 'Informar a la Fundación (+30 Oro)',
+        description: 'Gana 30 de Oro de Expedición sin riesgos.',
+        effect: { kind: 'ADD_GOLD', amount: 30 },
       },
     ],
   },
@@ -493,10 +493,10 @@ export const ROGUELIKE_EVENTS: RoguelikeEventDef[] = [
     choices: [
       {
         id: 'darby-gamble',
-        label: 'Apostar 40 Oro (55% ganar 120 Oro)',
-        description: 'Arriesga 40 Oro: si ganas te llevas 120 Oro.',
-        goldCost: 40,
-        effect: { kind: 'GAMBLE_GOLD', stake: 40, winGold: 120 },
+        label: 'Apostar 30 Oro (55% ganar 85 Oro)',
+        description: 'Arriesga 30 Oro: si ganas te llevas 85 Oro.',
+        goldCost: 30,
+        effect: { kind: 'GAMBLE_GOLD', stake: 30, winGold: 85 },
       },
       {
         id: 'darby-safe-card',
