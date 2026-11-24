@@ -1661,6 +1661,7 @@ const PART_3_STAGES: CampaignStageDef[] = [
         'char-hol-horse',
         'char-n-doul',
         'stand-bastet',
+        'stand-empress',
         'stand-strength',
         'stand-dark-blue-moon',
         'stand-emperor',

@@ -384,6 +384,26 @@ export const STAND_CARDS: StandCard[] = [
     ],
   },
   {
+    id: 'stand-empress',
+    name: 'Empress',
+    type: 'STAND',
+    part: 3,
+    imageId: 'empress',
+    assetFolder: 'official',
+    requiredDg: 3,
+    attacks: [
+      {
+        id: 'atk-parasitismo',
+        name: 'Parasitismo',
+        energyCost: ['PSYCHIC', 'NATURE'],
+        baseDamage: 40,
+        damageLabel: '40',
+        effectText: 'Cura 10 puntos de vida al personaje activo.',
+        specialEffects: [{ kind: 'HEAL_SELF', amount: 10 }],
+      },
+    ],
+  },
+  {
     id: 'stand-emperor',
     name: 'Emperor',
     type: 'STAND',

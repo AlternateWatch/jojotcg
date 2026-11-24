@@ -155,6 +155,7 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
       'char-j-geil',
       'stand-hanged-man',
       'char-nena',
+      'stand-empress',
       'char-hol-horse',
       'char-n-doul',
       'char-mariah',

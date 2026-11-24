@@ -14,9 +14,9 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 87 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 88 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(87);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(88);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1619,5 +1619,27 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(deckStealState.players.P1.hand).toContain('item-comida-de-tonio');
     // P1 stole item-comida-de-tonio, then PLAY_TO_BENCH ended P1's turn so P2 drew energy-psychic -> energy-water remains!
     expect(deckStealState.players.P2.deck).toEqual(['energy-water']);
+  });
+
+  it('resolves Empress (DG 3): Parasitismo (PSYCHIC + NATURE, 40 dmg + heals active character for 10 HP)', () => {
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-nena', // 100 HP, DG 3
+      p1ActiveStandId: 'stand-empress',
+      p1ActiveEnergies: ['PSYCHIC', 'NATURE'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    // Damage Nena first so healing is observable (100 -> 70)
+    state.players.P1.active!.currentHp = 70;
+
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-parasitismo',
+    });
+
+    // Deals 40 damage to DIO (160 -> 120) and heals Nena by 10 HP (70 -> 80)
+    expect(state.players.P2.active!.currentHp).toBe(120);
+    expect(state.players.P1.active!.currentHp).toBe(80);
   });
 });
