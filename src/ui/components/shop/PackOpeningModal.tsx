@@ -43,6 +43,7 @@ export function PackOpeningModal({
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
   const [vfxSignal, setVfxSignal] = useState<PackVfxSignal | null>(null);
   const [urShowcasePull, setUrShowcasePull] = useState<PackPullResult | null>(null);
+  const [holoShowcasePull, setHoloShowcasePull] = useState<PackPullResult | null>(null);
 
   const panelControls = useAnimationControls();
   const signalIdRef = useRef(1);
@@ -107,6 +108,7 @@ export function PackOpeningModal({
     }
     setRevealedKeys(new Set());
     setUrShowcasePull(null);
+    setHoloShowcasePull(null);
 
     if (!outcomes || !pack) {
       setPhase('SEALED');
@@ -174,7 +176,11 @@ export function PackOpeningModal({
       return next;
     });
 
-    if (pull.rarity === 'BIZARRE_RARE') {
+    if (pull.isFoil) {
+      fireVfx('UR_JACKPOT', '#00e599');
+      triggerPanelShake(13);
+      setHoloShowcasePull(pull);
+    } else if (pull.rarity === 'BIZARRE_RARE') {
       fireVfx('UR_JACKPOT', '#f2c12e');
       triggerPanelShake(11);
       setUrShowcasePull(pull);
@@ -189,6 +195,9 @@ export function PackOpeningModal({
       window.clearTimeout(tearTimerRef.current);
       tearTimerRef.current = null;
     }
+    const unrevealedHolo = allPulls.find(
+      (p) => !revealedKeys.has(p.key) && Boolean(p.pull.isFoil),
+    );
     const unrevealedUr = allPulls.find(
       (p) => !revealedKeys.has(p.key) && p.pull.rarity === 'BIZARRE_RARE',
     );
@@ -199,7 +208,11 @@ export function PackOpeningModal({
     setPhase('CARDS');
     setRevealedKeys(new Set(allPulls.map((p) => p.key)));
 
-    if (unrevealedUr) {
+    if (unrevealedHolo) {
+      fireVfx('UR_JACKPOT', '#00e599');
+      triggerPanelShake(13);
+      setHoloShowcasePull(unrevealedHolo.pull);
+    } else if (unrevealedUr) {
       fireVfx('UR_JACKPOT', '#f2c12e');
       triggerPanelShake(11);
       setUrShowcasePull(unrevealedUr.pull);
@@ -210,6 +223,7 @@ export function PackOpeningModal({
   };
 
   const urShowcaseCard = urShowcasePull ? getCardById(urShowcasePull.cardId) : null;
+  const holoShowcaseCard = holoShowcasePull ? getCardById(holoShowcasePull.cardId) : null;
 
   return (
     <AnimatePresence>
@@ -504,18 +518,28 @@ export function PackOpeningModal({
                         className="flex flex-col items-center gap-1.5"
                       >
                         <div className="jojo-3d-stage relative h-[207px] w-[148px]">
-                          {/* Expanding Shockwave Halo on SR / UR Flip */}
+                          {/* Expanding Shockwave Halo on SR / UR / HOLO Flip */}
                           <AnimatePresence>
-                            {isRevealed && (isUr || isSr) && (
+                            {isRevealed && (isUr || isSr || pull.isFoil) && (
                               <motion.div
                                 key={`ring-${key}`}
                                 aria-hidden="true"
                                 initial={{ scale: 0.7, opacity: 0.95 }}
-                                animate={{ scale: isUr ? 1.85 : 1.5, opacity: 0 }}
+                                animate={{
+                                  scale: pull.isFoil ? 2.0 : isUr ? 1.85 : 1.5,
+                                  opacity: 0,
+                                }}
                                 exit={{ opacity: 0 }}
-                                transition={{ duration: isUr ? 0.85 : 0.6, ease: 'easeOut' }}
+                                transition={{
+                                  duration: pull.isFoil ? 0.95 : isUr ? 0.85 : 0.6,
+                                  ease: 'easeOut',
+                                }}
                                 className={`pointer-events-none absolute -inset-2 z-0 rounded-[12px] border-[4px] ${
-                                  isUr ? 'border-[#f2c12e]' : 'border-[#e6194b]'
+                                  pull.isFoil
+                                    ? 'border-[#00e599] shadow-[0_0_24px_rgba(0,229,153,0.9)]'
+                                    : isUr
+                                      ? 'border-[#f2c12e]'
+                                      : 'border-[#e6194b]'
                                 }`}
                               />
                             )}
@@ -780,6 +804,130 @@ export function PackOpeningModal({
                   className="relative z-10 mt-5 border-2 border-[#060508] bg-[#14101c] px-4 py-1 font-mono text-[11px] font-bold tracking-[0.22em] text-[#f2c12e] uppercase shadow-[3px_3px_0_#060508]"
                 >
                   CLIC EN CUALQUIER LUGAR PARA CONTINUAR
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ============ FULL-SCREEN 0.1% HOLOGRAPHIC PRISMATIC ANIME CUT-IN ============ */}
+          <AnimatePresence>
+            {holoShowcaseCard && (
+              <motion.div
+                key={`holo-cutin-${holoShowcaseCard.id}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.22 }}
+                onClick={() => setHoloShowcasePull(null)}
+                className="fixed inset-0 z-40 flex cursor-pointer flex-col items-center justify-center overflow-hidden bg-[#060508]/92"
+              >
+                {/* Rotating Prismatic Speedlines */}
+                <motion.div
+                  aria-hidden="true"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 6.5, repeat: Infinity, ease: 'linear' }}
+                  className="pointer-events-none absolute -inset-[45%] opacity-70"
+                  style={{
+                    background:
+                      'repeating-conic-gradient(from 0deg, rgba(242,193,46,0.28) 0deg 4deg, rgba(0,229,153,0.24) 4deg 8deg, rgba(56,189,248,0.24) 8deg 12deg, rgba(192,132,252,0.28) 12deg 16deg, transparent 16deg 24deg)',
+                  }}
+                />
+
+                {/* Prismatic Flash Burst on Entry */}
+                <motion.div
+                  aria-hidden="true"
+                  initial={{ opacity: 0.9, scale: 0.5 }}
+                  animate={{ opacity: 0, scale: 2.2 }}
+                  transition={{ duration: 0.65, ease: 'easeOut' }}
+                  className="pointer-events-none absolute h-96 w-96 rounded-full bg-gradient-to-tr from-[#f2c12e] via-[#00e599] to-[#c084fc] blur-2xl"
+                />
+
+                {/* Top & Bottom Prismatic Cinema Bars */}
+                <motion.div
+                  aria-hidden="true"
+                  initial={{ y: -70 }}
+                  animate={{ y: 0 }}
+                  exit={{ y: -70 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+                  className="pointer-events-none absolute inset-x-0 top-0 h-14 border-b-4 border-[#00e599] bg-[#060508]"
+                />
+                <motion.div
+                  aria-hidden="true"
+                  initial={{ y: 70 }}
+                  animate={{ y: 0 }}
+                  exit={{ y: 70 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-14 border-t-4 border-[#c084fc] bg-[#060508]"
+                />
+
+                {/* Flanking Katakana */}
+                <motion.span
+                  aria-hidden="true"
+                  initial={{ x: -130, opacity: 0, scale: 1.6 }}
+                  animate={{ x: 0, opacity: 1, scale: 1 }}
+                  exit={{ x: -80, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 360, damping: 22 }}
+                  className="pointer-events-none absolute top-24 left-6 hidden font-jojo-display text-6xl tracking-widest text-[#00e599] drop-shadow-[5px_5px_0_#060508] md:block"
+                >
+                  ゴゴゴゴ
+                </motion.span>
+                <motion.span
+                  aria-hidden="true"
+                  initial={{ x: 130, opacity: 0, scale: 1.6 }}
+                  animate={{ x: 0, opacity: 1, scale: 1 }}
+                  exit={{ x: 80, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 360, damping: 22 }}
+                  className="pointer-events-none absolute right-6 bottom-24 hidden font-jojo-display text-6xl tracking-widest text-[#c084fc] drop-shadow-[5px_5px_0_#060508] md:block"
+                >
+                  キラッ★
+                </motion.span>
+
+                {/* Prismatic Banner Headline */}
+                <motion.div
+                  initial={{ scale: 1.7, opacity: 0, skewX: -12 }}
+                  animate={{ scale: 1, opacity: 1, skewX: -12 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 20 }}
+                  className="relative z-10 mb-5 border-[4px] border-[#060508] bg-gradient-to-r from-[#f2c12e] via-[#00e599] to-[#c084fc] px-8 py-2 shadow-[8px_8px_0_#060508]"
+                >
+                  <div className="skew-x-12 text-center">
+                    <div className="font-mono text-xs font-black tracking-[0.32em] text-[#0b090e] uppercase">
+                      ✦ CARTA HOLOGRÁFICA · PROBABILIDAD 0,1% ✦
+                    </div>
+                    <div className="font-jojo-display text-4xl leading-none tracking-wider text-[#0b090e] uppercase sm:text-5xl">
+                      {holoShowcaseCard.name}
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Spinning Large Holographic Card Showcase */}
+                <motion.div
+                  initial={{ rotateY: -360, scale: 0.35, opacity: 0 }}
+                  animate={{ rotateY: 0, scale: [0.35, 1.15, 1.04], opacity: 1 }}
+                  exit={{ scale: 0.85, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 190, damping: 17 }}
+                  className="relative z-10 rounded-[10px]"
+                  style={{
+                    filter:
+                      'drop-shadow(0 0 28px rgba(0,229,153,0.85)) drop-shadow(0 0 44px rgba(192,132,252,0.65))',
+                  }}
+                >
+                  <CardView
+                    card={holoShowcaseCard}
+                    size="lg"
+                    foil
+                    showInspectButton={false}
+                    badgeText="✦ HOLO 0,1% ✦"
+                  />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="relative z-10 mt-5 border-2 border-[#060508] bg-[#14101c] px-4 py-1 font-mono text-[11px] font-bold tracking-[0.22em] text-[#00e599] uppercase shadow-[3px_3px_0_#060508]"
+                >
+                  EQUÍPALA DESDE EL INSPECTOR · CLIC PARA CONTINUAR
                 </motion.div>
               </motion.div>
             )}

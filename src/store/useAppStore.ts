@@ -380,9 +380,23 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const totalCost = pack.price * count;
     if (current.coins < totalCost) return null;
 
+    let guaranteeHoloFirstPack = false;
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        if (window.localStorage.getItem('jojo_tcg_next_pack_holo_promo_v1') !== 'used') {
+          guaranteeHoloFirstPack = true;
+          window.localStorage.setItem('jojo_tcg_next_pack_holo_promo_v1', 'used');
+        }
+      } catch {
+        // Ignore storage errors
+      }
+    }
+
     const outcomes: OpenPackOutcome[] = [];
     for (let i = 0; i < count; i++) {
-      const out = openBoosterPack(pack, current);
+      const forceSlot =
+        guaranteeHoloFirstPack && i === 0 ? Math.max(0, pack.cardsPerPack - 1) : undefined;
+      const out = openBoosterPack(pack, current, undefined, false, forceSlot);
       outcomes.push(out);
       current = out.nextProgression;
     }

@@ -449,6 +449,7 @@ export function openBoosterPack(
   currentProgression: PlayerProgression,
   rng: RngProvider = createSystemRng(),
   free = false,
+  forceFoilSlotIndex?: number,
 ): OpenPackOutcome {
   const byRarity: Record<CardRarity, string[]> = {
     COMMON: [],
@@ -488,7 +489,7 @@ export function openBoosterPack(
     nextOwned[cardId] = nextCount;
 
     const foilChance = FOIL_DROP_RATE;
-    const isFoil = rng.nextFloat() < foilChance;
+    const isFoil = forceFoilSlotIndex === slot || rng.nextFloat() < foilChance;
     if (isFoil) {
       nextFoil[cardId] = (nextFoil[cardId] ?? 0) + 1;
     }
