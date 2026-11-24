@@ -131,6 +131,8 @@ export const COLLECTIBLE_CARDS = ALL_CARDS.filter((c) => c.type !== 'ENERGY');
 
 /** Promotional Holographic / Foil cards granted to player inventories */
 export const PROMO_FOIL_CARD_IDS: readonly string[] = ['stand-sticky-fingers'];
+/** Uniform 0.1% (1 in 1,000) drop rate for a Holographic / Foil variant on any pulled card */
+export const FOIL_DROP_RATE = 0.001;
 
 export function createInitialProgression(): PlayerProgression {
   const ownedCards: Record<string, number> = {};
@@ -485,8 +487,7 @@ export function openBoosterPack(
     const nextCount = prevOwned + 1;
     nextOwned[cardId] = nextCount;
 
-    const foilChance =
-      cardRarity === 'BIZARRE_RARE' ? 0.25 : cardRarity === 'SUPER_RARE' ? 0.14 : 0.08;
+    const foilChance = FOIL_DROP_RATE;
     const isFoil = rng.nextFloat() < foilChance;
     if (isFoil) {
       nextFoil[cardId] = (nextFoil[cardId] ?? 0) + 1;
