@@ -1324,6 +1324,22 @@ export function openCampfireMode(
   mode: 'CLONE' | 'PURGE',
 ): RoguelikeRunState {
   if (!run.activeCampfire || run.activeCampfire.resolvedMessage) return run;
+  if (mode === 'CLONE') {
+    const hasCloneable = run.deckCardIds.some((cid) => {
+      const t = getCardById(cid)?.type;
+      return t === 'ITEM' || t === 'ENERGY';
+    });
+    if (!hasCloneable) {
+      return {
+        ...run,
+        gold: run.gold + 20,
+        activeCampfire: {
+          resolvedMessage:
+            'No tienes Objetos ni Energías para clonar: recibes +20 Oro junto a la hoguera.',
+        },
+      };
+    }
+  }
   if (mode === 'PURGE' && run.deckCardIds.length <= ROGUELIKE_MIN_DECK_SIZE) {
     return {
       ...run,
@@ -1346,12 +1362,13 @@ export function resolveCampfireCloneCard(
   if (!run.activeCampfire || run.activeCampfire.mode !== 'CLONE') return run;
   if (deckIndex < 0 || deckIndex >= run.deckCardIds.length) return run;
   const cardId = run.deckCardIds[deckIndex]!;
-  const cardName = getCardById(cardId)?.name ?? cardId;
+  const card = getCardById(cardId);
+  if (!card || (card.type !== 'ITEM' && card.type !== 'ENERGY')) return run;
   return {
     ...run,
     deckCardIds: [...run.deckCardIds, cardId],
     activeCampfire: {
-      resolvedMessage: `Has clonado ${cardName} y añadido la copia a tu mazo de expedición.`,
+      resolvedMessage: `Has clonado ${card.name} y añadido la copia a tu mazo de expedición.`,
     },
   };
 }

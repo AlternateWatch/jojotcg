@@ -1195,7 +1195,7 @@ export function RoguelikeView() {
                 <div className="flex items-center justify-between">
                   <div className="text-xs font-bold text-orange-200">
                     {roguelikeRun.activeCampfire.mode === 'CLONE'
-                      ? 'Elige 1 carta de tu mazo para duplicar:'
+                      ? 'Elige 1 Objeto o Energía de tu mazo para duplicar:'
                       : 'Elige 1 carta de tu mazo para purgar gratis:'}
                   </div>
                   <button
@@ -1213,6 +1213,7 @@ export function RoguelikeView() {
                     const c = getCardById(cid);
                     if (!c) return null;
                     const isClone = roguelikeRun.activeCampfire?.mode === 'CLONE';
+                    if (isClone && c.type !== 'ITEM' && c.type !== 'ENERGY') return null;
                     return (
                       <button
                         key={`${idx}-${cid}`}
@@ -1259,10 +1260,10 @@ export function RoguelikeView() {
                 >
                   <div className="text-2xl">🪞</div>
                   <div className="font-jojo-heading text-base text-[#00e599] uppercase">
-                    Clonar 1 Carta
+                    Clonar Objeto / Energía
                   </div>
                   <p className="text-xs text-zinc-300">
-                    Elige cualquier carta de tu mazo actual y añade una copia extra al instante.
+                    Duplica un Objeto o una Energía de tu mazo actual (no Personajes ni Stands).
                   </p>
                 </button>
 

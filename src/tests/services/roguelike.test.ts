@@ -364,7 +364,15 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
     expect(trained.campfireBonusMaxHp).toBe(10);
     expect(computeRelicRulesOverrides([], trained.campfireBonusMaxHp).p1BonusMaxHp).toBe(10);
 
-    const cloned = resolveCampfireCloneCard(openCampfireMode(cfRun, 'CLONE'), 0);
+    const cloneModeRun = openCampfireMode(cfRun, 'CLONE');
+    // Character at index 0 cannot be cloned (only ITEM or ENERGY allowed)
+    const charCloneAttempt = resolveCampfireCloneCard(cloneModeRun, 0);
+    expect(charCloneAttempt.deckCardIds).toHaveLength(cfRun.deckCardIds.length);
+    const itemOrEnergyIdx = cfRun.deckCardIds.findIndex((cid) => {
+      const t = getCardById(cid)?.type;
+      return t === 'ITEM' || t === 'ENERGY';
+    });
+    const cloned = resolveCampfireCloneCard(cloneModeRun, itemOrEnergyIdx);
     expect(cloned.deckCardIds).toHaveLength(cfRun.deckCardIds.length + 1);
     const purged = resolveCampfirePurgeCard(openCampfireMode(cfRun, 'PURGE'), 0);
     expect(purged.deckCardIds).toHaveLength(cfRun.deckCardIds.length - 1);
