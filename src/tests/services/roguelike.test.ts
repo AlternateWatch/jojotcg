@@ -21,9 +21,10 @@ import {
 } from '../../services/roguelikeService';
 
 describe('Roguelike Expedition Mode (30 Floors)', () => {
-  it('all 3 starter decks have exactly 16 cards (10 deck + 6 prizes), launch cleanly with 5-card hand, and never lose by deck-out', () => {
+  it('all 9 starter decks have exactly 16 cards (10 deck + 6 prizes), launch cleanly with 5-card hand, and never lose by deck-out', () => {
     const rng = createSeededRng(12345);
     const rules = computeRelicRulesOverrides([]);
+    expect(ROGUELIKE_STARTER_DECKS).toHaveLength(9);
     for (const starter of ROGUELIKE_STARTER_DECKS) {
       expect(starter.cardIds).toHaveLength(16);
       const state = createGame({
