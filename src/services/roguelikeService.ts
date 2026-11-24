@@ -64,6 +64,19 @@ export interface RoguelikeEventState {
   purgePickBonusGold?: number;
 }
 
+export interface RoguelikeCampfireState {
+  mode?: 'CLONE' | 'PURGE';
+  resolvedMessage?: string;
+}
+
+export interface RoguelikeDailySpec {
+  date: string;
+  seed: number;
+  starterId: string;
+  difficulty: RoguelikeDifficulty;
+  title: string;
+}
+
 export interface RoguelikeEnemySpec {
   name: string;
   subtitle: string;
@@ -93,18 +106,22 @@ export interface RoguelikeRunState {
   seed: number;
   starterId: string;
   difficulty: RoguelikeDifficulty;
-  status: 'MAP' | 'IN_BATTLE' | 'REWARD' | 'SHOP' | 'EVENT' | 'VICTORY' | 'DEFEAT';
+  status: 'MAP' | 'IN_BATTLE' | 'REWARD' | 'SHOP' | 'EVENT' | 'CAMPFIRE' | 'VICTORY' | 'DEFEAT';
   currentFloor: number; // 0 before picking Floor 1, then 1..30
   currentNodeId: string | null;
   activeNodeId: string | null;
   deckCardIds: string[];
   gold: number;
   relicIds: string[];
+  campfireBonusMaxHp?: number;
   map: RoguelikeMapNode[];
   pendingReward: RoguelikeRewardState | null;
   activeShop: RoguelikeShopState | null;
   activeEvent: RoguelikeEventState | null;
+  activeCampfire?: RoguelikeCampfireState | null;
   seenEventIds?: string[];
+  isDaily?: boolean;
+  dailyDate?: string;
   battlesWon: number;
   elitesWon: number;
   bossesWon: number;
@@ -163,15 +180,16 @@ export function generateRoguelikeMap(seed: number): RoguelikeMapNode[] {
       } else if (floor === 1) {
         type = 'BATTLE';
       } else if (isPreBossFloor) {
-        type = lane === 0 ? 'SHOP' : lane === 1 ? 'TREASURE' : 'EVENT';
+        type = lane === 0 ? 'SHOP' : lane === 1 ? 'CAMPFIRE' : 'TREASURE';
       } else if (isMiniEliteFloor) {
         type = lane === 0 ? 'ELITE' : lane === 1 ? 'TREASURE' : 'BATTLE';
       } else {
         const roll = rng.nextFloat();
-        if (roll < 0.48) type = 'BATTLE';
-        else if (roll < 0.63 && floor >= 3) type = 'ELITE';
-        else if (roll < 0.77 && floor >= 2) type = 'SHOP';
-        else if (roll < 0.89 && floor >= 2) type = 'TREASURE';
+        if (roll < 0.45) type = 'BATTLE';
+        else if (roll < 0.59 && floor >= 3) type = 'ELITE';
+        else if (roll < 0.72 && floor >= 2) type = 'SHOP';
+        else if (roll < 0.82 && floor >= 2) type = 'TREASURE';
+        else if (roll < 0.91 && floor >= 3) type = 'CAMPFIRE';
         else type = 'EVENT';
       }
 
@@ -181,6 +199,7 @@ export function generateRoguelikeMap(seed: number): RoguelikeMapNode[] {
         TREASURE: 'Tesoro',
         SHOP: 'Tienda',
         EVENT: 'Evento',
+        CAMPFIRE: 'Hoguera',
         BOSS:
           floor === 10
             ? 'JEFE · ACTO I'
@@ -244,16 +263,70 @@ export function createRoguelikeRun(
     deckCardIds: [...starter.cardIds],
     gold: diffMeta.startingGold,
     relicIds: [],
+    campfireBonusMaxHp: 0,
     map: generateRoguelikeMap(seed),
     pendingReward: null,
     activeShop: null,
     activeEvent: null,
+    activeCampfire: null,
     seenEventIds: [],
+    isDaily: false,
     battlesWon: 0,
     elitesWon: 0,
     bossesWon: 0,
     metaCoinsClaimed: null,
   };
+}
+
+export function getTodayDailyDateStr(now = new Date()): string {
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(now.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function getDailyChallengeSpec(dateStr = getTodayDailyDateStr()): RoguelikeDailySpec {
+  let hash = 2166136261;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash ^= dateStr.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const seed = Math.abs(hash) % 900_000_000 + 10_000;
+  const starter = ROGUELIKE_STARTER_DECKS[seed % ROGUELIKE_STARTER_DECKS.length]!;
+  const difficulty: RoguelikeDifficulty = seed % 3 === 0 ? 'HARD' : 'NORMAL';
+  return {
+    date: dateStr,
+    seed,
+    starterId: starter.id,
+    difficulty,
+    title: `Desafío Diario · ${dateStr}`,
+  };
+}
+
+export function createDailyRoguelikeRun(dateStr = getTodayDailyDateStr()): RoguelikeRunState {
+  const spec = getDailyChallengeSpec(dateStr);
+  const run = createRoguelikeRun(spec.starterId, spec.difficulty, spec.seed);
+  return {
+    ...run,
+    runId: `daily-${spec.date}-${Date.now()}`,
+    isDaily: true,
+    dailyDate: spec.date,
+  };
+}
+
+export function computeDailyRunScore(run: RoguelikeRunState): number {
+  const floorsCleared =
+    run.status === 'VICTORY'
+      ? ROGUELIKE_TOTAL_FLOORS
+      : Math.max(0, run.currentFloor - (run.status === 'DEFEAT' ? 1 : 0));
+  const diffMult = run.difficulty === 'HARD' ? 1.25 : 1.0;
+  const raw =
+    floorsCleared * 100 +
+    run.battlesWon * 35 +
+    run.elitesWon * 75 +
+    run.bossesWon * 200 +
+    (run.status === 'VICTORY' ? 1000 : 0);
+  return Math.round(raw * diffMult);
 }
 
 export function getSelectableNodeIds(run: RoguelikeRunState): Set<string> {
@@ -266,8 +339,11 @@ export function getSelectableNodeIds(run: RoguelikeRunState): Set<string> {
   return new Set(current.nextNodeIds);
 }
 
-export function computeRelicRulesOverrides(relicIds: readonly string[]): Partial<GameRulesConfig> {
-  let bonusMaxHp = 0;
+export function computeRelicRulesOverrides(
+  relicIds: readonly string[],
+  campfireBonusMaxHp = 0,
+): Partial<GameRulesConfig> {
+  let bonusMaxHp = campfireBonusMaxHp;
   let bonusDamage = 0;
   let extraInitialHand = 0;
   for (const rid of relicIds) {
@@ -284,7 +360,7 @@ export function computeRelicRulesOverrides(relicIds: readonly string[]): Partial
     disableDeckOutLoss: true,
     p1BonusMaxHp: bonusMaxHp,
     p1BonusDamage: bonusDamage,
-    p1ExtraInitialHand: extraInitialHand,
+    p1ExtraInitialHand: Math.max(-2, extraInitialHand),
   };
 }
 
@@ -293,7 +369,7 @@ export function getGoldMultiplier(relicIds: readonly string[]): number {
   for (const rid of relicIds) {
     pct += getRoguelikeRelicById(rid)?.goldBonusPercent ?? 0;
   }
-  return 1 + pct / 100;
+  return Math.max(0.5, 1 + pct / 100);
 }
 
 export function getShopDiscountMultiplier(relicIds: readonly string[]): number {
@@ -301,7 +377,7 @@ export function getShopDiscountMultiplier(relicIds: readonly string[]): number {
   for (const rid of relicIds) {
     pct += getRoguelikeRelicById(rid)?.shopDiscountPercent ?? 0;
   }
-  return Math.max(0.5, 1 - pct / 100);
+  return Math.min(1.5, Math.max(0.5, 1 - pct / 100));
 }
 
 export function getDraftChoiceCount(relicIds: readonly string[]): number {
@@ -309,7 +385,7 @@ export function getDraftChoiceCount(relicIds: readonly string[]): number {
   for (const rid of relicIds) {
     extra += getRoguelikeRelicById(rid)?.extraDraftChoices ?? 0;
   }
-  return 3 + extra;
+  return Math.max(2, 3 + extra);
 }
 
 export function getShopExtraOfferCount(relicIds: readonly string[]): number {
@@ -317,7 +393,7 @@ export function getShopExtraOfferCount(relicIds: readonly string[]): number {
   for (const rid of relicIds) {
     extra += getRoguelikeRelicById(rid)?.extraShopOffers ?? 0;
   }
-  return extra;
+  return Math.max(0, extra);
 }
 
 export function getSkipCardGoldBonus(relicIds: readonly string[]): number {
@@ -325,7 +401,7 @@ export function getSkipCardGoldBonus(relicIds: readonly string[]): number {
   for (const rid of relicIds) {
     extra += getRoguelikeRelicById(rid)?.skipCardGoldBonus ?? 0;
   }
-  return 15 + extra;
+  return Math.max(5, 15 + extra);
 }
 
 export function getRelicChoiceCount(relicIds: readonly string[]): number {
@@ -333,7 +409,7 @@ export function getRelicChoiceCount(relicIds: readonly string[]): number {
   for (const rid of relicIds) {
     extra += getRoguelikeRelicById(rid)?.extraRelicChoices ?? 0;
   }
-  return 2 + extra;
+  return Math.max(1, 2 + extra);
 }
 
 /**
@@ -733,7 +809,9 @@ export function generateRoguelikeShop(run: RoguelikeRunState, seed: number): Rog
     purchased: false,
   }));
 
-  const unownedRelics = ROGUELIKE_RELICS.filter((r) => !run.relicIds.includes(r.id));
+  const unownedRelics = ROGUELIKE_RELICS.filter(
+    (r) => !r.isBossRelic && !run.relicIds.includes(r.id),
+  );
   if (unownedRelics.length > 0) {
     const pickedRelics = rng.shuffle(unownedRelics).slice(0, Math.min(2, unownedRelics.length));
     pickedRelics.forEach((rel, idx) => {
@@ -774,6 +852,7 @@ export function enterRoguelikeNode(
     pendingReward: null,
     activeShop: null,
     activeEvent: null,
+    activeCampfire: null,
   };
 
   if (node.type === 'BATTLE' || node.type === 'ELITE' || node.type === 'BOSS') {
@@ -796,7 +875,9 @@ export function enterRoguelikeNode(
 
   if (node.type === 'TREASURE') {
     const mult = getGoldMultiplier(run.relicIds);
-    const unownedRelics = ROGUELIKE_RELICS.filter((r) => !run.relicIds.includes(r.id));
+    const unownedRelics = ROGUELIKE_RELICS.filter(
+    (r) => !r.isBossRelic && !run.relicIds.includes(r.id),
+  );
     const bonusIfNoRelics = unownedRelics.length === 0 ? 50 : 0;
     const goldAwarded = Math.round((40 + Math.floor(node.floor * 1.5) + bonusIfNoRelics) * mult);
     const relicChoices =
@@ -836,6 +917,16 @@ export function enterRoguelikeNode(
           treasureFoundCardId,
           treasureCardClaimed: false,
         },
+      },
+    };
+  }
+
+  if (node.type === 'CAMPFIRE') {
+    return {
+      nextRun: {
+        ...baseRun,
+        status: 'CAMPFIRE',
+        activeCampfire: {},
       },
     };
   }
@@ -899,14 +990,24 @@ export function resolveRoguelikeBattleOutcome(
         : 20 + Math.floor(floor * 0.7);
   const goldAwarded = Math.round(baseGold * mult);
   const cardChoices = generateCardDraftChoices(run, roomType, rng);
-  const unownedRelics = ROGUELIKE_RELICS.filter((r) => !run.relicIds.includes(r.id));
+  const unownedRegularRelics = ROGUELIKE_RELICS.filter(
+    (r) => !r.isBossRelic && !run.relicIds.includes(r.id),
+  );
+  const unownedBossRelics = ROGUELIKE_RELICS.filter(
+    (r) => Boolean(r.isBossRelic) && !run.relicIds.includes(r.id),
+  );
   const relicChoices =
-    (roomType === 'ELITE' || roomType === 'BOSS') && unownedRelics.length > 0
+    roomType === 'BOSS' && unownedBossRelics.length > 0
       ? rng
-          .shuffle(unownedRelics)
-          .slice(0, Math.min(getRelicChoiceCount(run.relicIds), unownedRelics.length))
+          .shuffle(unownedBossRelics)
+          .slice(0, Math.min(3, unownedBossRelics.length))
           .map((r) => r.id)
-      : undefined;
+      : (roomType === 'ELITE' || roomType === 'BOSS') && unownedRegularRelics.length > 0
+        ? rng
+            .shuffle(unownedRegularRelics)
+            .slice(0, Math.min(getRelicChoiceCount(run.relicIds), unownedRegularRelics.length))
+            .map((r) => r.id)
+        : undefined;
 
   return {
     ...run,
@@ -1204,6 +1305,77 @@ export function resolveEventPurgeCard(
   };
 }
 
+// ==================== CAMPFIRE ROOM ACTIONS ====================
+
+export function resolveCampfireTrain(run: RoguelikeRunState): RoguelikeRunState {
+  if (!run.activeCampfire || run.activeCampfire.resolvedMessage) return run;
+  return {
+    ...run,
+    campfireBonusMaxHp: (run.campfireBonusMaxHp ?? 0) + 10,
+    activeCampfire: {
+      resolvedMessage:
+        'Has templado tu espíritu junto a la hoguera: +10 PV máx. permanentes para todos tus personajes durante toda la expedición.',
+    },
+  };
+}
+
+export function openCampfireMode(
+  run: RoguelikeRunState,
+  mode: 'CLONE' | 'PURGE',
+): RoguelikeRunState {
+  if (!run.activeCampfire || run.activeCampfire.resolvedMessage) return run;
+  if (mode === 'PURGE' && run.deckCardIds.length <= ROGUELIKE_MIN_DECK_SIZE) {
+    return {
+      ...run,
+      gold: run.gold + 20,
+      activeCampfire: {
+        resolvedMessage: `Tu mazo ya está en el mínimo de ${ROGUELIKE_MIN_DECK_SIZE} cartas: recibes +20 Oro junto a la hoguera.`,
+      },
+    };
+  }
+  return {
+    ...run,
+    activeCampfire: { mode },
+  };
+}
+
+export function resolveCampfireCloneCard(
+  run: RoguelikeRunState,
+  deckIndex: number,
+): RoguelikeRunState {
+  if (!run.activeCampfire || run.activeCampfire.mode !== 'CLONE') return run;
+  if (deckIndex < 0 || deckIndex >= run.deckCardIds.length) return run;
+  const cardId = run.deckCardIds[deckIndex]!;
+  const cardName = getCardById(cardId)?.name ?? cardId;
+  return {
+    ...run,
+    deckCardIds: [...run.deckCardIds, cardId],
+    activeCampfire: {
+      resolvedMessage: `Has clonado ${cardName} y añadido la copia a tu mazo de expedición.`,
+    },
+  };
+}
+
+export function resolveCampfirePurgeCard(
+  run: RoguelikeRunState,
+  deckIndex: number,
+): RoguelikeRunState {
+  if (!run.activeCampfire || run.activeCampfire.mode !== 'PURGE') return run;
+  if (run.deckCardIds.length <= ROGUELIKE_MIN_DECK_SIZE) return run;
+  if (deckIndex < 0 || deckIndex >= run.deckCardIds.length) return run;
+  const removedId = run.deckCardIds[deckIndex]!;
+  const removedName = getCardById(removedId)?.name ?? removedId;
+  const nextDeck = [...run.deckCardIds];
+  nextDeck.splice(deckIndex, 1);
+  return {
+    ...run,
+    deckCardIds: nextDeck,
+    activeCampfire: {
+      resolvedMessage: `Has purgado ${removedName} de tu mazo gratis en la hoguera.`,
+    },
+  };
+}
+
 /**
  * Computes real Speedwagon Coins meta-reward when a Roguelike run finishes (Defeat, Abandon, or Victory).
  */
@@ -1273,8 +1445,15 @@ export function buildRoguelikeBattleModifiers(params: {
 
   // ---- PLAYER MODIFIERS (RIGHT SIDE) ----
   const hpRelics = ownedRelics.filter((r) => (r.bonusMaxHp ?? 0) !== 0);
+  const campfireHp = run.campfireBonusMaxHp ?? 0;
   const totalP1Hp = rules.p1BonusMaxHp ?? 0;
   if (totalP1Hp !== 0) {
+    const hpBreakdown = hpRelics.map(
+      (r) => `${r.icon} ${r.name}: ${(r.bonusMaxHp ?? 0) > 0 ? '+' : ''}${r.bonusMaxHp} PV`,
+    );
+    if (campfireHp > 0) {
+      hpBreakdown.push(`🔥 Hoguera · Entrenamiento: +${campfireHp} PV`);
+    }
     playerModifiers.push({
       id: 'p1-hp',
       side: 'PLAYER',
@@ -1282,10 +1461,17 @@ export function buildRoguelikeBattleModifiers(params: {
       tagLabel: `${totalP1Hp > 0 ? '+' : ''}${totalP1Hp} PV`,
       icon: '❤️',
       title: `Vida Máxima ${totalP1Hp > 0 ? '+' : ''}${totalP1Hp} PV`,
-      sourceCategory: 'RELIC',
-      sourceLabel: hpRelics.length === 1 ? `Reliquia · ${hpRelics[0]!.name}` : `${hpRelics.length} Reliquias`,
-      description: 'Todos tus personajes entran al campo con esta bonificación de PV máximos y actuales.',
-      breakdown: hpRelics.map((r) => `${r.icon} ${r.name}: +${r.bonusMaxHp} PV`),
+      sourceCategory: hpRelics.length > 0 ? 'RELIC' : 'RULE',
+      sourceLabel:
+        hpRelics.length > 0 && campfireHp > 0
+          ? 'Reliquias + Hoguera'
+          : hpRelics.length === 1
+            ? `Reliquia · ${hpRelics[0]!.name}`
+            : hpRelics.length > 1
+              ? `${hpRelics.length} Reliquias`
+              : 'Hoguera · Descanso',
+      description: 'Todos tus personajes entran al campo con este modificador de PV máximos y actuales.',
+      breakdown: hpBreakdown,
     });
   }
 
@@ -1312,14 +1498,17 @@ export function buildRoguelikeBattleModifiers(params: {
     playerModifiers.push({
       id: 'p1-hand',
       side: 'PLAYER',
-      kind: 'BUFF',
-      tagLabel: `+${totalP1Hand} Mano`,
+      kind: totalP1Hand > 0 ? 'BUFF' : 'DEBUFF',
+      tagLabel: `${totalP1Hand > 0 ? '+' : ''}${totalP1Hand} Mano`,
       icon: '🃏',
-      title: `Mano Inicial +${totalP1Hand} carta${totalP1Hand > 1 ? 's' : ''}`,
+      title: `Mano Inicial ${totalP1Hand > 0 ? '+' : ''}${totalP1Hand} carta${Math.abs(totalP1Hand) > 1 ? 's' : ''}`,
       sourceCategory: 'RELIC',
       sourceLabel: handRelics.length === 1 ? `Reliquia · ${handRelics[0]!.name}` : `${handRelics.length} Reliquias`,
       description: `Comienzas el combate con ${5 + totalP1Hand} cartas en mano en lugar de 5.`,
-      breakdown: handRelics.map((r) => `${r.icon} ${r.name}: +${r.extraInitialHand} carta inicial`),
+      breakdown: handRelics.map(
+        (r) =>
+          `${r.icon} ${r.name}: ${(r.extraInitialHand ?? 0) > 0 ? '+' : ''}${r.extraInitialHand} carta inicial`,
+      ),
     });
   }
 

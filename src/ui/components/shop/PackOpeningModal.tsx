@@ -598,7 +598,16 @@ export function PackOpeningModal({
                                   card={card}
                                   size="md"
                                   highlighted={isUr}
-                                  badgeText={pull.isNew ? '¡NUEVA!' : `×${pull.newOwnedCount}`}
+                                  foil={Boolean(pull.isFoil)}
+                                  badgeText={
+                                    pull.isFoil
+                                      ? pull.isNew
+                                        ? '¡HOLO NUEVA!'
+                                        : '¡HOLO!'
+                                      : pull.isNew
+                                        ? '¡NUEVA!'
+                                        : `×${pull.newOwnedCount}`
+                                  }
                                   onClick={() => openInspector(card.id)}
                                 />
                               </div>

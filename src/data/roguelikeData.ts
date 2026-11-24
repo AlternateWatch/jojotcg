@@ -1,7 +1,14 @@
 import { ALL_CARDS } from './cardRegistry';
 import { getCardRarity, type BoosterPackDef } from './progressionData';
 
-export type RoguelikeRoomType = 'BATTLE' | 'ELITE' | 'TREASURE' | 'SHOP' | 'EVENT' | 'BOSS';
+export type RoguelikeRoomType =
+  | 'BATTLE'
+  | 'ELITE'
+  | 'TREASURE'
+  | 'SHOP'
+  | 'EVENT'
+  | 'CAMPFIRE'
+  | 'BOSS';
 export type RoguelikeDifficulty = 'EASY' | 'NORMAL' | 'HARD';
 
 export interface RoguelikeDifficultyMeta {
@@ -99,6 +106,10 @@ export interface RoguelikeRelicDef {
   extraShopOffers?: number;
   skipCardGoldBonus?: number;
   extraRelicChoices?: number;
+  /** True for exclusive high-impact Boss Relics offered after clearing Act I / II Bosses */
+  isBossRelic?: boolean;
+  /** Short summary of the downside/trade-off for Boss Relics */
+  tradeoff?: string;
 }
 
 export interface RoguelikeEventChoice {
@@ -591,6 +602,83 @@ export const ROGUELIKE_RELICS: RoguelikeRelicDef[] = [
     icon: '⚜️',
     grantCardIdsOnPickup: ['item-flecha-requiem', 'energy-stand'],
     extraDraftChoices: 1,
+  },
+  // ==================== BOSS RELICS (HIGH POWER + TRADE-OFF) ====================
+  {
+    id: 'relic-boss-corazon-vampiro',
+    name: 'Corazón de Vampiro',
+    description: 'Todos tus ataques infligen +20 de daño extra, pero tus personajes entran con -10 PV máx.',
+    rarity: 'EPIC',
+    price: 0,
+    icon: '🧛',
+    isBossRelic: true,
+    tradeoff: '-10 PV máx. a tus personajes',
+    bonusDamage: 20,
+    bonusMaxHp: -10,
+  },
+  {
+    id: 'relic-boss-reloj-the-world',
+    name: 'Reloj de The World',
+    description: 'Robas +2 cartas adicionales en tu mano inicial, pero las Tiendas son un 25% más caras.',
+    rarity: 'EPIC',
+    price: 0,
+    icon: '⏱️',
+    isBossRelic: true,
+    tradeoff: '+25% precios en Tiendas',
+    extraInitialHand: 2,
+    shopDiscountPercent: -25,
+  },
+  {
+    id: 'relic-boss-pacto-flecha',
+    name: 'Pacto de la Flecha',
+    description: 'Añade 2× Energía de Stand y +2 opciones en los drafts, pero tus personajes tienen -10 PV máx.',
+    rarity: 'EPIC',
+    price: 0,
+    icon: '🏹',
+    isBossRelic: true,
+    tradeoff: '-10 PV máx. a tus personajes',
+    extraDraftChoices: 2,
+    grantCardIdsOnPickup: ['energy-stand', 'energy-stand'],
+    bonusMaxHp: -10,
+  },
+  {
+    id: 'relic-boss-caliz-dorado',
+    name: 'Cáliz de Sangre Dorada',
+    description: '+30 PV máx. a tus personajes y +35% de Oro, pero ves -1 opción al elegir reliquias.',
+    rarity: 'EPIC',
+    price: 0,
+    icon: '🏆',
+    isBossRelic: true,
+    tradeoff: '-1 opción al elegir reliquias',
+    bonusMaxHp: 30,
+    goldBonusPercent: 35,
+    extraRelicChoices: -1,
+  },
+  {
+    id: 'relic-boss-mascara-kars',
+    name: 'Máscara de Kars',
+    description: '+20 PV máx. y +10 de daño en todos tus ataques, pero empiezas con -1 carta en mano inicial.',
+    rarity: 'EPIC',
+    price: 0,
+    icon: '🗿',
+    isBossRelic: true,
+    tradeoff: '-1 carta en mano inicial',
+    bonusMaxHp: 20,
+    bonusDamage: 10,
+    extraInitialHand: -1,
+  },
+  {
+    id: 'relic-boss-billetera-passione',
+    name: 'Tesoro de Passione',
+    description: '+120 Oro al instante y 20% de descuento en Tiendas, pero eliges entre -1 carta en los drafts.',
+    rarity: 'EPIC',
+    price: 0,
+    icon: '💼',
+    isBossRelic: true,
+    tradeoff: '-1 carta en los drafts',
+    bonusGoldOnPickup: 120,
+    shopDiscountPercent: 20,
+    extraDraftChoices: -1,
   },
 ];
 

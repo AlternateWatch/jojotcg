@@ -21,6 +21,7 @@ import {
   getMaxCollectibleCopies,
   getOwnedCount,
   getRarityInventoryStats,
+  isCardFoilOwned,
   isCardUnlocked,
   type CraftOutcome,
   type CraftRecipeId,
@@ -47,7 +48,7 @@ export function CollectionView() {
   const [categoryFilter, setCategoryFilter] = useState<CharacterCategory | 'ALL'>('ALL');
   const [partFilter, setPartFilter] = useState<JoJoPart | 'ALL'>('ALL');
   const [rarityFilter, setRarityFilter] = useState<CardRarity | 'ALL'>('ALL');
-  const [ownedFilter, setOwnedFilter] = useState<'ALL' | 'UNLOCKED' | 'LOCKED'>('ALL');
+  const [ownedFilter, setOwnedFilter] = useState<'ALL' | 'UNLOCKED' | 'LOCKED' | 'FOIL'>('ALL');
   const [onlySynergies, setOnlySynergies] = useState(false);
 
   const [showCraftPanel, setShowCraftPanel] = useState(false);
@@ -146,6 +147,7 @@ export function CollectionView() {
         const unlocked = isCardUnlocked(progression, card.id);
         if (ownedFilter === 'UNLOCKED' && !unlocked) return false;
         if (ownedFilter === 'LOCKED' && unlocked) return false;
+        if (ownedFilter === 'FOIL' && !isCardFoilOwned(progression, card.id)) return false;
       }
       if (categoryFilter !== 'ALL') {
         if (card.type === 'CHARACTER' && !card.categories.includes(categoryFilter)) return false;
@@ -267,6 +269,7 @@ export function CollectionView() {
           >
             <option value="ALL">Estado: Todas</option>
             <option value="UNLOCKED">Desbloqueadas</option>
+            <option value="FOIL">✦ Holográficas ({Object.keys(progression.foilCards ?? {}).length})</option>
             <option value="LOCKED">Bloqueadas</option>
           </select>
 

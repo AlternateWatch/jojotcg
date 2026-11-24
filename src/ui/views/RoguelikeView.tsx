@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BookOpen,
+  Calendar,
   Coins,
   Compass,
   Crown,
+  Flame,
   Gift,
   Layers,
   ShoppingBag,
@@ -32,17 +34,28 @@ import {
 } from '../../data/roguelikeData';
 import type { OpenPackOutcome } from '../../services/progressionService';
 import {
+  fetchDailyLeaderboard,
+  submitDailyScore,
+  type DailyLeaderboardEntry,
+} from '../../services/roguelikeDailyService';
+import {
   buyShopEnergyPack,
   buyShopOffer,
   claimTreasureBonusCard,
+  computeDailyRunScore,
   computeRelicRulesOverrides,
   computeRoguelikeMetaReward,
   enterRoguelikeNode,
+  getDailyChallengeSpec,
   getSelectableNodeIds,
   getSkipCardGoldBonus,
+  openCampfireMode,
   pickRoguelikeRewardCard,
   pickRoguelikeRewardRelic,
   purgeCardFromRunDeck,
+  resolveCampfireCloneCard,
+  resolveCampfirePurgeCard,
+  resolveCampfireTrain,
   resolveEventPurgeCard,
   resolveRoguelikeEventChoice,
   type RoguelikeMapNode,
@@ -86,6 +99,12 @@ const ROOM_STYLE: Record<
     bg: 'bg-[#1e102e]',
     text: 'text-purple-300',
   },
+  CAMPFIRE: {
+    badge: 'HOGUERA',
+    border: 'border-orange-400',
+    bg: 'bg-[#2a150b]',
+    text: 'text-orange-300',
+  },
   BOSS: {
     badge: 'JEFE',
     border: 'border-[#e6194b]',
@@ -106,6 +125,8 @@ function RoomIcon({ type, size = 16 }: { type: RoguelikeRoomType; size?: number 
       return <ShoppingBag size={size} />;
     case 'EVENT':
       return <Sparkles size={size} />;
+    case 'CAMPFIRE':
+      return <Flame size={size} />;
     case 'BOSS':
       return <Crown size={size} />;
   }
@@ -115,6 +136,7 @@ export function RoguelikeView() {
   const roguelikeRun = useAppStore((s) => s.roguelikeRun);
   const bestRoguelikeFloor = useAppStore((s) => s.bestRoguelikeFloor);
   const startRoguelikeRun = useAppStore((s) => s.startRoguelikeRun);
+  const startDailyRoguelikeRun = useAppStore((s) => s.startDailyRoguelikeRun);
   const setRoguelikeRun = useAppStore((s) => s.setRoguelikeRun);
   const claimRoguelikeEndReward = useAppStore((s) => s.claimRoguelikeEndReward);
   const abandonRoguelikeRun = useAppStore((s) => s.abandonRoguelikeRun);
@@ -127,6 +149,22 @@ export function RoguelikeView() {
   const lastBattleTrackId = useBattleStore((s) => s.activeBattleTrackId);
 
   const [selectedDifficulty, setSelectedDifficulty] = useState<RoguelikeDifficulty>('NORMAL');
+  const [dailyLeaderboard, setDailyLeaderboard] = useState<DailyLeaderboardEntry[]>([]);
+  const dailySpec = useMemo(() => getDailyChallengeSpec(), []);
+  const dailyStarter = useMemo(
+    () => ROGUELIKE_STARTER_DECKS.find((s) => s.id === dailySpec.starterId) ?? ROGUELIKE_STARTER_DECKS[0]!,
+    [dailySpec],
+  );
+
+  useEffect(() => {
+    let active = true;
+    void fetchDailyLeaderboard(dailySpec.date).then((entries) => {
+      if (active) setDailyLeaderboard(entries);
+    });
+    return () => {
+      active = false;
+    };
+  }, [dailySpec.date, roguelikeRun?.status]);
   const [victoryPackModal, setVictoryPackModal] = useState<{
     pack: BoosterPackDef;
     outcomes: OpenPackOutcome[];
@@ -243,6 +281,74 @@ export function RoguelikeView() {
                 Al caer o conquistar el Piso 30 recibes <strong>Monedas Speedwagon</strong> reales
                 para la Tienda según tu avance.
               </p>
+            </div>
+          </div>
+
+          {/* DAILY CHALLENGE BANNER & LEADERBOARD */}
+          <div className="jojo-panel grid grid-cols-1 gap-4 border-2 border-[#f2c12e]/70 bg-[#191227] p-4 lg:grid-cols-[1.2fr_1fr]">
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 border border-[#060508] bg-[#f2c12e] px-2 py-0.5 font-mono text-[10px] font-black text-[#0b090e] uppercase">
+                  <Calendar size={11} /> DESAFÍO DIARIO · {dailySpec.date}
+                </span>
+                <span
+                  className="border border-[#060508] px-2 py-0.5 font-mono text-[10px] font-black text-[#0b090e] uppercase"
+                  style={{ backgroundColor: ROGUELIKE_DIFFICULTY_META[dailySpec.difficulty].accentHex }}
+                >
+                  {ROGUELIKE_DIFFICULTY_META[dailySpec.difficulty].label}
+                </span>
+                <span className="font-mono text-[10px] text-zinc-400">Semilla #{dailySpec.seed}</span>
+              </div>
+              <h2 className="font-jojo-display text-2xl text-[#f5efe0] uppercase">
+                Misma semilla para todos · Mazo: <span className="text-[#f2c12e]">{dailyStarter.name}</span>
+              </h2>
+              <p className="text-xs text-zinc-300">
+                Compite hoy en exactamente el mismo mapa, enemigos y eventos que el resto de jugadores. Al terminar, tu puntuación se registra automáticamente en el ranking diario.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  startDailyRoguelikeRun();
+                  setActiveActTab(1);
+                }}
+                className="jojo-btn-primary inline-flex items-center gap-2 px-5 py-2.5 font-jojo-heading text-sm tracking-widest uppercase"
+              >
+                <Calendar size={15} /> Jugar Desafío Diario
+              </button>
+            </div>
+
+            <div className="border-2 border-[#060508] bg-[#0e0b14] p-3">
+              <div className="mb-2 flex items-center justify-between font-jojo-heading text-xs tracking-widest text-[#f2c12e] uppercase">
+                <span><Trophy size={12} className="mr-1 inline" /> Ranking de Hoy ({dailySpec.date})</span>
+                <span className="font-mono text-[10px] text-zinc-400">Top {Math.max(dailyLeaderboard.length, 0)}</span>
+              </div>
+              {dailyLeaderboard.length === 0 ? (
+                <p className="py-4 text-center text-[11px] text-zinc-400">
+                  Aún no hay puntuaciones hoy. ¡Sé el primero en marcar récord!
+                </p>
+              ) : (
+                <div className="max-h-[135px] space-y-1 overflow-y-auto pr-1 text-[11px]">
+                  {dailyLeaderboard.slice(0, 8).map((entry, idx) => (
+                    <div
+                      key={`${entry.username}-${idx}`}
+                      className="flex items-center justify-between border border-white/5 bg-[#171222] px-2 py-1"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="font-mono font-black text-[#f2c12e]">#{idx + 1}</span>
+                        <span className="truncate font-bold text-[#f5efe0]">{entry.username}</span>
+                        {entry.victory && (
+                          <span className="bg-[#00b87c] px-1 font-mono text-[9px] font-black text-[#0b090e]">
+                            WIN
+                          </span>
+                        )}
+                      </div>
+                      <div className="shrink-0 font-mono text-[10px] text-zinc-300">
+                        P{entry.floorsCleared} · <strong className="text-[#f2c12e]">{entry.score} pts</strong>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -388,7 +494,7 @@ export function RoguelikeView() {
 
     if (enemy && nextRun.status === 'IN_BATTLE') {
       const rules = {
-        ...computeRelicRulesOverrides(nextRun.relicIds),
+        ...computeRelicRulesOverrides(nextRun.relicIds, nextRun.campfireBonusMaxHp ?? 0),
         p2BonusMaxHp: enemy.bonusMaxHp,
         p2BonusDamage: enemy.bonusDamage,
       };
@@ -426,6 +532,7 @@ export function RoguelikeView() {
       status: 'MAP',
       activeShop: null,
       activeEvent: null,
+      activeCampfire: null,
       pendingReward: null,
     });
     const nextFloor = roguelikeRun.currentFloor + 1;
@@ -592,6 +699,19 @@ export function RoguelikeView() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (roguelikeRun.isDaily && roguelikeRun.dailyDate) {
+                        void submitDailyScore({
+                          date: roguelikeRun.dailyDate,
+                          username: authUser?.username ?? 'Expedicionario',
+                          floorsCleared: endRewardSummary.floorsCleared,
+                          battlesWon: roguelikeRun.battlesWon,
+                          bossesWon: roguelikeRun.bossesWon,
+                          victory: roguelikeRun.status === 'VICTORY',
+                          score: computeDailyRunScore(roguelikeRun),
+                        }).then((entries) => {
+                          if (entries.length > 0) setDailyLeaderboard(entries);
+                        });
+                      }
                       const claimed = claimRoguelikeEndReward();
                       if (claimed?.pack && claimed.packOutcomes) {
                         setVictoryPackModal({
@@ -644,36 +764,73 @@ export function RoguelikeView() {
 
             {/* Optional Relic Draft (Elites, Bosses, Treasures) */}
             {roguelikeRun.pendingReward.relicChoices &&
-              roguelikeRun.pendingReward.relicChoices.length > 0 && (
-                <div className="space-y-2 border-2 border-[#f2c12e]/50 bg-[#1a1328] p-4">
-                  <div className="font-jojo-heading text-xs tracking-widest text-[#f2c12e] uppercase">
-                    <Sparkles size={13} className="mr-1 inline" /> ¡RELIQUIA DE EXPEDICIÓN! Elige 1
-                    bonificación pasiva:
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {roguelikeRun.pendingReward.relicChoices.map((rid) => {
-                      const rel = getRoguelikeRelicById(rid);
-                      if (!rel) return null;
-                      return (
-                        <button
-                          key={rid}
-                          type="button"
-                          onClick={() => setRoguelikeRun(pickRoguelikeRewardRelic(roguelikeRun, rid))}
-                          className="flex items-center gap-3 border-2 border-[#f2c12e] bg-[#0e0b14] p-3 text-left transition hover:bg-[#241b35]"
-                        >
-                          <span className="text-2xl">{rel.icon}</span>
-                          <div>
-                            <div className="font-jojo-heading text-sm text-[#f2c12e] uppercase">
-                              {rel.name}
+              roguelikeRun.pendingReward.relicChoices.length > 0 && (() => {
+                const isBossRelicDraft = roguelikeRun.pendingReward.relicChoices.some(
+                  (rid) => getRoguelikeRelicById(rid)?.isBossRelic,
+                );
+                return (
+                  <div
+                    className={`space-y-2 border-2 p-4 ${
+                      isBossRelicDraft
+                        ? 'border-[#e6194b] bg-[#28101b]'
+                        : 'border-[#f2c12e]/50 bg-[#1a1328]'
+                    }`}
+                  >
+                    <div
+                      className={`font-jojo-heading text-xs tracking-widest uppercase ${
+                        isBossRelicDraft ? 'text-[#ff6b8d]' : 'text-[#f2c12e]'
+                      }`}
+                    >
+                      {isBossRelicDraft ? (
+                        <>
+                          <Crown size={13} className="mr-1 inline" /> ¡RELIQUIA DE JEFE! Poder
+                          extremo con contrapartida — elige 1:
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={13} className="mr-1 inline" /> ¡RELIQUIA DE EXPEDICIÓN!
+                          Elige 1 bonificación pasiva:
+                        </>
+                      )}
+                    </div>
+                    <div
+                      className={`grid grid-cols-1 gap-3 ${
+                        isBossRelicDraft ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
+                      }`}
+                    >
+                      {roguelikeRun.pendingReward.relicChoices.map((rid) => {
+                        const rel = getRoguelikeRelicById(rid);
+                        if (!rel) return null;
+                        return (
+                          <button
+                            key={rid}
+                            type="button"
+                            onClick={() => setRoguelikeRun(pickRoguelikeRewardRelic(roguelikeRun, rid))}
+                            className={`flex items-start gap-3 border-2 bg-[#0e0b14] p-3 text-left transition ${
+                              rel.isBossRelic
+                                ? 'border-[#e6194b]/80 hover:border-[#f2c12e] hover:bg-[#321423]'
+                                : 'border-[#f2c12e] hover:bg-[#241b35]'
+                            }`}
+                          >
+                            <span className="text-2xl">{rel.icon}</span>
+                            <div className="space-y-1">
+                              <div className="font-jojo-heading text-sm text-[#f2c12e] uppercase">
+                                {rel.name}
+                              </div>
+                              <div className="text-xs text-zinc-300">{rel.description}</div>
+                              {rel.tradeoff && (
+                                <div className="inline-block border border-[#e6194b]/60 bg-[#3a121f] px-1.5 py-0.5 font-mono text-[10px] font-bold text-rose-200">
+                                  Pega: {rel.tradeoff}
+                                </div>
+                              )}
                             </div>
-                            <div className="text-xs text-zinc-300">{rel.description}</div>
-                          </div>
-                        </button>
-                      );
-                    })}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
             {/* 1-of-3 (or 4) Card Choices — ONLY after winning a Battle/Elite/Boss */}
             {roguelikeRun.pendingReward.cardChoices.length > 0 ? (
@@ -995,6 +1152,134 @@ export function RoguelikeView() {
                     </button>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ==================== CAMPFIRE / REST ROOM ==================== */}
+        {roguelikeRun.status === 'CAMPFIRE' && roguelikeRun.activeCampfire && (
+          <div className="jojo-panel mx-auto max-w-3xl space-y-5 border-2 border-orange-400/70 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#060508] pb-4">
+              <div>
+                <div className="font-jojo-heading text-xs tracking-[0.22em] text-orange-300 uppercase">
+                  <Flame size={13} className="mr-1 inline" /> SALA DE HOGUERA · PISO{' '}
+                  {roguelikeRun.currentFloor}
+                </div>
+                <h2 className="font-jojo-display text-3xl text-[#f2c12e] uppercase">
+                  DESCANSO Y FORJA
+                </h2>
+                <p className="mt-1 text-xs text-zinc-300">
+                  Aprovecha un respiro antes de los combates más duros. Elige 1 acción gratuita para
+                  reforzar tu expedición.
+                </p>
+              </div>
+            </div>
+
+            {roguelikeRun.activeCampfire.resolvedMessage ? (
+              <div className="space-y-4">
+                <div className="border-l-4 border-orange-400 bg-[#24130a] p-3 text-sm font-bold text-orange-100">
+                  {roguelikeRun.activeCampfire.resolvedMessage}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLeaveRoomToMap}
+                  className="jojo-btn-primary px-5 py-2.5 font-jojo-heading text-sm tracking-widest uppercase"
+                >
+                  Continuar al Mapa ➔
+                </button>
+              </div>
+            ) : roguelikeRun.activeCampfire.mode === 'CLONE' ||
+              roguelikeRun.activeCampfire.mode === 'PURGE' ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-orange-200">
+                    {roguelikeRun.activeCampfire.mode === 'CLONE'
+                      ? 'Elige 1 carta de tu mazo para duplicar:'
+                      : 'Elige 1 carta de tu mazo para purgar gratis:'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRoguelikeRun({ ...roguelikeRun, activeCampfire: {} })
+                    }
+                    className="jojo-btn-ink px-2.5 py-1 text-[11px] font-bold uppercase"
+                  >
+                    Volver
+                  </button>
+                </div>
+                <div className="grid max-h-[260px] grid-cols-2 gap-2 overflow-y-auto border border-orange-400/40 bg-[#140d0a] p-3 sm:grid-cols-3 md:grid-cols-4">
+                  {roguelikeRun.deckCardIds.map((cid, idx) => {
+                    const c = getCardById(cid);
+                    if (!c) return null;
+                    const isClone = roguelikeRun.activeCampfire?.mode === 'CLONE';
+                    return (
+                      <button
+                        key={`${idx}-${cid}`}
+                        type="button"
+                        onClick={() =>
+                          setRoguelikeRun(
+                            isClone
+                              ? resolveCampfireCloneCard(roguelikeRun, idx)
+                              : resolveCampfirePurgeCard(roguelikeRun, idx),
+                          )
+                        }
+                        className="border border-[#060508] bg-[#1f1512] px-2.5 py-2 text-left text-xs text-zinc-200 transition hover:border-orange-400"
+                      >
+                        <div className="truncate font-bold">{c.name}</div>
+                        <div className="font-mono text-[10px] text-orange-300">
+                          {isClone ? '+ Clonar' : '✕ Purgar'}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => setRoguelikeRun(resolveCampfireTrain(roguelikeRun))}
+                  className="flex flex-col justify-between gap-2 border-2 border-[#060508] bg-[#1a1210] p-4 text-left transition hover:border-orange-400"
+                >
+                  <div className="text-2xl">🔥</div>
+                  <div className="font-jojo-heading text-base text-[#f2c12e] uppercase">
+                    Templar el Espíritu
+                  </div>
+                  <p className="text-xs text-zinc-300">
+                    Todos tus personajes ganan <strong>+10 PV máx.</strong> permanentes para el
+                    resto de la expedición.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRoguelikeRun(openCampfireMode(roguelikeRun, 'CLONE'))}
+                  className="flex flex-col justify-between gap-2 border-2 border-[#060508] bg-[#14101d] p-4 text-left transition hover:border-[#00e599]"
+                >
+                  <div className="text-2xl">🪞</div>
+                  <div className="font-jojo-heading text-base text-[#00e599] uppercase">
+                    Clonar 1 Carta
+                  </div>
+                  <p className="text-xs text-zinc-300">
+                    Elige cualquier carta de tu mazo actual y añade una copia extra al instante.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRoguelikeRun(openCampfireMode(roguelikeRun, 'PURGE'))}
+                  className="flex flex-col justify-between gap-2 border-2 border-[#060508] bg-[#1c0f15] p-4 text-left transition hover:border-rose-400"
+                >
+                  <div className="text-2xl">🗑️</div>
+                  <div className="font-jojo-heading text-base text-rose-300 uppercase">
+                    Purgar 1 Carta Gratis
+                  </div>
+                  <p className="text-xs text-zinc-300">
+                    Elimina una carta sobrante sin gastar Oro (mín. {ROGUELIKE_MIN_DECK_SIZE}{' '}
+                    cartas).
+                  </p>
+                </button>
               </div>
             )}
           </div>

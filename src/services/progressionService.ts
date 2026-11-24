@@ -25,6 +25,8 @@ export interface PlayerProgression {
   coins: number;
   /** Owned copies per collectible cardId (Basic Energies are always unlimited) */
   ownedCards: Record<string, number>;
+  /** Holographic / Foil copies owned per collectible cardId */
+  foilCards?: Record<string, number>;
   packsOpened: number;
   wins: number;
   losses: number;
@@ -41,6 +43,8 @@ export interface PackPullResult {
   rarity: CardRarity;
   isNew: boolean;
   isDuplicate: boolean;
+  /** True when this pull rolled a cosmetic Holographic / Foil variant */
+  isFoil?: boolean;
   /** Backwards-compatible fields (now always false / 0 since duplicates are stored for crafting) */
   isDuplicateRefund: boolean;
   refundCoins: number;
@@ -123,17 +127,28 @@ export interface CraftOutcome {
 
 export const COLLECTIBLE_CARDS = ALL_CARDS.filter((c) => c.type !== 'ENERGY');
 
+/** Promotional Holographic / Foil cards granted to player inventories */
+export const PROMO_FOIL_CARD_IDS: readonly string[] = ['stand-sticky-fingers'];
+
 export function createInitialProgression(): PlayerProgression {
   const ownedCards: Record<string, number> = {};
+  const foilCards: Record<string, number> = {};
   for (const cardId of STARTER_DECK.cardIds) {
     const card = getCardById(cardId);
     if (!card || card.type === 'ENERGY') continue;
     const limit = DEFAULT_RULES_CONFIG.maxCopiesByType[card.type] ?? 1;
     ownedCards[cardId] = Math.min(limit, (ownedCards[cardId] ?? 0) + 1);
   }
+  for (const foilId of PROMO_FOIL_CARD_IDS) {
+    if (getCardById(foilId)) {
+      ownedCards[foilId] = Math.max(1, ownedCards[foilId] ?? 0);
+      foilCards[foilId] = Math.max(1, foilCards[foilId] ?? 0);
+    }
+  }
   return {
     coins: INITIAL_TEST_COINS,
     ownedCards,
+    foilCards,
     packsOpened: 0,
     wins: 0,
     losses: 0,
@@ -173,6 +188,21 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
     }
   }
 
+  const nextFoil: Record<string, number> = {};
+  for (const [rawId, count] of Object.entries(progression.foilCards ?? {})) {
+    if (typeof count !== 'number' || !Number.isFinite(count) || count <= 0) continue;
+    const mappedId = LEGACY_ITEM_ID_MIGRATION[rawId] ?? rawId;
+    const card = getCardById(mappedId);
+    if (!card || card.type === 'ENERGY') continue;
+    nextFoil[mappedId] = (nextFoil[mappedId] ?? 0) + Math.floor(count);
+  }
+  for (const promoFoilId of PROMO_FOIL_CARD_IDS) {
+    if (getCardById(promoFoilId)) {
+      if ((nextOwned[promoFoilId] ?? 0) < 1) nextOwned[promoFoilId] = 1;
+      if ((nextFoil[promoFoilId] ?? 0) < 1) nextFoil[promoFoilId] = 1;
+    }
+  }
+
   const completedCampaignStages = Array.isArray(progression.completedCampaignStages)
     ? Array.from(
         new Set(
@@ -200,6 +230,7 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
   return {
     ...progression,
     ownedCards: nextOwned,
+    foilCards: nextFoil,
     completedCampaignStages,
     completedTutorialLessons,
     claimedMilestones,
@@ -247,6 +278,14 @@ export function getOwnedCount(progression: PlayerProgression, cardId: string): n
 
 export function isCardUnlocked(progression: PlayerProgression, cardId: string): boolean {
   return getOwnedCount(progression, cardId) > 0;
+}
+
+export function getFoilCount(progression: PlayerProgression, cardId: string): number {
+  return progression.foilCards?.[cardId] ?? 0;
+}
+
+export function isCardFoilOwned(progression: PlayerProgression, cardId: string): boolean {
+  return getFoilCount(progression, cardId) > 0;
 }
 
 export function getCollectionProgress(progression: PlayerProgression): {
@@ -398,6 +437,7 @@ export function openBoosterPack(
   }
 
   const nextOwned: Record<string, number> = { ...currentProgression.ownedCards };
+  const nextFoil: Record<string, number> = { ...(currentProgression.foilCards ?? {}) };
   const pulls: PackPullResult[] = [];
   const seenInThisPack = new Set<string>();
   let totalRefundCoins = 0;
@@ -423,11 +463,19 @@ export function openBoosterPack(
     const nextCount = prevOwned + 1;
     nextOwned[cardId] = nextCount;
 
+    const foilChance =
+      cardRarity === 'BIZARRE_RARE' ? 0.25 : cardRarity === 'SUPER_RARE' ? 0.14 : 0.08;
+    const isFoil = rng.nextFloat() < foilChance;
+    if (isFoil) {
+      nextFoil[cardId] = (nextFoil[cardId] ?? 0) + 1;
+    }
+
     pulls.push({
       cardId,
       rarity: cardRarity,
       isNew: prevOwned === 0,
       isDuplicate: prevOwned > 0,
+      isFoil,
       isDuplicateRefund: false,
       refundCoins: 0,
       newOwnedCount: nextCount,
@@ -443,6 +491,7 @@ export function openBoosterPack(
       ...currentProgression,
       coins: free ? currentProgression.coins : Math.max(0, currentProgression.coins - pack.price),
       ownedCards: nextOwned,
+      foilCards: nextFoil,
       packsOpened: currentProgression.packsOpened + 1,
     },
   };

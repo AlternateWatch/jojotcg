@@ -71,6 +71,9 @@ function cleanupStaleRooms() {
 
 setInterval(cleanupStaleRooms, 60 * 1000).unref?.();
 
+// In-memory fallback for Daily Roguelike Leaderboard when MySQL is unavailable
+const memoryDailyScores = new Map();
+
 async function initDatabase() {
   try {
     pool = mysql.createPool(DB_CONFIG);
@@ -93,6 +96,21 @@ async function initDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         expires_at TIMESTAMP NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS roguelike_daily_scores (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        date_str VARCHAR(16) NOT NULL,
+        username VARCHAR(40) NOT NULL,
+        floors_cleared INT NOT NULL DEFAULT 0,
+        battles_won INT NOT NULL DEFAULT 0,
+        bosses_won INT NOT NULL DEFAULT 0,
+        victory TINYINT(1) NOT NULL DEFAULT 0,
+        score INT NOT NULL DEFAULT 0,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_daily_user (date_str, username),
+        INDEX idx_daily_rank (date_str, score DESC, floors_cleared DESC)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
     console.log(`[JoJo TCG] MySQL connected (${DB_CONFIG.user}@${DB_CONFIG.host}/${DB_CONFIG.database})`);
@@ -758,6 +776,96 @@ async function handleApiRequest(req, res, pathname) {
       );
 
       sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    // ==================== ROGUELIKE DAILY CHALLENGE LEADERBOARD ====================
+    if (req.method === 'GET' && pathname === '/api/roguelike/daily') {
+      const urlObj = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+      const dateStr = (urlObj.searchParams.get('date') || new Date().toISOString().slice(0, 10)).slice(0, 16);
+      if (pool) {
+        try {
+          const [rows] = await pool.query(
+            `SELECT username, floors_cleared AS floorsCleared, battles_won AS battlesWon,
+                    bosses_won AS bossesWon, victory, score, updated_at AS updatedAt
+             FROM roguelike_daily_scores
+             WHERE date_str = ?
+             ORDER BY score DESC, floors_cleared DESC, battles_won DESC
+             LIMIT 20`,
+            [dateStr],
+          );
+          const entries = rows.map((r) => ({ ...r, victory: Boolean(r.victory) }));
+          sendJson(res, 200, { date: dateStr, entries });
+          return;
+        } catch {
+          // Fall back to in-memory leaderboard
+        }
+      }
+      const list = Array.from((memoryDailyScores.get(dateStr) || new Map()).values())
+        .sort((a, b) => b.score - a.score || b.floorsCleared - a.floorsCleared)
+        .slice(0, 20);
+      sendJson(res, 200, { date: dateStr, entries: list });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/roguelike/daily/score') {
+      const body = await readJsonBody(req);
+      const dateStr = String(body.date || new Date().toISOString().slice(0, 10)).slice(0, 16);
+      const username = String(body.username || 'Expedicionario').trim().slice(0, 32) || 'Expedicionario';
+      const floorsCleared = Math.max(0, Math.min(30, Math.floor(Number(body.floorsCleared) || 0)));
+      const battlesWon = Math.max(0, Math.min(40, Math.floor(Number(body.battlesWon) || 0)));
+      const bossesWon = Math.max(0, Math.min(3, Math.floor(Number(body.bossesWon) || 0)));
+      const victory = Boolean(body.victory);
+      const score = Math.max(0, Math.min(100000, Math.floor(Number(body.score) || 0)));
+
+      if (pool) {
+        try {
+          await pool.query(
+            `INSERT INTO roguelike_daily_scores (date_str, username, floors_cleared, battles_won, bosses_won, victory, score)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+               floors_cleared = IF(VALUES(score) > score, VALUES(floors_cleared), floors_cleared),
+               battles_won = IF(VALUES(score) > score, VALUES(battles_won), battles_won),
+               bosses_won = IF(VALUES(score) > score, VALUES(bosses_won), bosses_won),
+               victory = IF(VALUES(score) > score, VALUES(victory), victory),
+               score = GREATEST(score, VALUES(score))`,
+            [dateStr, username, floorsCleared, battlesWon, bossesWon, victory ? 1 : 0, score],
+          );
+          const [rows] = await pool.query(
+            `SELECT username, floors_cleared AS floorsCleared, battles_won AS battlesWon,
+                    bosses_won AS bossesWon, victory, score, updated_at AS updatedAt
+             FROM roguelike_daily_scores
+             WHERE date_str = ?
+             ORDER BY score DESC, floors_cleared DESC, battles_won DESC
+             LIMIT 20`,
+            [dateStr],
+          );
+          const entries = rows.map((r) => ({ ...r, victory: Boolean(r.victory) }));
+          sendJson(res, 200, { ok: true, date: dateStr, entries });
+          return;
+        } catch {
+          // Fall back to in-memory leaderboard
+        }
+      }
+
+      if (!memoryDailyScores.has(dateStr)) memoryDailyScores.set(dateStr, new Map());
+      const dayMap = memoryDailyScores.get(dateStr);
+      const prev = dayMap.get(username);
+      if (!prev || score > prev.score) {
+        dayMap.set(username, {
+          username,
+          floorsCleared,
+          battlesWon,
+          bossesWon,
+          victory,
+          score,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      const list = Array.from(dayMap.values())
+        .sort((a, b) => b.score - a.score || b.floorsCleared - a.floorsCleared)
+        .slice(0, 20);
+      sendJson(res, 200, { ok: true, date: dateStr, entries: list });
       return;
     }
 

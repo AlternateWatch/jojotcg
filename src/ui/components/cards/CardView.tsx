@@ -18,6 +18,8 @@ interface CardViewProps {
   onClick?: () => void;
   showInspectButton?: boolean;
   badgeText?: string;
+  /** Override holographic foil visual (defaults to true automatically if owned as foil in player inventory) */
+  foil?: boolean;
 }
 
 const SIZE_WIDTHS = {
@@ -52,16 +54,21 @@ export function CardView({
   onClick,
   showInspectButton = true,
   badgeText,
+  foil,
 }: CardViewProps) {
   const openInspector = useAppStore((s) => s.openInspector);
   const overrides = useAppStore((s) => s.settings.customImageOverrides);
+  const ownsFoil = useAppStore((s) => (s.progression.foilCards?.[card.id] ?? 0) > 0);
+  const isFoil = foil !== undefined ? foil : ownsFoil;
   const asset = resolveCardAsset(card.imageId, card.assetFolder, overrides);
 
   const shadowClass = selected
     ? 'jojo-card-selected'
     : highlighted
       ? 'jojo-card-target'
-      : 'jojo-card-shadow';
+      : isFoil
+        ? 'jojo-foil-prismatic'
+        : 'jojo-card-shadow';
 
   return (
     <div
@@ -142,6 +149,19 @@ export function CardView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Holographic prismatic sheen overlay + corner stamp */}
+      {isFoil && (
+        <>
+          <div
+            aria-hidden="true"
+            className="jojo-foil-prismatic-overlay absolute inset-0 z-10"
+          />
+          <div className="pointer-events-none absolute top-1 right-1 z-20 -skew-x-8 border border-[#060508] bg-gradient-to-r from-[#f2c12e] via-[#00e599] to-[#c084fc] px-1 py-0.5 font-mono text-[8px] leading-none font-black tracking-wider text-[#0b090e] uppercase shadow-[2px_2px_0_#060508]">
+            <span className="inline-block skew-x-8">✦ HOLO</span>
+          </div>
+        </>
       )}
 
       {/* Optional crisp manga corner stamp */}

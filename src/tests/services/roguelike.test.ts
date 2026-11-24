@@ -16,18 +16,25 @@ import {
   buyShopEnergyPack,
   buyShopOffer,
   claimTreasureBonusCard,
+  computeDailyRunScore,
   computeRelicRulesOverrides,
   computeRoguelikeMetaReward,
+  createDailyRoguelikeRun,
   createRoguelikeRun,
   enterRoguelikeNode,
   generateRoguelikeMap,
   generateRoguelikeShop,
+  getDailyChallengeSpec,
   getRelicChoiceCount,
   getSelectableNodeIds,
   getSkipCardGoldBonus,
   grantRelicToRun,
+  openCampfireMode,
   pickRoguelikeRewardCard,
   purgeCardFromRunDeck,
+  resolveCampfireCloneCard,
+  resolveCampfirePurgeCard,
+  resolveCampfireTrain,
   resolveEventPurgeCard,
   resolveRoguelikeBattleOutcome,
   resolveRoguelikeEventChoice,
@@ -347,5 +354,37 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
     const bossTrack = pickRandomRoguelikeTrack('BOSS');
     expect(bossTrack).not.toBeNull();
     expect(bossTrack?.excludeFromCampaignPool).toBe(true);
+
+    // Campfire rooms: train (+10 max HP), clone card, and free purge
+    const campfireNode = run.map.find((n) => n.type === 'CAMPFIRE')!;
+    expect(campfireNode).toBeDefined();
+    const cfRun = enterRoguelikeNode(run, campfireNode.id).nextRun;
+    expect(cfRun.status).toBe('CAMPFIRE');
+    const trained = resolveCampfireTrain(cfRun);
+    expect(trained.campfireBonusMaxHp).toBe(10);
+    expect(computeRelicRulesOverrides([], trained.campfireBonusMaxHp).p1BonusMaxHp).toBe(10);
+
+    const cloned = resolveCampfireCloneCard(openCampfireMode(cfRun, 'CLONE'), 0);
+    expect(cloned.deckCardIds).toHaveLength(cfRun.deckCardIds.length + 1);
+    const purged = resolveCampfirePurgeCard(openCampfireMode(cfRun, 'PURGE'), 0);
+    expect(purged.deckCardIds).toHaveLength(cfRun.deckCardIds.length - 1);
+
+    // Boss Relics: Boss victory offers 3 Boss Relics with trade-offs
+    const boss10Node = run.map.find((n) => n.floor === 10 && n.type === 'BOSS')!;
+    const bossWin = resolveRoguelikeBattleOutcome({ ...run, activeNodeId: boss10Node.id }, true);
+    expect(bossWin.pendingReward?.relicChoices).toHaveLength(3);
+    for (const rid of bossWin.pendingReward?.relicChoices ?? []) {
+      const rel = ROGUELIKE_RELICS.find((r) => r.id === rid);
+      expect(rel?.isBossRelic).toBe(true);
+    }
+
+    // Daily Challenge determinism and score computation
+    const specA = getDailyChallengeSpec('2026-11-24');
+    const specB = getDailyChallengeSpec('2026-11-24');
+    expect(specA).toEqual(specB);
+    const dailyRun = createDailyRoguelikeRun('2026-11-24');
+    expect(dailyRun.isDaily).toBe(true);
+    expect(dailyRun.dailyDate).toBe('2026-11-24');
+    expect(computeDailyRunScore({ ...dailyRun, status: 'VICTORY', currentFloor: 30, battlesWon: 18, bossesWon: 3 })).toBeGreaterThan(3000);
   });
 });

@@ -29,6 +29,7 @@ import {
 } from '../services/progressionService';
 import {
   computeRoguelikeMetaReward,
+  createDailyRoguelikeRun,
   createRoguelikeRun,
   type RoguelikeRunState,
 } from '../services/roguelikeService';
@@ -113,6 +114,7 @@ interface AppStoreState {
   resetProgression: () => void;
 
   startRoguelikeRun: (starterId: string, difficulty?: RoguelikeDifficulty) => RoguelikeRunState;
+  startDailyRoguelikeRun: () => RoguelikeRunState;
   setRoguelikeRun: (run: RoguelikeRunState | null) => void;
   claimRoguelikeEndReward: () => {
     coins: number;
@@ -504,6 +506,17 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   startRoguelikeRun: (starterId, difficulty = 'NORMAL') => {
     const run = createRoguelikeRun(starterId, difficulty);
+    try {
+      window.localStorage?.setItem('jojo_tcg_roguelike_v1', JSON.stringify(run));
+    } catch {
+      // Ignore storage quota errors
+    }
+    set({ roguelikeRun: run });
+    return run;
+  },
+
+  startDailyRoguelikeRun: () => {
+    const run = createDailyRoguelikeRun();
     try {
       window.localStorage?.setItem('jojo_tcg_roguelike_v1', JSON.stringify(run));
     } catch {

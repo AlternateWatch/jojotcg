@@ -209,6 +209,42 @@
   animation: jojo-foil-sweep 2.4s ease-in-out infinite;
 }
 
+/* Prismatic holographic card sheen for Foil / Holographic cards */
+@keyframes jojo-holo-sweep {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.jojo-foil-prismatic {
+  box-shadow:
+    0 0 0 2px #f2c12e,
+    0 0 14px rgba(242, 193, 46, 0.55),
+    4px 4px 0px #060508;
+}
+
+.jojo-foil-prismatic-overlay {
+  pointer-events: none;
+  background: linear-gradient(
+    125deg,
+    rgba(255, 0, 128, 0.16) 0%,
+    rgba(242, 193, 46, 0.28) 22%,
+    rgba(0, 229, 153, 0.22) 44%,
+    rgba(56, 189, 248, 0.26) 66%,
+    rgba(168, 85, 247, 0.24) 85%,
+    rgba(255, 255, 255, 0.22) 100%
+  );
+  background-size: 260% 260%;
+  mix-blend-mode: screen;
+  animation: jojo-holo-sweep 4.5s ease-in-out infinite;
+}
+
 .jojo-3d-stage {
   perspective: 1100px;
 }

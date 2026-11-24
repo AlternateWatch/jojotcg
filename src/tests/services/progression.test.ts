@@ -88,6 +88,9 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     const prog = createInitialProgression();
     expect(prog.coins).toBe(INITIAL_TEST_COINS);
     expect(getMissingCardsForDeck(prog, STARTER_DECK.cardIds)).toHaveLength(0);
+    // Promotional holographic Sticky Fingers is granted in inventory
+    expect(prog.foilCards?.['stand-sticky-fingers']).toBeGreaterThanOrEqual(1);
+    expect(prog.ownedCards['stand-sticky-fingers']).toBeGreaterThanOrEqual(1);
 
     // Elite preset decks require unlocking cards from packs
     const stardust = PRESET_DECKS.find((d) => d.id === 'preset-stardust-crusaders')!;
