@@ -1,4 +1,75 @@
+import { ALL_CARDS } from './cardRegistry';
+import { getCardRarity, type BoosterPackDef } from './progressionData';
+
 export type RoguelikeRoomType = 'BATTLE' | 'ELITE' | 'TREASURE' | 'SHOP' | 'EVENT' | 'BOSS';
+export type RoguelikeDifficulty = 'EASY' | 'NORMAL' | 'HARD';
+
+export interface RoguelikeDifficultyMeta {
+  id: RoguelikeDifficulty;
+  label: string;
+  badge: string;
+  description: string;
+  startingGold: number;
+  victoryPackCount: number;
+  metaCoinMultiplier: number;
+  accentHex: string;
+}
+
+export const ROGUELIKE_DIFFICULTY_META: Record<RoguelikeDifficulty, RoguelikeDifficultyMeta> = {
+  EASY: {
+    id: 'EASY',
+    label: 'Fácil',
+    badge: '1 SOBRE GENERAL',
+    description: 'IA más permisiva, enemigos sin bonos fuertes y 40 Oro inicial. Al vencer el Piso 30: 1 Sobre General.',
+    startingGold: 40,
+    victoryPackCount: 1,
+    metaCoinMultiplier: 0.85,
+    accentHex: '#00b87c',
+  },
+  NORMAL: {
+    id: 'NORMAL',
+    label: 'Normal',
+    badge: '2 SOBRES GENERALES',
+    description: 'Curva equilibrada, mazos enemigos coherentes y 30 Oro inicial. Al vencer el Piso 30: 2 Sobres Generales.',
+    startingGold: 30,
+    victoryPackCount: 2,
+    metaCoinMultiplier: 1.0,
+    accentHex: '#f2c12e',
+  },
+  HARD: {
+    id: 'HARD',
+    label: 'Difícil',
+    badge: '3 SOBRES GENERALES',
+    description: 'IA Difícil desde el Piso 1, enemigos reforzados (+PV y daño) y 20 Oro inicial. Al vencer el Piso 30: 3 Sobres Generales y +35% monedas.',
+    startingGold: 20,
+    victoryPackCount: 3,
+    metaCoinMultiplier: 1.35,
+    accentHex: '#e6194b',
+  },
+};
+
+/**
+ * General Booster Pack awarded for conquering Floor 30 of the Roguelike Expedition.
+ * Can pull ANY collectible (non-Energy) card in the entire game!
+ */
+export function createRoguelikeGeneralPack(): BoosterPackDef {
+  const poolCardIds = ALL_CARDS.filter((c) => c.type !== 'ENERGY').map((c) => c.id);
+  const chaseCardIds = poolCardIds.filter((id) => getCardRarity(id) === 'BIZARRE_RARE');
+  return {
+    id: 'pack-roguelike-general',
+    name: 'Sobre General · Expedición Bizarra',
+    subtitle: 'Puede contener cualquier carta coleccionable del juego completo (Partes 1 a 5).',
+    series: 'CORRELATION',
+    badge: 'GENERAL · TODAS LAS CARTAS',
+    price: 0,
+    cardsPerPack: 5,
+    accentHex: '#9333ea',
+    patternUrl: '/assets/patterns/pattern3.png',
+    coverCardId: 'evo-gold-experience-requiem',
+    chaseCardIds,
+    poolCardIds,
+  };
+}
 
 export interface RoguelikeStarterDeckDef {
   id: string;

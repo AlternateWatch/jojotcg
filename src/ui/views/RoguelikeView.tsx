@@ -16,17 +16,20 @@ import {
   X,
 } from 'lucide-react';
 import { getCardById } from '../../data/cardRegistry';
-import { getCardRarity, RARITY_META } from '../../data/progressionData';
+import { getCardRarity, RARITY_META, type BoosterPackDef } from '../../data/progressionData';
 import {
   BASIC_ENERGY_IDS,
   getRoguelikeRelicById,
   ROGUELIKE_ACTS,
+  ROGUELIKE_DIFFICULTY_META,
   ROGUELIKE_EVENTS,
   ROGUELIKE_MIN_DECK_SIZE,
   ROGUELIKE_STARTER_DECKS,
   ROGUELIKE_TOTAL_FLOORS,
+  type RoguelikeDifficulty,
   type RoguelikeRoomType,
 } from '../../data/roguelikeData';
+import type { OpenPackOutcome } from '../../services/progressionService';
 import {
   buyShopEnergyPack,
   buyShopOffer,
@@ -44,6 +47,7 @@ import {
 import { useAppStore } from '../../store/useAppStore';
 import { useBattleStore } from '../../store/useBattleStore';
 import { CardView } from '../components/cards/CardView';
+import { PackOpeningModal } from '../components/shop/PackOpeningModal';
 
 const ROOM_STYLE: Record<
   RoguelikeRoomType,
@@ -118,6 +122,11 @@ export function RoguelikeView() {
 
   const startBattle = useBattleStore((s) => s.startBattle);
 
+  const [selectedDifficulty, setSelectedDifficulty] = useState<RoguelikeDifficulty>('NORMAL');
+  const [victoryPackModal, setVictoryPackModal] = useState<{
+    pack: BoosterPackDef;
+    outcomes: OpenPackOutcome[];
+  } | null>(null);
   const [showDeckModal, setShowDeckModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showPurgePicker, setShowPurgePicker] = useState(false);
@@ -233,6 +242,49 @@ export function RoguelikeView() {
             </div>
           </div>
 
+          {/* Difficulty Selector */}
+          <div className="jojo-panel space-y-3 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-jojo-heading text-xs tracking-[0.22em] text-[#f2c12e] uppercase">
+                ELIGE LA DIFICULTAD DE LA EXPEDICIÓN
+              </span>
+              <span className="font-mono text-[11px] text-zinc-400">
+                Vencer el Piso 30 otorga Sobres Generales (cualquier carta del juego)
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {(['EASY', 'NORMAL', 'HARD'] as RoguelikeDifficulty[]).map((diff) => {
+                const meta = ROGUELIKE_DIFFICULTY_META[diff];
+                const isSelected = selectedDifficulty === diff;
+                return (
+                  <button
+                    key={diff}
+                    type="button"
+                    onClick={() => setSelectedDifficulty(diff)}
+                    className={`flex flex-col justify-between gap-2 border-2 p-3.5 text-left transition ${
+                      isSelected
+                        ? 'border-[#f2c12e] bg-[#1f182d] shadow-[4px_4px_0_#060508]'
+                        : 'border-[#060508] bg-[#0e0b14] hover:border-zinc-500'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-jojo-display text-xl text-[#f5efe0] uppercase">
+                        {meta.label}
+                      </span>
+                      <span
+                        className="border border-[#060508] px-2 py-0.5 font-mono text-[10px] font-black text-[#0b090e] uppercase"
+                        style={{ backgroundColor: meta.accentHex }}
+                      >
+                        {meta.badge}
+                      </span>
+                    </div>
+                    <p className="text-[11px] leading-snug text-zinc-300">{meta.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             {ROGUELIKE_STARTER_DECKS.map((starter) => {
               const cover = getCardById(starter.coverCardId);
@@ -249,7 +301,9 @@ export function RoguelikeView() {
                       >
                         {starter.badge}
                       </span>
-                      <span className="font-mono text-xs text-zinc-400">30 Oro inicial</span>
+                      <span className="font-mono text-xs text-zinc-400">
+                        {ROGUELIKE_DIFFICULTY_META[selectedDifficulty].startingGold} Oro inicial
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -296,12 +350,12 @@ export function RoguelikeView() {
                   <button
                     type="button"
                     onClick={() => {
-                      startRoguelikeRun(starter.id);
+                      startRoguelikeRun(starter.id, selectedDifficulty);
                       setActiveActTab(1);
                     }}
                     className="jojo-btn-primary w-full py-2.5 font-jojo-heading text-sm tracking-widest uppercase"
                   >
-                    <Compass size={15} className="mr-1.5 inline" /> Iniciar con {starter.name}
+                    <Compass size={15} className="mr-1.5 inline" /> Iniciar ({ROGUELIKE_DIFFICULTY_META[selectedDifficulty].label})
                   </button>
                 </div>
               );
@@ -309,6 +363,13 @@ export function RoguelikeView() {
           </div>
         </div>
         <RoguelikeGuideModal open={showGuideModal} onClose={() => setShowGuideModal(false)} />
+        <PackOpeningModal
+          pack={victoryPackModal?.pack ?? null}
+          outcomes={victoryPackModal?.outcomes ?? null}
+          canBuyAnother={false}
+          onBuyAnother={() => {}}
+          onClose={() => setVictoryPackModal(null)}
+        />
       </div>
     );
   }
@@ -389,6 +450,15 @@ export function RoguelikeView() {
           <div className="flex flex-wrap items-center gap-3">
             <span className="border-2 border-[#060508] bg-[#9333ea] px-3 py-1 font-jojo-display text-sm tracking-wider text-white uppercase">
               PISO {roguelikeRun.currentFloor} / {ROGUELIKE_TOTAL_FLOORS}
+            </span>
+            <span
+              className="border-2 border-[#060508] px-2.5 py-1 font-mono text-xs font-black text-[#0b090e] uppercase"
+              style={{
+                backgroundColor:
+                  ROGUELIKE_DIFFICULTY_META[roguelikeRun.difficulty ?? 'NORMAL'].accentHex,
+              }}
+            >
+              {ROGUELIKE_DIFFICULTY_META[roguelikeRun.difficulty ?? 'NORMAL'].label}
             </span>
             <span className="inline-flex items-center gap-1.5 border-2 border-[#060508] bg-[#1e170a] px-3 py-1 font-mono text-xs font-black text-[#f2c12e]">
               <Coins size={14} /> {roguelikeRun.gold} Oro de Expedición
@@ -498,6 +568,11 @@ export function RoguelikeView() {
                 </div>
                 <div className="mt-1 font-jojo-display text-4xl text-[#f2c12e]">
                   +{endRewardSummary.coins} MONEDAS
+                  {endRewardSummary.packCount > 0 && (
+                    <span className="block text-2xl text-[#00e599]">
+                      + {endRewardSummary.packCount}× SOBRE GENERAL (CUALQUIER CARTA)
+                    </span>
+                  )}
                 </div>
                 <div className="mt-1 font-mono text-[11px] text-zinc-300">
                   {endRewardSummary.breakdown}
@@ -509,12 +584,21 @@ export function RoguelikeView() {
                   <button
                     type="button"
                     onClick={() => {
-                      claimRoguelikeEndReward();
+                      const claimed = claimRoguelikeEndReward();
+                      if (claimed?.pack && claimed.packOutcomes) {
+                        setVictoryPackModal({
+                          pack: claimed.pack,
+                          outcomes: claimed.packOutcomes,
+                        });
+                      }
                       abandonRoguelikeRun();
                     }}
                     className="jojo-btn-primary inline-flex items-center gap-2 px-6 py-3 font-jojo-heading text-sm tracking-widest uppercase"
                   >
-                    <Coins size={16} /> Reclamar +{endRewardSummary.coins} Monedas y Nueva Partida
+                    <Coins size={16} />{' '}
+                    {endRewardSummary.packCount > 0
+                      ? `Reclamar +${endRewardSummary.coins} Monedas y Abrir ${endRewardSummary.packCount} Sobre(s)`
+                      : `Reclamar +${endRewardSummary.coins} Monedas y Nueva Partida`}
                   </button>
                 ) : (
                   <button
@@ -1210,6 +1294,13 @@ export function RoguelikeView() {
       </AnimatePresence>
 
       <RoguelikeGuideModal open={showGuideModal} onClose={() => setShowGuideModal(false)} />
+      <PackOpeningModal
+        pack={victoryPackModal?.pack ?? null}
+        outcomes={victoryPackModal?.outcomes ?? null}
+        canBuyAnother={false}
+        onBuyAnother={() => {}}
+        onClose={() => setVictoryPackModal(null)}
+      />
     </div>
   );
 }

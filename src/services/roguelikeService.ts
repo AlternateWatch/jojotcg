@@ -3,12 +3,13 @@ import { getCardRarity, type CardRarity } from '../data/progressionData';
 import {
   BASIC_ENERGY_IDS,
   getRoguelikeRelicById,
+  ROGUELIKE_DIFFICULTY_META,
   ROGUELIKE_EVENTS,
   ROGUELIKE_MIN_DECK_SIZE,
   ROGUELIKE_RELICS,
   ROGUELIKE_STARTER_DECKS,
-  ROGUELIKE_STARTING_GOLD,
   ROGUELIKE_TOTAL_FLOORS,
+  type RoguelikeDifficulty,
   type RoguelikeEventDef,
   type RoguelikeRelicDef,
   type RoguelikeRoomType,
@@ -76,6 +77,7 @@ export interface RoguelikeRunState {
   runId: string;
   seed: number;
   starterId: string;
+  difficulty: RoguelikeDifficulty;
   status: 'MAP' | 'IN_BATTLE' | 'REWARD' | 'SHOP' | 'EVENT' | 'VICTORY' | 'DEFEAT';
   currentFloor: number; // 0 before picking Floor 1, then 1..30
   currentNodeId: string | null;
@@ -206,19 +208,25 @@ export function generateRoguelikeMap(seed: number): RoguelikeMapNode[] {
   return floors.flat();
 }
 
-export function createRoguelikeRun(starterId: string, seed = Date.now()): RoguelikeRunState {
+export function createRoguelikeRun(
+  starterId: string,
+  difficulty: RoguelikeDifficulty = 'NORMAL',
+  seed = Date.now(),
+): RoguelikeRunState {
   const starter =
     ROGUELIKE_STARTER_DECKS.find((s) => s.id === starterId) ?? ROGUELIKE_STARTER_DECKS[0]!;
+  const diffMeta = ROGUELIKE_DIFFICULTY_META[difficulty];
   return {
     runId: `run-${seed}-${Math.floor(Math.random() * 9999)}`,
     seed,
     starterId: starter.id,
+    difficulty,
     status: 'MAP',
     currentFloor: 0,
     currentNodeId: null,
     activeNodeId: null,
     deckCardIds: [...starter.cardIds],
-    gold: ROGUELIKE_STARTING_GOLD,
+    gold: diffMeta.startingGold,
     relicIds: [],
     map: generateRoguelikeMap(seed),
     pendingReward: null,
@@ -295,11 +303,35 @@ export function buildRoguelikeEnemy(
   floor: number,
   roomType: 'BATTLE' | 'ELITE' | 'BOSS',
   seed: number,
+  runDifficulty: RoguelikeDifficulty = 'NORMAL',
 ): RoguelikeEnemySpec {
   const rng = createSeededRng(seed + floor * 7919 + (roomType === 'BOSS' ? 999 : roomType === 'ELITE' ? 333 : 0));
 
+  const applyDiffAdjust = (spec: RoguelikeEnemySpec): RoguelikeEnemySpec => {
+    if (runDifficulty === 'EASY') {
+      return {
+        ...spec,
+        difficulty: roomType === 'BOSS' && floor >= 20 ? 'NORMAL' : floor <= 12 ? 'EASY' : 'NORMAL',
+        aiErrorRate: Math.min(0.45, spec.aiErrorRate + 0.14),
+        bonusMaxHp: Math.max(0, spec.bonusMaxHp - 15),
+        bonusDamage: roomType === 'BOSS' && floor === 30 ? spec.bonusDamage : 0,
+      };
+    }
+    if (runDifficulty === 'HARD') {
+      return {
+        ...spec,
+        difficulty: 'HARD',
+        aiErrorRate: roomType === 'BOSS' && floor >= 20 ? 0 : Math.max(0.01, spec.aiErrorRate - 0.05),
+        bonusMaxHp: spec.bonusMaxHp + 10,
+        bonusDamage:
+          spec.bonusDamage + (roomType === 'BOSS' && floor === 30 ? 10 : roomType === 'ELITE' && floor >= 15 ? 10 : 0),
+      };
+    }
+    return spec;
+  };
+
   if (roomType === 'BOSS' && floor === 10) {
-    return {
+    return applyDiffAdjust({
       name: 'Dio Brando & Kars · Jefes Acto I',
       subtitle: 'Piso 10 · Jefe del Acto I (+20 PV)',
       featuredCardId: 'char-dio-brando',
@@ -323,11 +355,11 @@ export function buildRoguelikeEnemy(
         ...Array.from({ length: 8 }, () => 'energy-electric'),
         ...Array.from({ length: 8 }, () => 'energy-light'),
       ],
-    };
+    });
   }
 
   if (roomType === 'BOSS' && floor === 20) {
-    return {
+    return applyDiffAdjust({
       name: 'DIO · The World · Jefe Acto II',
       subtitle: 'Piso 20 · Jefe del Acto II (+30 PV, +10 daño)',
       featuredCardId: 'char-dio',
@@ -359,11 +391,11 @@ export function buildRoguelikeEnemy(
         ...Array.from({ length: 9 }, () => 'energy-psychic'),
         ...Array.from({ length: 8 }, () => 'energy-water'),
       ],
-    };
+    });
   }
 
   if (roomType === 'BOSS' && floor === 30) {
-    return {
+    return applyDiffAdjust({
       name: 'Réquiem Definitivo · Jefe Final',
       subtitle: 'Piso 30 · Jefe Final (+40 PV, +10 daño)',
       featuredCardId: 'evo-gold-experience-requiem',
@@ -401,7 +433,7 @@ export function buildRoguelikeEnemy(
         ...Array.from({ length: 10 }, () => 'energy-psychic'),
         ...Array.from({ length: 10 }, () => 'energy-light'),
       ],
-    };
+    });
   }
 
   // Dynamic coherent 1-2 color scaling for Floors 1..29 BATTLE and ELITE
@@ -548,7 +580,7 @@ export function buildRoguelikeEnemy(
   const bonusDamage =
     (roomType === 'ELITE' && floor >= 11) || floor >= 22 ? 10 : 0;
 
-  return {
+  return applyDiffAdjust({
     name: roomType === 'ELITE' ? `${featuredName} · Élite Piso ${floor}` : `${featuredName} · Piso ${floor}`,
     subtitle:
       roomType === 'ELITE'
@@ -560,7 +592,7 @@ export function buildRoguelikeEnemy(
     deckIds,
     bonusMaxHp,
     bonusDamage,
-  };
+  });
 }
 
 /**
@@ -698,7 +730,7 @@ export function enterRoguelikeNode(
   };
 
   if (node.type === 'BATTLE' || node.type === 'ELITE' || node.type === 'BOSS') {
-    const enemy = buildRoguelikeEnemy(node.floor, node.type, run.seed);
+    const enemy = buildRoguelikeEnemy(node.floor, node.type, run.seed, run.difficulty ?? 'NORMAL');
     return {
       nextRun: { ...baseRun, status: 'IN_BATTLE' },
       enemy,
@@ -1027,9 +1059,11 @@ export function resolveRoguelikeEventChoice(
  */
 export function computeRoguelikeMetaReward(run: RoguelikeRunState): {
   coins: number;
+  packCount: number;
   floorsCleared: number;
   breakdown: string;
 } {
+  const diffMeta = ROGUELIKE_DIFFICULTY_META[run.difficulty ?? 'NORMAL'];
   const floorsCleared =
     run.status === 'VICTORY'
       ? ROGUELIKE_TOTAL_FLOORS
@@ -1038,15 +1072,19 @@ export function computeRoguelikeMetaReward(run: RoguelikeRunState): {
   const eliteCoins = run.elitesWon * 35;
   const bossCoins = run.bossesWon * 90;
   const victoryBonus = run.status === 'VICTORY' ? 400 : 0;
-  const coins = Math.max(25, floorCoins + eliteCoins + bossCoins + victoryBonus);
+  const rawCoins = Math.max(25, floorCoins + eliteCoins + bossCoins + victoryBonus);
+  const coins = Math.max(25, Math.round(rawCoins * diffMeta.metaCoinMultiplier));
+  const packCount = run.status === 'VICTORY' ? diffMeta.victoryPackCount : 0;
 
-  const parts = [`Pisos (${floorsCleared}): +${floorCoins}`];
+  const parts = [`Dificultad ${diffMeta.label}`, `Pisos (${floorsCleared}): +${floorCoins}`];
   if (run.elitesWon > 0) parts.push(`Élites (${run.elitesWon}): +${eliteCoins}`);
   if (run.bossesWon > 0) parts.push(`Jefes (${run.bossesWon}): +${bossCoins}`);
   if (victoryBonus > 0) parts.push(`¡Victoria Piso 30!: +${victoryBonus}`);
+  if (packCount > 0) parts.push(`+${packCount} Sobre(s) General(es)`);
 
   return {
     coins,
+    packCount,
     floorsCleared,
     breakdown: parts.join(' · '),
   };

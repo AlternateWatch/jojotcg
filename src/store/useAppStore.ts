@@ -2,7 +2,11 @@ import { create } from 'zustand';
 import { getCampaignStageById } from '../data/campaignData';
 import { getTutorialLessonById } from '../data/tutorialData';
 import { PRESET_DECKS } from '../data/cardRegistry';
-import { getBoosterPackById } from '../data/progressionData';
+import { getBoosterPackById, type BoosterPackDef } from '../data/progressionData';
+import {
+  createRoguelikeGeneralPack,
+  type RoguelikeDifficulty,
+} from '../data/roguelikeData';
 import type { AiDifficulty } from '../engine/ai/tacticalAi';
 import { authService, type AuthUser } from '../services/authService';
 import {
@@ -108,9 +112,14 @@ interface AppStoreState {
   grantTestCoins: (amount: number) => void;
   resetProgression: () => void;
 
-  startRoguelikeRun: (starterId: string) => RoguelikeRunState;
+  startRoguelikeRun: (starterId: string, difficulty?: RoguelikeDifficulty) => RoguelikeRunState;
   setRoguelikeRun: (run: RoguelikeRunState | null) => void;
-  claimRoguelikeEndReward: () => { coins: number; breakdown: string } | null;
+  claimRoguelikeEndReward: () => {
+    coins: number;
+    breakdown: string;
+    pack: BoosterPackDef | null;
+    packOutcomes: OpenPackOutcome[] | null;
+  } | null;
   abandonRoguelikeRun: () => void;
 }
 
@@ -493,8 +502,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     }
   })(),
 
-  startRoguelikeRun: (starterId) => {
-    const run = createRoguelikeRun(starterId);
+  startRoguelikeRun: (starterId, difficulty = 'NORMAL') => {
+    const run = createRoguelikeRun(starterId, difficulty);
     try {
       window.localStorage?.setItem('jojo_tcg_roguelike_v1', JSON.stringify(run));
     } catch {
@@ -530,11 +539,24 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       ...run,
       metaCoinsClaimed: reward.coins,
     };
-    const nextProg: PlayerProgression = {
+    let nextProg: PlayerProgression = {
       ...get().progression,
       coins: get().progression.coins + reward.coins,
       wins: get().progression.wins + (run.status === 'VICTORY' ? 1 : 0),
     };
+
+    let pack: BoosterPackDef | null = null;
+    let packOutcomes: OpenPackOutcome[] | null = null;
+    if (reward.packCount > 0) {
+      pack = createRoguelikeGeneralPack();
+      packOutcomes = [];
+      for (let i = 0; i < reward.packCount; i++) {
+        const out = openBoosterPack(pack, nextProg, undefined, true);
+        packOutcomes.push(out);
+        nextProg = out.nextProgression;
+      }
+    }
+
     if (get().authUser) void authService.syncAccountData({ progression: nextProg });
     try {
       window.localStorage?.setItem('jojo_tcg_roguelike_v1', JSON.stringify(updatedRun));
@@ -542,7 +564,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       // Ignore
     }
     set({ roguelikeRun: updatedRun, progression: nextProg });
-    return { coins: reward.coins, breakdown: reward.breakdown };
+    return { coins: reward.coins, breakdown: reward.breakdown, pack, packOutcomes };
   },
 
   abandonRoguelikeRun: () => {

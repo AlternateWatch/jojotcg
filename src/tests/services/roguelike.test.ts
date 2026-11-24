@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { ALL_CARDS } from '../../data/cardRegistry';
 import {
+  createRoguelikeGeneralPack,
   ROGUELIKE_STARTER_DECKS,
   ROGUELIKE_TOTAL_FLOORS,
 } from '../../data/roguelikeData';
@@ -105,7 +107,7 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
   });
 
   it('resolves battle victory -> 1-of-3 card draft + exclusive gold, shop purchases/purge, relics, and end-of-run meta coins', () => {
-    let run = createRoguelikeRun('starter-hamon', 7777);
+    let run = createRoguelikeRun('starter-hamon', 'NORMAL', 7777);
     expect(run.deckCardIds).toHaveLength(16);
     expect(run.gold).toBe(30);
 
@@ -172,10 +174,21 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
     run = purgeCardFromRunDeck(run, 0);
     expect(run.deckCardIds).toHaveLength(deckBeforeEnergy + 1);
 
-    // Meta-reward scales with progress and Victory gives huge bonus
+    // Meta-reward scales with progress and Victory awards General Packs by difficulty (1 / 2 / 3)
     const defeatReward = computeRoguelikeMetaReward({ ...run, status: 'DEFEAT', currentFloor: 12, bossesWon: 1 });
-    const victoryReward = computeRoguelikeMetaReward({ ...run, status: 'VICTORY', currentFloor: 30, bossesWon: 3 });
+    const easyWin = computeRoguelikeMetaReward({ ...run, difficulty: 'EASY', status: 'VICTORY', currentFloor: 30, bossesWon: 3 });
+    const normalWin = computeRoguelikeMetaReward({ ...run, difficulty: 'NORMAL', status: 'VICTORY', currentFloor: 30, bossesWon: 3 });
+    const hardWin = computeRoguelikeMetaReward({ ...run, difficulty: 'HARD', status: 'VICTORY', currentFloor: 30, bossesWon: 3 });
     expect(defeatReward.coins).toBeGreaterThan(150);
-    expect(victoryReward.coins).toBeGreaterThan(defeatReward.coins + 400);
+    expect(defeatReward.packCount).toBe(0);
+    expect(easyWin.packCount).toBe(1);
+    expect(normalWin.packCount).toBe(2);
+    expect(hardWin.packCount).toBe(3);
+    expect(hardWin.coins).toBeGreaterThan(normalWin.coins);
+
+    // General Pack includes every single collectible (non-Energy) card in the game
+    const generalPack = createRoguelikeGeneralPack();
+    const allCollectibleCount = ALL_CARDS.filter((c) => c.type !== 'ENERGY').length;
+    expect(generalPack.poolCardIds).toHaveLength(allCollectibleCount);
   });
 });
