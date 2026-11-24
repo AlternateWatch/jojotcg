@@ -209,40 +209,99 @@
   animation: jojo-foil-sweep 2.4s ease-in-out infinite;
 }
 
-/* Prismatic holographic card sheen for Foil / Holographic cards */
-@keyframes jojo-holo-sweep {
+/* Upgraded 3-layer physical TCG Holographic Foil effect */
+@keyframes jojo-holo-prism-shift {
   0% {
-    background-position: 0% 50%;
+    background-position: 0% 0%, 0% 50%;
   }
   50% {
-    background-position: 100% 50%;
+    background-position: 100% 100%, 100% 50%;
   }
   100% {
-    background-position: 0% 50%;
+    background-position: 0% 0%, 0% 50%;
+  }
+}
+
+@keyframes jojo-holo-beam {
+  0% {
+    transform: translateX(-160%) skewX(-22deg);
+  }
+  100% {
+    transform: translateX(260%) skewX(-22deg);
   }
 }
 
 .jojo-foil-prismatic {
   box-shadow:
     0 0 0 2px #f2c12e,
-    0 0 14px rgba(242, 193, 46, 0.55),
-    4px 4px 0px #060508;
+    0 0 20px rgba(242, 193, 46, 0.55),
+    0 0 36px rgba(168, 85, 247, 0.35),
+    5px 5px 0px #060508;
 }
 
-.jojo-foil-prismatic-overlay {
+.jojo-holo-prism {
   pointer-events: none;
-  background: linear-gradient(
-    125deg,
-    rgba(255, 0, 128, 0.16) 0%,
+  background-image:
+    repeating-linear-gradient(
+      125deg,
+      rgba(255, 0, 128, 0.24) 0%,
+      rgba(255, 215, 0, 0.28) 12%,
+      rgba(0, 255, 170, 0.26) 24%,
+      rgba(0, 195, 255, 0.28) 36%,
+      rgba(168, 85, 247, 0.28) 48%,
+      rgba(255, 0, 128, 0.24) 60%
+    ),
+    linear-gradient(
+      115deg,
+      transparent 15%,
+      rgba(255, 255, 255, 0.32) 48%,
+      rgba(242, 193, 46, 0.35) 52%,
+      transparent 85%
+    );
+  background-size: 240% 240%, 220% 220%;
+  background-position: var(--holo-x, 50%) var(--holo-y, 50%), var(--holo-x, 50%) var(--holo-y, 50%);
+  mix-blend-mode: color-dodge;
+  opacity: 0.72;
+  animation: jojo-holo-prism-shift 5.5s ease-in-out infinite;
+}
+
+.jojo-holo-glare {
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--holo-x, 50%) var(--holo-y, 40%),
+    rgba(255, 255, 255, 0.65) 0%,
     rgba(242, 193, 46, 0.28) 22%,
-    rgba(0, 229, 153, 0.22) 44%,
-    rgba(56, 189, 248, 0.26) 66%,
-    rgba(168, 85, 247, 0.24) 85%,
-    rgba(255, 255, 255, 0.22) 100%
+    rgba(0, 229, 153, 0.14) 42%,
+    transparent 68%
   );
-  background-size: 260% 260%;
-  mix-blend-mode: screen;
-  animation: jojo-holo-sweep 4.5s ease-in-out infinite;
+  mix-blend-mode: overlay;
+}
+
+.jojo-holo-glare::after {
+  content: '';
+  position: absolute;
+  inset: -15%;
+  width: 38%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.14) 35%,
+    rgba(255, 255, 255, 0.58) 50%,
+    rgba(242, 193, 46, 0.24) 65%,
+    transparent 100%
+  );
+  animation: jojo-holo-beam 3.1s ease-in-out infinite;
+}
+
+.jojo-holo-sparkle {
+  pointer-events: none;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.75) 1px, transparent 1.4px),
+    radial-gradient(rgba(242, 193, 46, 0.65) 1px, transparent 1.5px);
+  background-size: 18px 18px, 27px 27px;
+  background-position: 0 0, 9px 13px;
+  mix-blend-mode: color-dodge;
+  opacity: 0.28;
 }
 
 .jojo-3d-stage {

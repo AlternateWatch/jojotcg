@@ -18,7 +18,7 @@ interface CardViewProps {
   onClick?: () => void;
   showInspectButton?: boolean;
   badgeText?: string;
-  /** Override holographic foil visual (defaults to true automatically if owned as foil in player inventory) */
+  /** Explicit holographic foil visual (kept off in general grids; enabled in Inspector / Holo reveals) */
   foil?: boolean;
 }
 
@@ -58,8 +58,7 @@ export function CardView({
 }: CardViewProps) {
   const openInspector = useAppStore((s) => s.openInspector);
   const overrides = useAppStore((s) => s.settings.customImageOverrides);
-  const ownsFoil = useAppStore((s) => (s.progression.foilCards?.[card.id] ?? 0) > 0);
-  const isFoil = foil !== undefined ? foil : ownsFoil;
+  const isFoil = Boolean(foil);
   const asset = resolveCardAsset(card.imageId, card.assetFolder, overrides);
 
   const shadowClass = selected
@@ -151,14 +150,13 @@ export function CardView({
         </div>
       )}
 
-      {/* Holographic prismatic sheen overlay + corner stamp */}
+      {/* Upgraded 3-layer holographic foil overlay + corner stamp */}
       {isFoil && (
         <>
-          <div
-            aria-hidden="true"
-            className="jojo-foil-prismatic-overlay absolute inset-0 z-10"
-          />
-          <div className="pointer-events-none absolute top-1 right-1 z-20 -skew-x-8 border border-[#060508] bg-gradient-to-r from-[#f2c12e] via-[#00e599] to-[#c084fc] px-1 py-0.5 font-mono text-[8px] leading-none font-black tracking-wider text-[#0b090e] uppercase shadow-[2px_2px_0_#060508]">
+          <div aria-hidden="true" className="jojo-holo-prism absolute inset-0 z-10" />
+          <div aria-hidden="true" className="jojo-holo-sparkle absolute inset-0 z-10" />
+          <div aria-hidden="true" className="jojo-holo-glare absolute inset-0 z-10 overflow-hidden" />
+          <div className="pointer-events-none absolute top-1 right-1 z-20 -skew-x-8 border border-[#060508] bg-gradient-to-r from-[#f2c12e] via-[#00e599] to-[#c084fc] px-1.5 py-0.5 font-mono text-[8px] leading-none font-black tracking-wider text-[#0b090e] uppercase shadow-[2px_2px_0_#060508]">
             <span className="inline-block skew-x-8">✦ HOLO</span>
           </div>
         </>

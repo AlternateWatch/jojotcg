@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Lock, ShoppingBag, X, ZoomIn } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Lock, ShoppingBag, Sparkles, X, ZoomIn } from 'lucide-react';
 import {
   CARD_SYNERGIES,
   getCardById,
@@ -13,7 +13,11 @@ import {
 } from '../../../data/progressionData';
 import { CATEGORY_LABELS } from '../../../data/schemas/cardTypes';
 import { resolveCardAsset } from '../../../services/assetResolver';
-import { getMaxCollectibleCopies, getOwnedCount } from '../../../services/progressionService';
+import {
+  getFoilCount,
+  getMaxCollectibleCopies,
+  getOwnedCount,
+} from '../../../services/progressionService';
 import { useAppStore } from '../../../store/useAppStore';
 import { CardArtwork } from './CardArtwork';
 import { CardView } from './CardView';
@@ -26,21 +30,55 @@ export function CardInspectorModal() {
   const setScreen = useAppStore((s) => s.setScreen);
   const progression = useAppStore((s) => s.progression);
   const [isHoveringCard, setIsHoveringCard] = useState(false);
+  const [showFoilVariant, setShowFoilVariant] = useState(false);
+  const [holoPointer, setHoloPointer] = useState({ x: 50, y: 40, rx: 0, ry: 0 });
+
+  const card = inspectedCardId ? getCardById(inspectedCardId) : undefined;
+  const foilCopies = card ? getFoilCount(progression, card.id) : 0;
+  const hasFoilVariant = foilCopies > 0;
 
   useEffect(() => {
     setIsHoveringCard(false);
+    setShowFoilVariant(false);
+    setHoloPointer({ x: 50, y: 40, rx: 0, ry: 0 });
   }, [inspectedCardId]);
 
   useEffect(() => {
     if (!inspectedCardId) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeInspector();
+      if (hasFoilVariant && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+        setShowFoilVariant((v) => !v);
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [inspectedCardId, closeInspector]);
+  }, [inspectedCardId, closeInspector, hasFoilVariant]);
 
-  const card = inspectedCardId ? getCardById(inspectedCardId) : undefined;
+  const handleCardPointerMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (!showFoilVariant) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const py = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    const ry = ((px - 50) / 50) * 12;
+    const rx = -((py - 50) / 50) * 10;
+    setHoloPointer({ x: px, y: py, rx, ry });
+  };
+
+  const resetHoloPointer = () => {
+    setIsHoveringCard(false);
+    setHoloPointer({ x: 50, y: 40, rx: 0, ry: 0 });
+  };
+
+  const holoStyle = (showFoilVariant
+    ? {
+        '--holo-x': `${holoPointer.x}%`,
+        '--holo-y': `${holoPointer.y}%`,
+        transform: `perspective(900px) rotateX(${holoPointer.rx}deg) rotateY(${holoPointer.ry}deg)`,
+        transition: 'transform 120ms ease-out',
+      }
+    : undefined) as CSSProperties | undefined;
+
   const asset = card ? resolveCardAsset(card.imageId, card.assetFolder) : null;
   const evolutions = card ? getEvolutionsForBase(card.id) : [];
   const synergy = card ? CARD_SYNERGIES[card.id] : undefined;
@@ -84,17 +122,68 @@ export function CardInspectorModal() {
                 <X size={16} />
               </button>
 
-              {/* Left: Full-Res Card (hover to enlarge at the side) */}
-              <div className="flex flex-col items-center gap-3">
-                <div
-                  onMouseEnter={() => setIsHoveringCard(true)}
-                  onMouseLeave={() => setIsHoveringCard(false)}
-                  className="group relative cursor-zoom-in"
-                >
-                  <CardView card={card} size="lg" showInspectButton={false} />
-                  <div className="pointer-events-none mt-1.5 flex items-center justify-center gap-1 font-mono text-[10px] font-bold tracking-wider text-zinc-400 uppercase transition-colors group-hover:text-[#f2c12e]">
-                    <ZoomIn size={11} /> Pasa el ratón para ampliar
+              {/* Left: Full-Res Card (hover to enlarge at the side + arrow to toggle Holographic variant) */}
+              <div className="flex flex-col items-center gap-2.5">
+                <div className="relative flex items-center justify-center">
+                  <div
+                    onMouseEnter={() => setIsHoveringCard(true)}
+                    onMouseMove={handleCardPointerMove}
+                    onMouseLeave={resetHoloPointer}
+                    style={holoStyle}
+                    className="group relative cursor-zoom-in"
+                  >
+                    <CardView
+                      card={card}
+                      size="lg"
+                      foil={showFoilVariant}
+                      showInspectButton={false}
+                    />
                   </div>
+
+                  {/* Right Arrow Toggle to inspect Holographic variant */}
+                  {hasFoilVariant && (
+                    <button
+                      type="button"
+                      onClick={() => setShowFoilVariant((v) => !v)}
+                      title={
+                        showFoilVariant
+                          ? 'Volver a versión Normal'
+                          : 'Ver versión Holográfica (✦ HOLO)'
+                      }
+                      aria-label={
+                        showFoilVariant ? 'Ver versión Normal' : 'Ver versión Holográfica'
+                      }
+                      className={`absolute top-1/2 -right-4 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center border-2 border-[#060508] shadow-[3px_3px_0_#060508] transition hover:scale-110 ${
+                        showFoilVariant
+                          ? 'bg-[#1f182d] text-[#f2c12e] hover:bg-[#2c2240]'
+                          : 'bg-gradient-to-br from-[#f2c12e] via-[#00e599] to-[#c084fc] text-[#0b090e]'
+                      }`}
+                    >
+                      {showFoilVariant ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+                    </button>
+                  )}
+                </div>
+
+                {hasFoilVariant && (
+                  <button
+                    type="button"
+                    onClick={() => setShowFoilVariant((v) => !v)}
+                    className={`inline-flex items-center gap-1.5 border border-[#060508] px-2.5 py-0.5 font-mono text-[10px] font-black uppercase transition ${
+                      showFoilVariant
+                        ? 'bg-gradient-to-r from-[#f2c12e] via-[#00e599] to-[#c084fc] text-[#0b090e]'
+                        : 'bg-[#1a1426] text-zinc-300 hover:border-[#f2c12e] hover:text-[#f2c12e]'
+                    }`}
+                  >
+                    <Sparkles size={11} />
+                    {showFoilVariant
+                      ? `✦ Vista Holográfica (×${foilCopies})`
+                      : `Normal · Pulsa ➔ para ver Holo`}
+                  </button>
+                )}
+
+                <div className="pointer-events-none flex items-center justify-center gap-1 font-mono text-[10px] font-bold tracking-wider text-zinc-400 uppercase">
+                  <ZoomIn size={11} />{' '}
+                  {showFoilVariant ? 'Mueve el ratón para inclinar el brillo' : 'Pasa el ratón para ampliar'}
                 </div>
               </div>
 
@@ -346,7 +435,19 @@ export function CardInspectorModal() {
                   transition={{ type: 'spring', stiffness: 440, damping: 30 }}
                   className="pointer-events-none absolute top-1/2 left-[292px] z-30 hidden -translate-y-1/2 md:block"
                 >
-                  <div className="aspect-[2.5/3.5] h-[min(90vh,700px)] overflow-hidden rounded-[12px] border-[3px] border-[#f2c12e] bg-[#0e0b14] shadow-[10px_10px_0_#060508,0_20px_50px_rgba(0,0,0,0.9)]">
+                  <div
+                    className={`relative aspect-[2.5/3.5] h-[min(90vh,700px)] overflow-hidden rounded-[12px] border-[3px] border-[#f2c12e] bg-[#0e0b14] shadow-[10px_10px_0_#060508,0_20px_50px_rgba(0,0,0,0.9)] ${
+                      showFoilVariant ? 'jojo-foil-prismatic' : ''
+                    }`}
+                    style={
+                      showFoilVariant
+                        ? ({
+                            '--holo-x': `${holoPointer.x}%`,
+                            '--holo-y': `${holoPointer.y}%`,
+                          } as CSSProperties)
+                        : undefined
+                    }
+                  >
                     {asset.url ? (
                       <CardArtwork card={card} className="object-contain bg-[#0b090e]" />
                     ) : (
@@ -361,6 +462,16 @@ export function CardInspectorModal() {
                           )}
                         </div>
                       </div>
+                    )}
+                    {showFoilVariant && (
+                      <>
+                        <div aria-hidden="true" className="jojo-holo-prism absolute inset-0 z-10" />
+                        <div aria-hidden="true" className="jojo-holo-sparkle absolute inset-0 z-10" />
+                        <div aria-hidden="true" className="jojo-holo-glare absolute inset-0 z-10 overflow-hidden" />
+                        <div className="pointer-events-none absolute top-3 right-3 z-20 -skew-x-8 border-2 border-[#060508] bg-gradient-to-r from-[#f2c12e] via-[#00e599] to-[#c084fc] px-2.5 py-1 font-mono text-xs font-black tracking-wider text-[#0b090e] uppercase shadow-[3px_3px_0_#060508]">
+                          <span className="inline-block skew-x-8">✦ HOLOGRÁFICA</span>
+                        </div>
+                      </>
                     )}
                   </div>
                 </motion.div>
