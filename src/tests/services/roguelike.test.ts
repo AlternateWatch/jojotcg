@@ -37,6 +37,31 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
     expect(ROGUELIKE_STARTER_DECKS).toHaveLength(9);
     for (const starter of ROGUELIKE_STARTER_DECKS) {
       expect(starter.cardIds).toHaveLength(16);
+
+      // Verify every colored energy in the starter deck is actually required by at least one attack in the deck
+      const requiredColors = new Set<string>();
+      const deckColoredEnergies = new Set<string>();
+      for (const cid of starter.cardIds) {
+        const card = getCardById(cid);
+        if (!card) continue;
+        if (card.type === 'ENERGY' && card.energyType !== 'COLORLESS' && card.energyType !== 'STAND') {
+          deckColoredEnergies.add(card.energyType);
+        }
+        if (card.type === 'CHARACTER' || card.type === 'STAND') {
+          for (const atk of card.attacks) {
+            for (const cost of atk.energyCost) {
+              if (cost !== 'COLORLESS') requiredColors.add(cost);
+            }
+          }
+        }
+      }
+      for (const eColor of deckColoredEnergies) {
+        expect(
+          requiredColors.has(eColor),
+          `Starter deck ${starter.id} has unused colored energy ${eColor}`,
+        ).toBe(true);
+      }
+
       const state = createGame({
         p1Name: 'Player',
         p2Name: 'Enemy',
