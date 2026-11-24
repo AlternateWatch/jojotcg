@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { pickRandomRoguelikeTrack } from '../../data/battleMusic';
 import { ALL_CARDS, getCardById } from '../../data/cardRegistry';
 import {
   createRoguelikeGeneralPack,
@@ -334,5 +335,17 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
     expect(mods.enemyModifiers.some((m) => m.id === 'p2-hp' && m.tagLabel === '+40 PV')).toBe(true);
     expect(mods.enemyModifiers.some((m) => m.id === 'p2-dmg' && m.tagLabel === '+10 Daño')).toBe(true);
     expect(mods.enemyModifiers.some((m) => m.id === 'p2-scaling' && m.sourceCategory === 'SCALING')).toBe(true);
+
+    // Random Roguelike battle music pool picks valid tracks and avoids repeating last track
+    const battleTrack1 = pickRandomRoguelikeTrack('BATTLE');
+    expect(battleTrack1).not.toBeNull();
+    expect(battleTrack1?.excludeFromCampaignPool).toBeFalsy();
+    const battleTrack2 = pickRandomRoguelikeTrack('BATTLE', battleTrack1?.id);
+    expect(battleTrack2).not.toBeNull();
+    expect(battleTrack2?.id).not.toBe(battleTrack1?.id);
+
+    const bossTrack = pickRandomRoguelikeTrack('BOSS');
+    expect(bossTrack).not.toBeNull();
+    expect(bossTrack?.excludeFromCampaignPool).toBe(true);
   });
 });

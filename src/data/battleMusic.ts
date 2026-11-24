@@ -161,3 +161,25 @@ export function resolveBattleTrackChoice(
   }
   return getBattleTrackById(choice)?.id ?? null;
 }
+
+/**
+ * Picks a random battle track for Roguelike rooms:
+ * - BOSS rooms pull from the intense boss/exclusive themes.
+ * - BATTLE / ELITE rooms pull from the full non-exclusive battle playlist.
+ * Avoids repeating `lastTrackId` back-to-back whenever more than 1 track is available.
+ */
+export function pickRandomRoguelikeTrack(
+  roomType: 'BATTLE' | 'ELITE' | 'BOSS',
+  lastTrackId?: string | null,
+): BattleTrack | null {
+  const basePool =
+    roomType === 'BOSS'
+      ? BATTLE_PLAYLIST.filter((t) => Boolean(t.excludeFromCampaignPool))
+      : BATTLE_PLAYLIST.filter((t) => !t.excludeFromCampaignPool);
+  const pool = basePool.length > 0 ? basePool : BATTLE_PLAYLIST;
+  if (pool.length === 0) return null;
+  const candidates =
+    lastTrackId && pool.length > 1 ? pool.filter((t) => t.id !== lastTrackId) : pool;
+  const idx = Math.floor(Math.random() * candidates.length);
+  return candidates[idx] ?? candidates[0] ?? null;
+}

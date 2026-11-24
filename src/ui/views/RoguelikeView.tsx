@@ -15,6 +15,7 @@ import {
   Trophy,
   X,
 } from 'lucide-react';
+import { pickRandomRoguelikeTrack } from '../../data/battleMusic';
 import { getCardById } from '../../data/cardRegistry';
 import { getCardRarity, RARITY_META, type BoosterPackDef } from '../../data/progressionData';
 import {
@@ -123,6 +124,7 @@ export function RoguelikeView() {
   const settings = useAppStore((s) => s.settings);
 
   const startBattle = useBattleStore((s) => s.startBattle);
+  const lastBattleTrackId = useBattleStore((s) => s.activeBattleTrackId);
 
   const [selectedDifficulty, setSelectedDifficulty] = useState<RoguelikeDifficulty>('NORMAL');
   const [victoryPackModal, setVictoryPackModal] = useState<{
@@ -392,6 +394,9 @@ export function RoguelikeView() {
       };
       const firstPlayerId =
         node.type === 'BOSS' || (node.type === 'ELITE' && node.floor % 2 === 1) ? 'P2' : 'P1';
+      const battleRoomType: 'BATTLE' | 'ELITE' | 'BOSS' =
+        node.type === 'BOSS' ? 'BOSS' : node.type === 'ELITE' ? 'ELITE' : 'BATTLE';
+      const battleTrack = pickRandomRoguelikeTrack(battleRoomType, lastBattleTrackId);
       startBattle(
         {
           mode: 'VS_AI',
@@ -405,6 +410,7 @@ export function RoguelikeView() {
           roguelikeNodeId: node.id,
           rules,
           p2GuaranteedOpeningCardId: enemy.featuredCardId,
+          battleTrackId: battleTrack?.id ?? null,
         },
         settings.hotseatPrivacyScreen,
       );
