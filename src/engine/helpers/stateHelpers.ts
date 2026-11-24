@@ -1,4 +1,5 @@
 import { requireCardById } from '../../data/cardRegistry';
+import type { RngProvider } from '../rng';
 import type { CombatEvent } from '../types/events';
 import type {
   CharacterInstance,
@@ -123,21 +124,39 @@ export function setGameOver(
 }
 
 /**
- * Checks whether a player's deck has reached 0 cards and immediately triggers a deck-out loss.
+ * Checks whether a player's deck has reached 0 cards.
+ * If the player has cards in their discard pile, reshuffles the entire discard pile back into the deck.
+ * Only triggers a deck-out loss when BOTH deck and discard pile are completely empty.
  */
 export function checkImmediateDeckOut(
   state: GameState,
   eventsOut: CombatEvent[],
   playerId: PlayerId,
+  rng?: RngProvider,
 ): boolean {
   if (state.phase === 'GAME_OVER') return true;
   const player = state.players[playerId];
   if (player.deck.length === 0) {
+    if (player.discard.length > 0) {
+      const recycledCount = player.discard.length;
+      const recycled = rng
+        ? rng.shuffle(player.discard)
+        : [...player.discard].sort(() => Math.random() - 0.5);
+      player.deck.push(...recycled);
+      player.discard = [];
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: 'Reciclaje de Mazo',
+        message: `¡Mazo vacío! ${player.name} baraja sus ${recycledCount} carta(s) del descarte de vuelta al mazo.`,
+      });
+      return false;
+    }
     setGameOver(
       state,
       eventsOut,
       getOpponentId(playerId),
-      `${player.name} se ha quedado sin cartas en el mazo.`,
+      `${player.name} se ha quedado sin cartas en el mazo ni en el descarte.`,
     );
     return true;
   }

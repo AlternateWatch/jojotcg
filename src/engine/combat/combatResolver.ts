@@ -66,8 +66,8 @@ export function startNextTurn(
     message: `Turno ${state.turnNumber} — Fase de Robo de ${player.name}.`,
   });
 
-  // Mandatory draw: if deck is empty before or after drawing, player loses by deck-out
-  if (checkImmediateDeckOut(state, eventsOut, nextPlayerId)) {
+  // Mandatory draw: if deck is empty, reshuffle discard pile (or lose by deck-out if both are empty)
+  if (checkImmediateDeckOut(state, eventsOut, nextPlayerId, rng)) {
     return;
   }
 
@@ -80,7 +80,7 @@ export function startNextTurn(
     message: `${player.name} roba una carta.`,
   });
 
-  if (checkImmediateDeckOut(state, eventsOut, nextPlayerId)) {
+  if (checkImmediateDeckOut(state, eventsOut, nextPlayerId, rng)) {
     return;
   }
 

@@ -785,9 +785,12 @@ export function applyPlayItem(
           abilityName: item.name,
           message: `¡${item.name}! Descarta ${removedName} equipado en ${charName}.`,
         });
-        const drawnCount = Math.min(eff.drawCount, player.deck.length);
-        for (let i = 0; i < drawnCount; i++) {
+        let drawnCount = 0;
+        for (let i = 0; i < eff.drawCount; i++) {
+          if (player.deck.length === 0 && checkImmediateDeckOut(state, eventsOut, playerId)) break;
+          if (player.deck.length === 0) break;
           player.hand.push(player.deck.shift()!);
+          drawnCount++;
         }
         if (drawnCount > 0) {
           pushEvent(state, eventsOut, {
@@ -809,9 +812,12 @@ export function applyPlayItem(
         });
       }
     } else if (eff.kind === 'DRAW_CARDS') {
-      const drawnCount = Math.min(eff.count, player.deck.length);
-      for (let i = 0; i < drawnCount; i++) {
+      let drawnCount = 0;
+      for (let i = 0; i < eff.count; i++) {
+        if (player.deck.length === 0 && checkImmediateDeckOut(state, eventsOut, playerId)) break;
+        if (player.deck.length === 0) break;
         player.hand.push(player.deck.shift()!);
+        drawnCount++;
       }
       if (drawnCount > 0) {
         pushEvent(state, eventsOut, {

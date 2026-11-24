@@ -66,7 +66,8 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
             <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
               <li>• Mazo de <strong>46 cartas</strong> (máx. 1 Personaje/Stand/Evo, 3 Objeto, <strong>4 Energía de Stand</strong>, Energías básicas libres).</li>
               <li>• Al empezar, se separan <strong>6 Cartas de Premio boca abajo</strong> (protegiendo tu titular de Turno 1 y evitando apartar cartas de Stand).</li>
-              <li>• <strong>Condiciones de victoria</strong>: robar tus <strong>6 Cartas de Premio</strong> (robas 1 por cada personaje rival eliminado), dejar al rival sin personajes en campo/banca o sin cartas en el mazo.</li>
+              <li>• <strong>Condiciones de victoria</strong>: robar tus <strong>6 Cartas de Premio</strong> (1 por personaje rival eliminado, o <strong>×2 Premios</strong> si el personaje o su Stand están evolucionados — máx. ×2), dejar al rival sin personajes en campo/banca, o sin cartas ni en el mazo ni en el descarte.</li>
+              <li>• <strong>Reciclaje de mazo</strong>: si tu mazo llega a 0 cartas, <strong>todo tu descarte se rebaraja automáticamente</strong> en el mazo (solo pierdes por desgaste si ambos están vacíos).</li>
               <li>• Mano inicial de <strong>7 cartas</strong>; banca de hasta <strong>3 personajes</strong> (puedes colocar personajes en banca gratis durante la colocación inicial).</li>
               <li>• <strong>Mulligan</strong> si no tienes personaje inicial válido (sin DG o DG ≤ 4 autosuficiente, o Usuario DG ≤ 4 + Stand compatible); rival roba +1 y <strong>tras 3 mulligans se garantiza mano válida</strong>.</li>
               <li>• <strong>Desbloqueo progresivo de DG</strong>: Activo inicial Turno 1 máx. <strong>DG 4</strong> (o sin DG), Turno 2 <strong>DG 5</strong>, Turno 3+ <strong>DG 6</strong>. Los <strong>Usuarios de Stand</strong> de DG alto sí pueden bajarse a la <strong>banca</strong> desde el Turno 1.</li>

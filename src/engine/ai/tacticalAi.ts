@@ -890,12 +890,15 @@ export function chooseAiAction(
         }
       } else if (item.effects.some((e) => e.kind === 'DISCARD_ENEMY_EQUIPPED_ITEM_AND_DRAW')) {
         const enemyBoard = [...(opponent.active ? [opponent.active] : []), ...opponent.bench];
-        if (player.deck.length >= 6 && enemyBoard.some((ch) => ch.attachedItems.length > 0)) {
+        if (
+          player.deck.length + player.discard.length >= 6 &&
+          enemyBoard.some((ch) => ch.attachedItems.length > 0)
+        ) {
           const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
           if (validateAction(state, act).ok) return act;
         }
       } else if (item.effects.some((e) => e.kind === 'DRAW_CARDS')) {
-        // Avoid deck-out suicide: only play draw items when deck has plenty of cards left
+        // Avoid deck-out suicide: only play draw items when deck + discard has plenty of cards left
         // Also occasionally hold draw items when hand is already comfortable so bosses/HARD feel more human
         const drawHoldChance =
           bossErr !== undefined ? bossErr : difficulty === 'HARD' ? 0.22 : 0;
@@ -903,7 +906,7 @@ export function chooseAiAction(
           drawHoldChance > 0 &&
           player.hand.length >= 4 &&
           deterministicRoll(state, 29 + i) < drawHoldChance;
-        if (player.deck.length >= 10 && !holdDraw) {
+        if (player.deck.length + player.discard.length >= 10 && !holdDraw) {
           const act: GameAction = { type: 'PLAY_ITEM', playerId: aiPlayerId, handIndex: i };
           if (validateAction(state, act).ok) return act;
         }

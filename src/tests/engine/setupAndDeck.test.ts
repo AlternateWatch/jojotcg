@@ -163,7 +163,7 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     expect(getControllingPlayerId(state, 'HOTSEAT')).toBe('P2');
   });
 
-  it('triggers immediate deck-out loss as soon as a player empties their deck (draw, item, or ability)', () => {
+  it('reshuffles discard pile into deck when deck hits 0, and only triggers deck-out loss when both deck and discard are empty', () => {
     const p1Deck = [
       'char-jonathan-joestar',
       'item-suministros-speedwagon',
@@ -191,15 +191,86 @@ describe('Deck Validation & Setup/Mulligan Rules', () => {
     state = dispatchAction(state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P1', handIndex: 0 }, noShuffle).state;
     state = dispatchAction(state, { type: 'CHOOSE_STARTING_ACTIVE', playerId: 'P2', handIndex: 0 }, noShuffle).state;
 
-    // P1 now has 1 card left in deck. Playing Suministros de la Fundación draws it and hits 0 cards -> P1 immediately loses!
+    // 1. P1 has 1 card in deck and 2 cards in discard -> playing Suministros draws the last card, reshuffles discard into deck, and continues!
+    state.players.P1.discard = ['energy-fire', 'energy-water'];
     expect(state.players.P1.deck).toHaveLength(1);
     const itemIdx = state.players.P1.hand.indexOf('item-suministros-speedwagon');
     state = dispatchAction(state, { type: 'PLAY_ITEM', playerId: 'P1', handIndex: itemIdx }, noShuffle).state;
 
-    expect(state.players.P1.deck).toHaveLength(0);
+    expect(state.phase).not.toBe('GAME_OVER');
+    // The 2 previous discard cards were reshuffled into deck, 1 was drawn for Suministros's 2nd card, and Suministros itself moved to discard
+    expect(state.players.P1.discard).toEqual(['item-suministros-speedwagon']);
+    expect(state.players.P1.deck).toHaveLength(1);
+
+    // 2. When BOTH deck AND discard are empty at turn start -> P1 loses by deck-out!
+    state.players.P1.deck = [];
+    state.players.P1.discard = [];
+    state = dispatchAction(state, { type: 'END_TURN', playerId: 'P1' }, noShuffle).state;
+    state = dispatchAction(state, { type: 'END_TURN', playerId: 'P2' }, noShuffle).state;
     expect(state.phase).toBe('GAME_OVER');
     expect(state.winnerId).toBe('P2');
     expect(state.winReason).toContain('Basildo se ha quedado sin cartas en el mazo');
+  });
+
+  it('awards ×2 Prize Cards when KOing an Evolved Character, an Evolved Stand, or BOTH (strictly capped at ×2)', () => {
+    // Case A: Evolved Character + Evolved Stand (Kosaku Kawajiri + Killer Queen: Bites The Dust) -> capped at ×2 (not ×4!)
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-dio-brando',
+      p1ActiveEnergies: ['ELECTRIC', 'ELECTRIC'],
+      p2ActiveId: 'char-yoshikage-kira',
+      p2ActiveStandId: 'stand-killer-queen',
+      p2BenchIds: ['char-hol-horse'],
+      phase: 'COMBAT',
+    });
+    state.players.P1.prizeCards = ['energy-electric', 'energy-fire', 'energy-water', 'energy-light'];
+    state.players.P2.active!.evolvedCardIds = ['evo-kosaku-kawajiri'];
+    state.players.P2.active!.attachedStand!.evolvedCardIds = ['evo-killer-queen-bites-the-dust'];
+    state.players.P2.active!.currentHp = 40;
+
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-space-ripper-stingy-eyes', // 90 dmg -> KOs Kosaku + Bites The Dust!
+    });
+
+    // Human P1 gets exactly 2 CHOOSE_PRIZE_CARD prompts (not 4!)
+    expect(state.pendingPrompt?.kind).toBe('CHOOSE_PRIZE_CARD');
+
+    state = mustDispatch(state, {
+      type: 'RESPOND_PROMPT',
+      playerId: 'P1',
+      response: { kind: 'CHOOSE_PRIZE_CARD', prizeIndex: 0 },
+    });
+    expect(state.pendingPrompt?.kind).toBe('CHOOSE_PRIZE_CARD');
+
+    state = mustDispatch(state, {
+      type: 'RESPOND_PROMPT',
+      playerId: 'P1',
+      response: { kind: 'CHOOSE_PRIZE_CARD', prizeIndex: 0 },
+    });
+    expect(state.pendingPrompt?.kind).not.toBe('CHOOSE_PRIZE_CARD');
+    expect(state.players.P1.prizeCards).toHaveLength(2); // 4 - 2 = 2 remaining!
+
+    // Case B: Evolved Stand only (Jotaro + Star Platinum: The World) with AI winner -> immediately takes 2 Prize Cards!
+    let aiState = buildControlledBattleState({
+      p1ActiveId: 'char-dio-brando',
+      p1ActiveEnergies: ['ELECTRIC', 'ELECTRIC'],
+      p2ActiveId: 'char-jotaro-kujo',
+      p2ActiveStandId: 'stand-star-platinum',
+      p2BenchIds: ['char-iggy'],
+      phase: 'COMBAT',
+    });
+    aiState.players.P1.isAi = true;
+    aiState.players.P1.prizeCards = ['energy-electric', 'energy-fire', 'energy-water'];
+    aiState.players.P2.active!.attachedStand!.evolvedCardIds = ['evo-star-platinum-the-world'];
+    aiState.players.P2.active!.currentHp = 40;
+
+    aiState = mustDispatch(aiState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-space-ripper-stingy-eyes',
+    });
+    expect(aiState.players.P1.prizeCards).toHaveLength(1); // 3 - 2 = 1 remaining!
   });
 
   it('enforces progressive Active DG unlock (T1: DG 4, T2: DG 5, T3+: DG 6) while allowing high-DG Stand Users on Bench from T1', () => {

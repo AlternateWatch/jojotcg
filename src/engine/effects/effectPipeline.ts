@@ -526,18 +526,28 @@ export function handleCharacterKo(
     return true;
   }
 
-  // 8. Prize Card award: opponent chooses 1 face-down Prize Card (AI takes immediately; human gets interactive 3D flip!)
+  // 8. Prize Card award: 2 Prize Cards if KO'd Character OR its attached Stand is Evolved (capped at ×2 even if both), else 1
+  const isEvolvedKo =
+    character.evolvedCardIds.length > 0 ||
+    Boolean(character.attachedStand && character.attachedStand.evolvedCardIds.length > 0);
+  const prizeAwardCount = isEvolvedKo ? 2 : 1;
+
   const prizeWinnerId = getOpponentId(ownerPlayerId);
   const prizeWinner = state.players[prizeWinnerId];
   if (prizeWinner.prizeCards.length > 0) {
+    const actualCount = Math.min(prizeAwardCount, prizeWinner.prizeCards.length);
     if (prizeWinner.isAi) {
-      const takenPrizeId = prizeWinner.prizeCards.shift()!;
-      prizeWinner.hand.push(takenPrizeId);
+      for (let p = 0; p < actualCount; p++) {
+        const takenPrizeId = prizeWinner.prizeCards.shift()!;
+        prizeWinner.hand.push(takenPrizeId);
+      }
       pushEvent(state, eventsOut, {
         type: 'CARD_DRAWN',
         playerId: prizeWinnerId,
-        count: 1,
-        message: `¡Carta de Premio! ${prizeWinner.name} roba 1 carta de sus premios (${prizeWinner.prizeCards.length} restante(s)).`,
+        count: actualCount,
+        message: isEvolvedKo
+          ? `¡Evolución derrotada (×${actualCount} Premios)! ${prizeWinner.name} roba ${actualCount} Carta(s) de Premio (${prizeWinner.prizeCards.length} restante(s)).`
+          : `¡Carta de Premio! ${prizeWinner.name} roba 1 carta de sus premios (${prizeWinner.prizeCards.length} restante(s)).`,
       });
       if (prizeWinner.prizeCards.length === 0) {
         setGameOver(
@@ -549,11 +559,15 @@ export function handleCharacterKo(
         return true;
       }
     } else {
-      enqueuePrompt(state, {
-        kind: 'CHOOSE_PRIZE_CARD',
-        playerId: prizeWinnerId,
-        reason: `${profile.name} fue eliminado (${reason}). Elige 1 Carta de Premio boca abajo.`,
-      });
+      for (let p = 0; p < actualCount; p++) {
+        enqueuePrompt(state, {
+          kind: 'CHOOSE_PRIZE_CARD',
+          playerId: prizeWinnerId,
+          reason: isEvolvedKo
+            ? `¡Evolución derrotada (×${actualCount} Premios)! ${profile.name} fue eliminado (${reason}). Elige tu Carta de Premio (${p + 1}/${actualCount}).`
+            : `${profile.name} fue eliminado (${reason}). Elige 1 Carta de Premio boca abajo.`,
+        });
+      }
     }
   }
 
