@@ -36,9 +36,11 @@ export function CardInspectorModal() {
   const [holoPointer, setHoloPointer] = useState({ x: 50, y: 40, rx: 0, ry: 0 });
 
   const card = inspectedCardId ? getCardById(inspectedCardId) : undefined;
+  const canHaveFoil = Boolean(card && card.type !== 'ENERGY');
   const foilCopies = card ? getFoilCount(progression, card.id) : 0;
   const hasFoilVariant = foilCopies > 0;
   const isEquippedFoil = card ? isCardFoilEquipped(progression, card.id) : false;
+  const isLockedFoilPreview = showFoilVariant && !hasFoilVariant;
 
   useEffect(() => {
     setIsHoveringCard(false);
@@ -51,13 +53,13 @@ export function CardInspectorModal() {
     if (!inspectedCardId) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeInspector();
-      if (hasFoilVariant && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+      if (canHaveFoil && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
         setShowFoilVariant((v) => !v);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [inspectedCardId, closeInspector, hasFoilVariant]);
+  }, [inspectedCardId, closeInspector, canHaveFoil]);
 
   const handleCardPointerMove = (e: MouseEvent<HTMLDivElement>) => {
     if (!showFoilVariant) return;
@@ -142,17 +144,38 @@ export function CardInspectorModal() {
                       foil={showFoilVariant}
                       showInspectButton={false}
                     />
+                    {/* Bizarre JoJo Padlock Overlay when previewing an unowned Holographic card */}
+                    {isLockedFoilPreview && (
+                      <div className="pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center rounded-[7px] bg-[#0b090e]/45">
+                        <div className="relative flex flex-col items-center gap-1 -rotate-6 border-2 border-[#f2c12e] bg-[#140a1a]/92 px-3.5 py-2.5 shadow-[4px_4px_0_#060508,0_0_20px_rgba(230,25,75,0.55)]">
+                          <span className="font-jojo-display text-[11px] tracking-[0.28em] text-[#e6194b]">
+                            ゴゴゴゴ
+                          </span>
+                          <div className="flex h-10 w-10 items-center justify-center border-2 border-[#060508] bg-gradient-to-br from-[#e6194b] via-[#9333ea] to-[#f2c12e] text-[#0b090e] shadow-[2px_2px_0_#060508]">
+                            <Lock size={20} strokeWidth={2.6} />
+                          </div>
+                          <span className="font-jojo-heading text-xs tracking-[0.18em] text-[#f2c12e] uppercase">
+                            HOLO BLOQUEADA
+                          </span>
+                          <span className="font-mono text-[9px] font-bold text-zinc-300">
+                            0,1% EN SOBRES
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Right Arrow Toggle to inspect Holographic variant */}
-                  {hasFoilVariant && (
+                  {/* Right Arrow Toggle to inspect/preview Holographic variant */}
+                  {canHaveFoil && (
                     <button
                       type="button"
                       onClick={() => setShowFoilVariant((v) => !v)}
                       title={
                         showFoilVariant
                           ? 'Volver a versión Normal'
-                          : 'Ver versión Holográfica (✦ HOLO)'
+                          : hasFoilVariant
+                            ? 'Ver versión Holográfica (✦ HOLO)'
+                            : 'Previsualizar versión Holográfica (Bloqueada)'
                       }
                       aria-label={
                         showFoilVariant ? 'Ver versión Normal' : 'Ver versión Holográfica'
@@ -160,7 +183,9 @@ export function CardInspectorModal() {
                       className={`absolute top-1/2 -right-4 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center border-2 border-[#060508] shadow-[3px_3px_0_#060508] transition hover:scale-110 ${
                         showFoilVariant
                           ? 'bg-[#1f182d] text-[#f2c12e] hover:bg-[#2c2240]'
-                          : 'bg-gradient-to-br from-[#f2c12e] via-[#00e599] to-[#c084fc] text-[#0b090e]'
+                          : hasFoilVariant
+                            ? 'bg-gradient-to-br from-[#f2c12e] via-[#00e599] to-[#c084fc] text-[#0b090e]'
+                            : 'bg-[#2a1736] text-[#f2c12e] hover:border-[#f2c12e]'
                       }`}
                     >
                       {showFoilVariant ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
@@ -168,39 +193,53 @@ export function CardInspectorModal() {
                   )}
                 </div>
 
-                {hasFoilVariant && (
-                  <div className="flex flex-col items-center gap-1.5">
+                {canHaveFoil && (
+                  <div className="flex w-full flex-col items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => setShowFoilVariant((v) => !v)}
                       className={`inline-flex items-center gap-1.5 border border-[#060508] px-2.5 py-0.5 font-mono text-[10px] font-black uppercase transition ${
                         showFoilVariant
-                          ? 'bg-gradient-to-r from-[#f2c12e] via-[#00e599] to-[#c084fc] text-[#0b090e]'
+                          ? hasFoilVariant
+                            ? 'bg-gradient-to-r from-[#f2c12e] via-[#00e599] to-[#c084fc] text-[#0b090e]'
+                            : 'border-[#e6194b] bg-[#2a1020] text-[#f2c12e]'
                           : 'bg-[#1a1426] text-zinc-300 hover:border-[#f2c12e] hover:text-[#f2c12e]'
                       }`}
                     >
-                      <Sparkles size={11} />
+                      {isLockedFoilPreview ? <Lock size={11} /> : <Sparkles size={11} />}
                       {showFoilVariant
-                        ? `✦ Vista Holográfica (×${foilCopies})`
-                        : `Normal · Pulsa ➔ para ver Holo`}
+                        ? hasFoilVariant
+                          ? `✦ Vista Holográfica (×${foilCopies})`
+                          : 'Vista previa Holo (Bloqueada)'
+                        : hasFoilVariant
+                          ? 'Normal · Pulsa ➔ para ver Holo'
+                          : 'Normal · Pulsa ➔ previsualizar Holo'}
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        toggleEquipFoilCard(card.id);
-                        if (!isEquippedFoil) setShowFoilVariant(true);
-                      }}
-                      className={`w-full px-3 py-1.5 font-jojo-heading text-xs tracking-wider uppercase ${
-                        isEquippedFoil
-                          ? 'jojo-btn-ink border-[#00e599] text-[#00e599]'
-                          : 'jojo-btn-primary'
-                      }`}
-                    >
-                      {isEquippedFoil
-                        ? '✓ Holográfica Equipada (Cambiar a Normal)'
-                        : '✦ Equipar versión Holográfica'}
-                    </button>
+                    {hasFoilVariant ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          toggleEquipFoilCard(card.id);
+                          if (!isEquippedFoil) setShowFoilVariant(true);
+                        }}
+                        className={`w-full px-3 py-1.5 font-jojo-heading text-xs tracking-wider uppercase ${
+                          isEquippedFoil
+                            ? 'jojo-btn-ink border-[#00e599] text-[#00e599]'
+                            : 'jojo-btn-primary'
+                        }`}
+                      >
+                        {isEquippedFoil
+                          ? '✓ Holográfica Equipada (Cambiar a Normal)'
+                          : '✦ Equipar versión Holográfica'}
+                      </button>
+                    ) : (
+                      showFoilVariant && (
+                        <div className="w-full border border-[#e6194b]/60 bg-[#1f0d19] px-2.5 py-1 text-center font-mono text-[10px] font-bold text-rose-200">
+                          <Lock size={10} className="mr-1 inline" /> Consíguela en Sobres (0,1%)
+                        </div>
+                      )
+                    )}
                   </div>
                 )}
 
@@ -494,6 +533,24 @@ export function CardInspectorModal() {
                         <div className="pointer-events-none absolute top-3 right-3 z-20 -skew-x-8 border-2 border-[#060508] bg-gradient-to-r from-[#f2c12e] via-[#00e599] to-[#c084fc] px-2.5 py-1 font-mono text-xs font-black tracking-wider text-[#0b090e] uppercase shadow-[3px_3px_0_#060508]">
                           <span className="inline-block skew-x-8">✦ HOLOGRÁFICA</span>
                         </div>
+                        {isLockedFoilPreview && (
+                          <div className="pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#0b090e]/40">
+                            <div className="flex flex-col items-center gap-2 -rotate-6 border-[3px] border-[#f2c12e] bg-[#140a1a]/92 px-6 py-4 shadow-[6px_6px_0_#060508,0_0_32px_rgba(230,25,75,0.65)]">
+                              <span className="font-jojo-display text-lg tracking-[0.3em] text-[#e6194b]">
+                                ゴゴゴゴ
+                              </span>
+                              <div className="flex h-16 w-16 items-center justify-center border-2 border-[#060508] bg-gradient-to-br from-[#e6194b] via-[#9333ea] to-[#f2c12e] text-[#0b090e] shadow-[3px_3px_0_#060508]">
+                                <Lock size={32} strokeWidth={2.6} />
+                              </div>
+                              <span className="font-jojo-heading text-xl tracking-[0.2em] text-[#f2c12e] uppercase">
+                                HOLO BLOQUEADA
+                              </span>
+                              <span className="font-mono text-xs font-bold text-zinc-200">
+                                0,1% EN SOBRES
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
