@@ -58,7 +58,12 @@ export function CardView({
 }: CardViewProps) {
   const openInspector = useAppStore((s) => s.openInspector);
   const overrides = useAppStore((s) => s.settings.customImageOverrides);
-  const isFoil = Boolean(foil);
+  const isEquippedFoil = useAppStore(
+    (s) =>
+      (s.progression.foilCards?.[card.id] ?? 0) > 0 &&
+      Boolean(s.progression.equippedFoilCardIds?.includes(card.id)),
+  );
+  const isFoil = foil !== undefined ? foil : isEquippedFoil;
   const asset = resolveCardAsset(card.imageId, card.assetFolder, overrides);
 
   const shadowClass = selected

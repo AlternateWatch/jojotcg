@@ -27,6 +27,8 @@ export interface PlayerProgression {
   ownedCards: Record<string, number>;
   /** Holographic / Foil copies owned per collectible cardId */
   foilCards?: Record<string, number>;
+  /** Card IDs for which the player has equipped the Holographic / Foil cosmetic variant */
+  equippedFoilCardIds?: string[];
   packsOpened: number;
   wins: number;
   losses: number;
@@ -149,6 +151,7 @@ export function createInitialProgression(): PlayerProgression {
     coins: INITIAL_TEST_COINS,
     ownedCards,
     foilCards,
+    equippedFoilCardIds: [],
     packsOpened: 0,
     wins: 0,
     losses: 0,
@@ -227,10 +230,22 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
       )
     : [];
 
+  const equippedFoilCardIds = Array.isArray(progression.equippedFoilCardIds)
+    ? Array.from(
+        new Set(
+          progression.equippedFoilCardIds
+            .filter((id): id is string => typeof id === 'string')
+            .map((id) => LEGACY_ITEM_ID_MIGRATION[id] ?? id)
+            .filter((id) => (nextFoil[id] ?? 0) > 0),
+        ),
+      )
+    : [];
+
   return {
     ...progression,
     ownedCards: nextOwned,
     foilCards: nextFoil,
+    equippedFoilCardIds,
     completedCampaignStages,
     completedTutorialLessons,
     claimedMilestones,
@@ -286,6 +301,13 @@ export function getFoilCount(progression: PlayerProgression, cardId: string): nu
 
 export function isCardFoilOwned(progression: PlayerProgression, cardId: string): boolean {
   return getFoilCount(progression, cardId) > 0;
+}
+
+export function isCardFoilEquipped(progression: PlayerProgression, cardId: string): boolean {
+  return (
+    isCardFoilOwned(progression, cardId) &&
+    Boolean(progression.equippedFoilCardIds?.includes(cardId))
+  );
 }
 
 export function getCollectionProgress(progression: PlayerProgression): {

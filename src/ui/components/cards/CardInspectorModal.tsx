@@ -17,6 +17,7 @@ import {
   getFoilCount,
   getMaxCollectibleCopies,
   getOwnedCount,
+  isCardFoilEquipped,
 } from '../../../services/progressionService';
 import { useAppStore } from '../../../store/useAppStore';
 import { CardArtwork } from './CardArtwork';
@@ -29,6 +30,7 @@ export function CardInspectorModal() {
   const openInspector = useAppStore((s) => s.openInspector);
   const setScreen = useAppStore((s) => s.setScreen);
   const progression = useAppStore((s) => s.progression);
+  const toggleEquipFoilCard = useAppStore((s) => s.toggleEquipFoilCard);
   const [isHoveringCard, setIsHoveringCard] = useState(false);
   const [showFoilVariant, setShowFoilVariant] = useState(false);
   const [holoPointer, setHoloPointer] = useState({ x: 50, y: 40, rx: 0, ry: 0 });
@@ -36,11 +38,13 @@ export function CardInspectorModal() {
   const card = inspectedCardId ? getCardById(inspectedCardId) : undefined;
   const foilCopies = card ? getFoilCount(progression, card.id) : 0;
   const hasFoilVariant = foilCopies > 0;
+  const isEquippedFoil = card ? isCardFoilEquipped(progression, card.id) : false;
 
   useEffect(() => {
     setIsHoveringCard(false);
-    setShowFoilVariant(false);
+    setShowFoilVariant(card ? isCardFoilEquipped(progression, card.id) : false);
     setHoloPointer({ x: 50, y: 40, rx: 0, ry: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inspectedCardId]);
 
   useEffect(() => {
@@ -165,20 +169,39 @@ export function CardInspectorModal() {
                 </div>
 
                 {hasFoilVariant && (
-                  <button
-                    type="button"
-                    onClick={() => setShowFoilVariant((v) => !v)}
-                    className={`inline-flex items-center gap-1.5 border border-[#060508] px-2.5 py-0.5 font-mono text-[10px] font-black uppercase transition ${
-                      showFoilVariant
-                        ? 'bg-gradient-to-r from-[#f2c12e] via-[#00e599] to-[#c084fc] text-[#0b090e]'
-                        : 'bg-[#1a1426] text-zinc-300 hover:border-[#f2c12e] hover:text-[#f2c12e]'
-                    }`}
-                  >
-                    <Sparkles size={11} />
-                    {showFoilVariant
-                      ? `✦ Vista Holográfica (×${foilCopies})`
-                      : `Normal · Pulsa ➔ para ver Holo`}
-                  </button>
+                  <div className="flex flex-col items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowFoilVariant((v) => !v)}
+                      className={`inline-flex items-center gap-1.5 border border-[#060508] px-2.5 py-0.5 font-mono text-[10px] font-black uppercase transition ${
+                        showFoilVariant
+                          ? 'bg-gradient-to-r from-[#f2c12e] via-[#00e599] to-[#c084fc] text-[#0b090e]'
+                          : 'bg-[#1a1426] text-zinc-300 hover:border-[#f2c12e] hover:text-[#f2c12e]'
+                      }`}
+                    >
+                      <Sparkles size={11} />
+                      {showFoilVariant
+                        ? `✦ Vista Holográfica (×${foilCopies})`
+                        : `Normal · Pulsa ➔ para ver Holo`}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleEquipFoilCard(card.id);
+                        if (!isEquippedFoil) setShowFoilVariant(true);
+                      }}
+                      className={`w-full px-3 py-1.5 font-jojo-heading text-xs tracking-wider uppercase ${
+                        isEquippedFoil
+                          ? 'jojo-btn-ink border-[#00e599] text-[#00e599]'
+                          : 'jojo-btn-primary'
+                      }`}
+                    >
+                      {isEquippedFoil
+                        ? '✓ Holográfica Equipada (Cambiar a Normal)'
+                        : '✦ Equipar versión Holográfica'}
+                    </button>
+                  </div>
                 )}
 
                 <div className="pointer-events-none flex items-center justify-center gap-1 font-mono text-[10px] font-bold tracking-wider text-zinc-400 uppercase">

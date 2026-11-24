@@ -110,6 +110,7 @@ interface AppStoreState {
   completeTutorialLesson: (lessonId: string) => CampaignClearResult | null;
   claimMilestone: (milestoneId: string) => ClaimMilestoneResult;
   claimAllMilestones: () => ClaimAllMilestonesResult;
+  toggleEquipFoilCard: (cardId: string) => void;
   grantTestCoins: (amount: number) => void;
   resetProgression: () => void;
 
@@ -460,6 +461,21 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       set({ progression: result.nextProgression });
     }
     return result;
+  },
+
+  toggleEquipFoilCard: (cardId) => {
+    const prog = get().progression;
+    if ((prog.foilCards?.[cardId] ?? 0) <= 0) return;
+    const current = prog.equippedFoilCardIds ?? [];
+    const nextEquipped = current.includes(cardId)
+      ? current.filter((id) => id !== cardId)
+      : [...current, cardId];
+    const nextProg: PlayerProgression = {
+      ...prog,
+      equippedFoilCardIds: nextEquipped,
+    };
+    if (get().authUser) void authService.syncAccountData({ progression: nextProg });
+    set({ progression: nextProg });
   },
 
   grantTestCoins: (amount) =>
