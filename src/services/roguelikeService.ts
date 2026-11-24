@@ -75,6 +75,19 @@ export interface RoguelikeEnemySpec {
   bonusDamage: number;
 }
 
+export interface RoguelikeModifierItem {
+  id: string;
+  side: 'PLAYER' | 'ENEMY';
+  kind: 'BUFF' | 'DEBUFF' | 'NEUTRAL';
+  tagLabel: string;
+  icon: string;
+  title: string;
+  sourceCategory: 'RELIC' | 'SCALING' | 'DIFFICULTY' | 'RULE';
+  sourceLabel: string;
+  description: string;
+  breakdown?: string[];
+}
+
 export interface RoguelikeRunState {
   runId: string;
   seed: number;
@@ -1225,4 +1238,297 @@ export function computeRoguelikeMetaReward(run: RoguelikeRunState): {
     floorsCleared,
     breakdown: parts.join(' · '),
   };
+}
+
+/**
+ * Computes itemized external buffs/debuffs and Roguelike scaling modifiers for both sides
+ * during an active Roguelike battle (displayed as clickable side tags + breakdown modal).
+ */
+export function buildRoguelikeBattleModifiers(params: {
+  run: RoguelikeRunState;
+  nodeId: string;
+  enemyName: string;
+  enemyDeckSize: number;
+  aiDifficulty: AiDifficulty;
+  rules: GameRulesConfig;
+}): {
+  playerModifiers: RoguelikeModifierItem[];
+  enemyModifiers: RoguelikeModifierItem[];
+} {
+  const { run, nodeId, enemyName, enemyDeckSize, aiDifficulty, rules } = params;
+  const node = run.map.find((n) => n.id === nodeId);
+  const floor = node?.floor ?? run.currentFloor;
+  const roomType: 'BATTLE' | 'ELITE' | 'BOSS' =
+    node?.type === 'BOSS' ? 'BOSS' : node?.type === 'ELITE' ? 'ELITE' : 'BATTLE';
+  const diff = run.difficulty ?? 'NORMAL';
+  const diffMeta = ROGUELIKE_DIFFICULTY_META[diff];
+  const actNum = floor <= 10 ? 1 : floor <= 20 ? 2 : 3;
+
+  const ownedRelics = run.relicIds
+    .map((rid) => getRoguelikeRelicById(rid))
+    .filter((r): r is RoguelikeRelicDef => Boolean(r));
+
+  const playerModifiers: RoguelikeModifierItem[] = [];
+  const enemyModifiers: RoguelikeModifierItem[] = [];
+
+  // ---- PLAYER MODIFIERS (RIGHT SIDE) ----
+  const hpRelics = ownedRelics.filter((r) => (r.bonusMaxHp ?? 0) !== 0);
+  const totalP1Hp = rules.p1BonusMaxHp ?? 0;
+  if (totalP1Hp !== 0) {
+    playerModifiers.push({
+      id: 'p1-hp',
+      side: 'PLAYER',
+      kind: totalP1Hp > 0 ? 'BUFF' : 'DEBUFF',
+      tagLabel: `${totalP1Hp > 0 ? '+' : ''}${totalP1Hp} PV`,
+      icon: '❤️',
+      title: `Vida Máxima ${totalP1Hp > 0 ? '+' : ''}${totalP1Hp} PV`,
+      sourceCategory: 'RELIC',
+      sourceLabel: hpRelics.length === 1 ? `Reliquia · ${hpRelics[0]!.name}` : `${hpRelics.length} Reliquias`,
+      description: 'Todos tus personajes entran al campo con esta bonificación de PV máximos y actuales.',
+      breakdown: hpRelics.map((r) => `${r.icon} ${r.name}: +${r.bonusMaxHp} PV`),
+    });
+  }
+
+  const dmgRelics = ownedRelics.filter((r) => (r.bonusDamage ?? 0) !== 0);
+  const totalP1Dmg = rules.p1BonusDamage ?? 0;
+  if (totalP1Dmg !== 0) {
+    playerModifiers.push({
+      id: 'p1-dmg',
+      side: 'PLAYER',
+      kind: totalP1Dmg > 0 ? 'BUFF' : 'DEBUFF',
+      tagLabel: `${totalP1Dmg > 0 ? '+' : ''}${totalP1Dmg} Daño`,
+      icon: '⚔️',
+      title: `Daño de Ataque ${totalP1Dmg > 0 ? '+' : ''}${totalP1Dmg}`,
+      sourceCategory: 'RELIC',
+      sourceLabel: dmgRelics.length === 1 ? `Reliquia · ${dmgRelics[0]!.name}` : `${dmgRelics.length} Reliquias`,
+      description: 'Todos los ataques de tus Personajes y Stands infligen daño adicional.',
+      breakdown: dmgRelics.map((r) => `${r.icon} ${r.name}: +${r.bonusDamage} daño`),
+    });
+  }
+
+  const handRelics = ownedRelics.filter((r) => (r.extraInitialHand ?? 0) !== 0);
+  const totalP1Hand = rules.p1ExtraInitialHand ?? 0;
+  if (totalP1Hand !== 0) {
+    playerModifiers.push({
+      id: 'p1-hand',
+      side: 'PLAYER',
+      kind: 'BUFF',
+      tagLabel: `+${totalP1Hand} Mano`,
+      icon: '🃏',
+      title: `Mano Inicial +${totalP1Hand} carta${totalP1Hand > 1 ? 's' : ''}`,
+      sourceCategory: 'RELIC',
+      sourceLabel: handRelics.length === 1 ? `Reliquia · ${handRelics[0]!.name}` : `${handRelics.length} Reliquias`,
+      description: `Comienzas el combate con ${5 + totalP1Hand} cartas en mano en lugar de 5.`,
+      breakdown: handRelics.map((r) => `${r.icon} ${r.name}: +${r.extraInitialHand} carta inicial`),
+    });
+  }
+
+  const goldRelics = ownedRelics.filter((r) => (r.goldBonusPercent ?? 0) > 0);
+  if (goldRelics.length > 0) {
+    const totalGoldPct = goldRelics.reduce((acc, r) => acc + (r.goldBonusPercent ?? 0), 0);
+    playerModifiers.push({
+      id: 'p1-gold',
+      side: 'PLAYER',
+      kind: 'BUFF',
+      tagLabel: `+${totalGoldPct}% Oro`,
+      icon: '🪙',
+      title: `Bonificación de Oro +${totalGoldPct}%`,
+      sourceCategory: 'RELIC',
+      sourceLabel: goldRelics.length === 1 ? `Reliquia · ${goldRelics[0]!.name}` : `${goldRelics.length} Reliquias`,
+      description: 'Aumenta el Oro de Expedición obtenido al ganar este combate y abrir tesoros.',
+      breakdown: goldRelics.map((r) => `${r.icon} ${r.name}: +${r.goldBonusPercent}% Oro`),
+    });
+  }
+
+  const utilityRelics = ownedRelics.filter(
+    (r) =>
+      (r.shopDiscountPercent ?? 0) > 0 ||
+      (r.extraShopOffers ?? 0) > 0 ||
+      (r.extraDraftChoices ?? 0) > 0 ||
+      (r.skipCardGoldBonus ?? 0) > 0 ||
+      (r.extraRelicChoices ?? 0) > 0 ||
+      (r.grantCardIdsOnPickup?.length ?? 0) > 0 ||
+      (r.bonusGoldOnPickup ?? 0) > 0,
+  );
+  if (utilityRelics.length > 0) {
+    playerModifiers.push({
+      id: 'p1-relics-utility',
+      side: 'PLAYER',
+      kind: 'BUFF',
+      tagLabel: `Reliquias (${ownedRelics.length})`,
+      icon: '✨',
+      title: `Reliquias de Expedición (${ownedRelics.length})`,
+      sourceCategory: 'RELIC',
+      sourceLabel: 'Efectos pasivos y de expedición',
+      description: 'Reliquias obtenidas en Tesoros, Tiendas, Élites o Eventos durante esta expedición.',
+      breakdown: utilityRelics.map((r) => `${r.icon} ${r.name}: ${r.description}`),
+    });
+  }
+
+  if (rules.disableDeckOutLoss) {
+    playerModifiers.push({
+      id: 'p1-roguelike-rule',
+      side: 'PLAYER',
+      kind: 'NEUTRAL',
+      tagLabel: 'Sin Deck-out',
+      icon: '♻️',
+      title: 'Regla de Expedición · Sin derrota por Deck-out',
+      sourceCategory: 'RULE',
+      sourceLabel: 'Reglas del Modo Roguelike',
+      description:
+        'Al quedarte sin cartas en el mazo, tu pila de descartes se baraja automáticamente y nunca pierdes por quedarte sin baraja.',
+      breakdown: [
+        `Mano inicial base: ${rules.initialHandSize} cartas`,
+        `Tamaño actual de tu mazo: ${run.deckCardIds.length} cartas`,
+      ],
+    });
+  }
+
+  // ---- ENEMY MODIFIERS (LEFT SIDE) ----
+  // Compute base scaling vs difficulty adjustment so player sees exact origin!
+  const baseEnemyHp =
+    roomType === 'BOSS'
+      ? floor === 10
+        ? 20
+        : floor === 20
+          ? 30
+          : 40
+      : roomType === 'ELITE'
+        ? floor <= 10
+          ? 10
+          : floor <= 20
+            ? 20
+            : 30
+        : floor <= 10
+          ? 0
+          : floor <= 20
+            ? 10
+            : 20;
+
+  const baseEnemyDmg =
+    roomType === 'BOSS'
+      ? floor >= 20
+        ? 10
+        : 0
+      : (roomType === 'ELITE' && floor >= 11) || floor >= 22
+        ? 10
+        : 0;
+
+  const actualEnemyHp = rules.p2BonusMaxHp ?? 0;
+  const actualEnemyDmg = rules.p2BonusDamage ?? 0;
+  const roomLabel = roomType === 'BOSS' ? 'Jefe' : roomType === 'ELITE' ? 'Élite' : 'Combate';
+
+  if (actualEnemyHp > 0) {
+    const hpBreakdown: string[] = [];
+    if (baseEnemyHp > 0) {
+      hpBreakdown.push(`Escalado Roguelike (Piso ${floor} · ${roomLabel}): +${baseEnemyHp} PV`);
+    }
+    if (diff === 'HARD') {
+      hpBreakdown.push('Dificultad Difícil: +10 PV adicionales');
+    } else if (diff === 'EASY' && baseEnemyHp > actualEnemyHp) {
+      hpBreakdown.push(`Dificultad Fácil: -${baseEnemyHp - actualEnemyHp} PV reducidos`);
+    }
+    enemyModifiers.push({
+      id: 'p2-hp',
+      side: 'ENEMY',
+      kind: 'BUFF',
+      tagLabel: `+${actualEnemyHp} PV`,
+      icon: '❤️',
+      title: `Vida Rival +${actualEnemyHp} PV`,
+      sourceCategory: baseEnemyHp > 0 ? 'SCALING' : 'DIFFICULTY',
+      sourceLabel:
+        baseEnemyHp > 0 && diff === 'HARD'
+          ? `Escalado Roguelike + Dificultad Difícil`
+          : baseEnemyHp > 0
+            ? `Escalado Roguelike · Piso ${floor} (${roomLabel})`
+            : `Dificultad ${diffMeta.label}`,
+      description: `Todos los personajes de ${enemyName} entran al campo con +${actualEnemyHp} PV máximos y actuales.`,
+      breakdown: hpBreakdown,
+    });
+  } else if (diff === 'EASY' && baseEnemyHp > 0) {
+    enemyModifiers.push({
+      id: 'p2-hp-easy-nerf',
+      side: 'ENEMY',
+      kind: 'DEBUFF',
+      tagLabel: `PV Base`,
+      icon: '🛡️',
+      title: 'Escalado de Vida Mitigado (Modo Fácil)',
+      sourceCategory: 'DIFFICULTY',
+      sourceLabel: 'Dificultad Fácil',
+      description: 'La dificultad Fácil ha neutralizado el bono de PV de este piso.',
+      breakdown: [
+        `Escalado Roguelike base (Piso ${floor} · ${roomLabel}): +${baseEnemyHp} PV`,
+        `Dificultad Fácil: -15 PV (resultado: +0 PV)`,
+      ],
+    });
+  }
+
+  if (actualEnemyDmg > 0) {
+    const dmgBreakdown: string[] = [];
+    if (baseEnemyDmg > 0) {
+      dmgBreakdown.push(`Escalado Roguelike (Piso ${floor} · ${roomLabel}): +${baseEnemyDmg} daño`);
+    }
+    const hardExtraDmg = actualEnemyDmg - baseEnemyDmg;
+    if (diff === 'HARD' && hardExtraDmg > 0) {
+      dmgBreakdown.push(`Dificultad Difícil (${roomLabel} Piso ${floor}): +${hardExtraDmg} daño`);
+    }
+    enemyModifiers.push({
+      id: 'p2-dmg',
+      side: 'ENEMY',
+      kind: 'BUFF',
+      tagLabel: `+${actualEnemyDmg} Daño`,
+      icon: '⚔️',
+      title: `Daño Rival +${actualEnemyDmg}`,
+      sourceCategory: baseEnemyDmg > 0 ? 'SCALING' : 'DIFFICULTY',
+      sourceLabel:
+        baseEnemyDmg > 0 && diff === 'HARD' && actualEnemyDmg > baseEnemyDmg
+          ? 'Escalado Roguelike + Dificultad Difícil'
+          : `Escalado Roguelike · Piso ${floor} (${roomLabel})`,
+      description: `Todos los ataques del rival infligen +${actualEnemyDmg} puntos de daño extra.`,
+      breakdown: dmgBreakdown,
+    });
+  } else if (diff === 'EASY' && baseEnemyDmg > 0) {
+    enemyModifiers.push({
+      id: 'p2-dmg-easy-nerf',
+      side: 'ENEMY',
+      kind: 'DEBUFF',
+      tagLabel: 'Sin +Daño',
+      icon: '🛡️',
+      title: 'Bono de Daño Anulado (Modo Fácil)',
+      sourceCategory: 'DIFFICULTY',
+      sourceLabel: 'Dificultad Fácil',
+      description: 'La dificultad Fácil anula el bono de daño de este encuentro.',
+      breakdown: [
+        `Escalado Roguelike base: +${baseEnemyDmg} daño`,
+        'Dificultad Fácil: reducido a +0 daño',
+      ],
+    });
+  }
+
+  const aiLabel = aiDifficulty === 'EASY' ? 'Fácil' : aiDifficulty === 'HARD' ? 'Difícil' : 'Normal';
+  const enemyStartsFirst = roomType === 'BOSS' || (roomType === 'ELITE' && floor % 2 === 1);
+  const scalingBreakdown = [
+    `Piso ${floor} / ${ROGUELIKE_TOTAL_FLOORS} · Acto ${actNum} · Sala: ${roomLabel}`,
+    `Mazo rival escalado a ${enemyDeckSize} cartas`,
+    `IA del encuentro: ${aiLabel} (Expedición en ${diffMeta.label})`,
+  ];
+  if (enemyStartsFirst) {
+    scalingBreakdown.push(`Iniciativa: El ${roomLabel} juega el primer turno`);
+  }
+
+  enemyModifiers.push({
+    id: 'p2-scaling',
+    side: 'ENEMY',
+    kind: roomType === 'BOSS' || roomType === 'ELITE' ? 'BUFF' : 'NEUTRAL',
+    tagLabel: `Piso ${floor} · ${roomLabel}`,
+    icon: roomType === 'BOSS' ? '👑' : roomType === 'ELITE' ? '💀' : '📈',
+    title: `Escalado Roguelike · Piso ${floor} (${roomLabel})`,
+    sourceCategory: 'SCALING',
+    sourceLabel: `Acto ${actNum} · Dificultad ${diffMeta.label}`,
+    description:
+      'Los enemigos del Roguelike escalan automáticamente su mazo, rarezas, precisión de IA y estadísticas según el piso y la dificultad.',
+    breakdown: scalingBreakdown,
+  });
+
+  return { playerModifiers, enemyModifiers };
 }

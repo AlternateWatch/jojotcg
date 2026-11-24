@@ -32,7 +32,10 @@ import type { GamePhase } from '../../engine/types/state';
 import { CARD_BACK_PATTERN_URL, PLAYMAT_THEMES } from '../../services/assetResolver';
 import { onlineService } from '../../services/onlineService';
 import { computeBattleReward } from '../../services/progressionService';
-import { resolveRoguelikeBattleOutcome } from '../../services/roguelikeService';
+import {
+  buildRoguelikeBattleModifiers,
+  resolveRoguelikeBattleOutcome,
+} from '../../services/roguelikeService';
 import type { PlaymatThemeId, UserSettings } from '../../services/storageService';
 import { useAppStore } from '../../store/useAppStore';
 import {
@@ -53,6 +56,7 @@ import { OnlineChatPanel } from '../components/battlefield/OnlineChatPanel';
 import { PhysicalDeckPiles } from '../components/battlefield/PhysicalDeckPiles';
 import { PileViewerModal } from '../components/battlefield/PileViewerModal';
 import { PromptOverlay } from '../components/battlefield/PromptOverlay';
+import { RoguelikeModifiersHud } from '../components/battlefield/RoguelikeModifiersHud';
 import { TurnSplashOverlay } from '../components/battlefield/TurnSplashOverlay';
 import { TutorialCoachBanner } from '../components/battlefield/TutorialCoachBanner';
 import { CardView } from '../components/cards/CardView';
@@ -905,6 +909,35 @@ export function BattleView() {
 
       {/* ALWAYS-VISIBLE LIVE ACTION NARRATOR STRIP */}
       <LiveActionFeed entries={recentTicker} />
+
+      {/* ROGUELIKE SIDE MODIFIER TAGS (LEFT = ENEMY SCALING, RIGHT = PLAYER RELICS/BONUSES) */}
+      {activeRoguelikeNodeId &&
+        roguelikeRun &&
+        (() => {
+          const mods = buildRoguelikeBattleModifiers({
+            run: roguelikeRun,
+            nodeId: activeRoguelikeNodeId,
+            enemyName: enemyPlayer.name,
+            enemyDeckSize:
+              enemyPlayer.deck.length +
+              enemyPlayer.hand.length +
+              enemyPlayer.prizeCards.length +
+              enemyPlayer.discard.length +
+              (enemyPlayer.active ? 1 : 0) +
+              enemyPlayer.bench.length,
+            aiDifficulty,
+            rules: gameState.rules,
+          });
+          return (
+            <RoguelikeModifiersHud
+              playerModifiers={mods.playerModifiers}
+              enemyModifiers={mods.enemyModifiers}
+              relicIds={roguelikeRun.relicIds}
+              playerName={myPlayer.name}
+              enemyName={enemyPlayer.name}
+            />
+          );
+        })()}
 
       {/* PHYSICAL DUEL TABLETOP */}
       <motion.div

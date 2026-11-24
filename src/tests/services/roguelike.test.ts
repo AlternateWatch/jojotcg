@@ -7,9 +7,11 @@ import {
   ROGUELIKE_STARTER_DECKS,
   ROGUELIKE_TOTAL_FLOORS,
 } from '../../data/roguelikeData';
+import { DEFAULT_RULES_CONFIG } from '../../data/rulesConfig';
 import { createGame, dispatchAction } from '../../engine/gameEngine';
 import { createSeededRng } from '../../engine/rng';
 import {
+  buildRoguelikeBattleModifiers,
   buyShopEnergyPack,
   buyShopOffer,
   claimTreasureBonusCard,
@@ -307,5 +309,30 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
       const secondEvtRun = enterRoguelikeNode(firstEvtRun, eventNodes[1]!.id).nextRun;
       expect(secondEvtRun.activeEvent?.eventId).not.toBe(firstEvtRun.activeEvent?.eventId);
     }
+
+    // Exercise Roguelike battle modifiers breakdown (player relics on right, enemy scaling on left)
+    const hardRun = grantRelicToRun(
+      grantRelicToRun(createRoguelikeRun('starter-hamon', 'HARD', 1234), 'relic-sangre-joestar'),
+      'relic-sobrecarga-hamon',
+    );
+    const boss20 = hardRun.map.find((n) => n.floor === 20 && n.type === 'BOSS')!;
+    const mods = buildRoguelikeBattleModifiers({
+      run: hardRun,
+      nodeId: boss20.id,
+      enemyName: 'DIO · The World · Jefe Acto II',
+      enemyDeckSize: 38,
+      aiDifficulty: 'HARD',
+      rules: {
+        ...DEFAULT_RULES_CONFIG,
+        ...computeRelicRulesOverrides(hardRun.relicIds),
+        p2BonusMaxHp: 40,
+        p2BonusDamage: 10,
+      },
+    });
+    expect(mods.playerModifiers.some((m) => m.id === 'p1-hp' && m.tagLabel === '+10 PV')).toBe(true);
+    expect(mods.playerModifiers.some((m) => m.id === 'p1-dmg' && m.tagLabel === '+10 Daño')).toBe(true);
+    expect(mods.enemyModifiers.some((m) => m.id === 'p2-hp' && m.tagLabel === '+40 PV')).toBe(true);
+    expect(mods.enemyModifiers.some((m) => m.id === 'p2-dmg' && m.tagLabel === '+10 Daño')).toBe(true);
+    expect(mods.enemyModifiers.some((m) => m.id === 'p2-scaling' && m.sourceCategory === 'SCALING')).toBe(true);
   });
 });
