@@ -95,6 +95,10 @@ export interface RoguelikeRelicDef {
   shopDiscountPercent?: number;
   extraDraftChoices?: number;
   grantCardIdsOnPickup?: string[];
+  bonusGoldOnPickup?: number;
+  extraShopOffers?: number;
+  skipCardGoldBonus?: number;
+  extraRelicChoices?: number;
 }
 
 export interface RoguelikeEventChoice {
@@ -108,7 +112,20 @@ export interface RoguelikeEventChoice {
     | { kind: 'ADD_SPECIFIC_CARDS'; cardIds: string[] }
     | { kind: 'ADD_RANDOM_RELIC' }
     | { kind: 'OPEN_ENERGY_PICK'; count: number }
-    | { kind: 'GAMBLE_GOLD'; stake: number; winGold: number };
+    | { kind: 'GAMBLE_GOLD'; stake: number; winGold: number }
+    | { kind: 'OPEN_PURGE_PICK'; bonusGold?: number }
+    | {
+        kind: 'ADD_RANDOM_BY_TYPE';
+        cardType: 'CHARACTER' | 'STAND' | 'ITEM' | 'EVOLUTION';
+        count: number;
+        minRarity?: 'COMMON' | 'RARE' | 'SUPER_RARE' | 'BIZARRE_RARE';
+      }
+    | { kind: 'GAMBLE_RELIC'; winChance: number; fallbackGold: number }
+    | {
+        kind: 'ADD_GOLD_AND_RANDOM_CARD';
+        gold: number;
+        minRarity: 'COMMON' | 'RARE' | 'SUPER_RARE' | 'BIZARRE_RARE';
+      };
 }
 
 export interface RoguelikeEventDef {
@@ -458,6 +475,123 @@ export const ROGUELIKE_RELICS: RoguelikeRelicDef[] = [
     icon: '✨',
     grantCardIdsOnPickup: ['energy-stand', 'energy-stand'],
   },
+  {
+    id: 'relic-mascara-antigua',
+    name: 'Máscara Antigua',
+    description: '+10 PV máx. y actuales a tus personajes y añade 1× Máscara de Piedra al mazo.',
+    rarity: 'COMMON',
+    price: 105,
+    icon: '🎭',
+    bonusMaxHp: 10,
+    grantCardIdsOnPickup: ['item-mascara-de-piedra'],
+  },
+  {
+    id: 'relic-espada-pluck',
+    name: 'Juramento de Bruford',
+    description: 'Añade inmediatamente 1× (P)luck y 1× Muerte de Danny a tu mazo.',
+    rarity: 'RARE',
+    price: 135,
+    icon: '⚔️',
+    grantCardIdsOnPickup: ['item-pluck', 'item-muerte-de-danny'],
+  },
+  {
+    id: 'relic-cinta-legado',
+    name: 'Legado de Zeppeli',
+    description: '+10 PV máx. y actuales a tus personajes y añade 1× Cinta de Caesar al mazo.',
+    rarity: 'RARE',
+    price: 145,
+    icon: '🧣',
+    bonusMaxHp: 10,
+    grantCardIdsOnPickup: ['item-cinta-de-caesar'],
+  },
+  {
+    id: 'relic-piedra-aja',
+    name: 'Brillo de Aja',
+    description: 'Todos tus ataques infligen +10 daño extra y añade 1× Piedra Roja de Aja al mazo.',
+    rarity: 'EPIC',
+    price: 210,
+    icon: '💎',
+    bonusDamage: 10,
+    grantCardIdsOnPickup: ['item-piedra-roja-de-aja'],
+  },
+  {
+    id: 'relic-estrella-joestar',
+    name: 'Marca de la Estrella',
+    description: '+10 PV máx., +10 de daño en tus ataques y +1 carta adicional en tu mano inicial.',
+    rarity: 'EPIC',
+    price: 220,
+    icon: '⭐',
+    bonusMaxHp: 10,
+    bonusDamage: 10,
+    extraInitialHand: 1,
+  },
+  {
+    id: 'relic-harvest-bolsa',
+    name: 'Enjambre de Harvest',
+    description: 'Ganas +60 Oro de Expedición al instante y +15% de Oro en combates y tesoros.',
+    rarity: 'COMMON',
+    price: 90,
+    icon: '🐝',
+    bonusGoldOnPickup: 60,
+    goldBonusPercent: 15,
+  },
+  {
+    id: 'relic-catalogo-morioh',
+    name: 'Guía de Morioh',
+    description: 'Las Tiendas ofrecen +2 cartas adicionales en venta y 10% de descuento permanente.',
+    rarity: 'COMMON',
+    price: 100,
+    icon: '🛍️',
+    extraShopOffers: 2,
+    shopDiscountPercent: 10,
+  },
+  {
+    id: 'relic-ojo-tasador',
+    name: 'Ojo de Rohan',
+    description: 'Al omitir un draft de cartas tras combate recibes +20 Oro extra (35 Oro en total).',
+    rarity: 'COMMON',
+    price: 95,
+    icon: '🔎',
+    skipCardGoldBonus: 20,
+  },
+  {
+    id: 'relic-brujula-destino',
+    name: 'Brújula del Destino',
+    description: 'Cuando eliges Reliquias en Tesoros, Élites o Jefes, ves +1 opción adicional.',
+    rarity: 'RARE',
+    price: 140,
+    icon: '🧭',
+    extraRelicChoices: 1,
+  },
+  {
+    id: 'relic-mechero-passione',
+    name: 'Prueba de Passione',
+    description: 'Robas +1 carta en tu mano inicial y añade 1× Mechero de Polpo a tu mazo.',
+    rarity: 'RARE',
+    price: 130,
+    icon: '🔥',
+    extraInitialHand: 1,
+    grantCardIdsOnPickup: ['item-mechero-de-polpo'],
+  },
+  {
+    id: 'relic-suministros-elite',
+    name: 'Envío de Emergencia',
+    description: 'Añade 1× Suministros de la fundación Speedwagon y 1× Comida de Tonio al mazo.',
+    rarity: 'COMMON',
+    price: 115,
+    icon: '📦',
+    grantCardIdsOnPickup: ['item-suministros-speedwagon', 'item-comida-de-tonio'],
+  },
+  {
+    id: 'relic-flecha-requiem-reliquia',
+    name: 'Eco del Réquiem',
+    description: 'Añade 1× Flecha Réquiem y 1× Energía de Stand al mazo, y +1 carta en los drafts.',
+    rarity: 'EPIC',
+    price: 200,
+    icon: '⚜️',
+    grantCardIdsOnPickup: ['item-flecha-requiem', 'energy-stand'],
+    extraDraftChoices: 1,
+  },
 ];
 
 export function getRoguelikeRelicById(id: string): RoguelikeRelicDef | undefined {
@@ -574,6 +708,311 @@ export const ROGUELIKE_EVENTS: RoguelikeEventDef[] = [
         label: 'Reclamar Carta Rara (Gratis)',
         description: 'Añade 1 carta Rara (R) aleatoria a tu mazo.',
         effect: { kind: 'ADD_RANDOM_CARDS', count: 1, minRarity: 'RARE' },
+      },
+    ],
+  },
+  {
+    id: 'evt-ogre-street',
+    title: 'Callejón de Ogre Street',
+    subtitle: 'EVENTO DE LONDRES',
+    description:
+      'La niebla envuelve el callejón más peligroso de Londres. Speedwagon y sus muchachos te ofrecen un trato entre sombras.',
+    featuredCardId: 'char-robert-e-o-speedwagon',
+    choices: [
+      {
+        id: 'ogre-style',
+        label: 'Entrenar pelea callejera (Gratis)',
+        description: 'Añade 1× ¡Estilo de combate de Ogre Street! a tu mazo.',
+        effect: { kind: 'ADD_SPECIFIC_CARDS', cardIds: ['item-estilo-de-combate-ogre-street'] },
+      },
+      {
+        id: 'ogre-recruit',
+        label: 'Reclutar un aliado (-40 Oro)',
+        description: 'Añade 1 Personaje Raro (R) o superior aleatorio a tu mazo.',
+        goldCost: 40,
+        effect: { kind: 'ADD_RANDOM_BY_TYPE', cardType: 'CHARACTER', count: 1, minRarity: 'RARE' },
+      },
+      {
+        id: 'ogre-purge',
+        label: 'Aligerar equipaje (Gratis)',
+        description: 'Purga 1 carta sobrante de tu mazo y recibe +15 Oro de Expedición.',
+        effect: { kind: 'OPEN_PURGE_PICK', bonusGold: 15 },
+      },
+    ],
+  },
+  {
+    id: 'evt-air-supplena',
+    title: 'Isla Air Supplena',
+    subtitle: 'EVENTO DE HAMON',
+    description:
+      'Lisa Lisa te espera en lo alto del Pilar del Infierno. Solo quienes dominan su respiración salen más fuertes.',
+    featuredCardId: 'char-lisa-lisa',
+    choices: [
+      {
+        id: 'supplena-train',
+        label: 'Completar la prueba del pilar (Gratis)',
+        description: 'Añade 1× ¡Entrenamiento en la isla Air Supplena! y 1× Energía Hamon / Rayo.',
+        effect: {
+          kind: 'ADD_SPECIFIC_CARDS',
+          cardIds: ['item-entrenamiento-air-supplena', 'energy-electric'],
+        },
+      },
+      {
+        id: 'supplena-focus',
+        label: 'Depurar tu técnica (Gratis)',
+        description: 'Purga 1 carta de tu mazo gratis para afinar tus robos.',
+        effect: { kind: 'OPEN_PURGE_PICK' },
+      },
+      {
+        id: 'supplena-relic',
+        label: 'Recibir la bendición de Lisa Lisa (-60 Oro)',
+        description: 'Obtén 1 Reliquia aleatoria para el resto de la expedición.',
+        goldCost: 60,
+        effect: { kind: 'ADD_RANDOM_RELIC' },
+      },
+    ],
+  },
+  {
+    id: 'evt-stroheim-lab',
+    title: 'Laboratorio de Stroheim',
+    subtitle: 'EVENTO DE CIENCIA ALEMANA',
+    description:
+      '¡La ciencia alemana es la mejor del mundo! Stroheim te abre su arsenal experimental y sus generadores.',
+    featuredCardId: 'char-rudol-von-stroheim',
+    choices: [
+      {
+        id: 'stroheim-items',
+        label: 'Probar equipo experimental (-45 Oro)',
+        description: 'Recibe 2 cartas de Objeto aleatorias para tu mazo.',
+        goldCost: 45,
+        effect: { kind: 'ADD_RANDOM_BY_TYPE', cardType: 'ITEM', count: 2, minRarity: 'COMMON' },
+      },
+      {
+        id: 'stroheim-scrap',
+        label: 'Reciclar equipo obsoleto (Gratis)',
+        description: 'Purga 1 carta de tu mazo y gana +20 Oro de Expedición.',
+        effect: { kind: 'OPEN_PURGE_PICK', bonusGold: 20 },
+      },
+      {
+        id: 'stroheim-energy',
+        label: 'Cargar baterías experimentales (Gratis)',
+        description: 'Elige 2 cartas de Energía básica del color que prefieras.',
+        effect: { kind: 'OPEN_ENERGY_PICK', count: 2 },
+      },
+    ],
+  },
+  {
+    id: 'evt-colosseum-blood',
+    title: 'Coliseo de Esqueletos',
+    subtitle: 'EVENTO DE ROMA',
+    description:
+      'La arena de piedra guarda los ecos de antiguos guerreros. Wamuu observa en silencio si mereces su respeto.',
+    featuredCardId: 'char-wamuu',
+    choices: [
+      {
+        id: 'colosseum-honor',
+        label: 'Juramento del guerrero (-55 Oro)',
+        description: 'Recibe 1 Reliquia aleatoria forjada en la arena.',
+        goldCost: 55,
+        effect: { kind: 'ADD_RANDOM_RELIC' },
+      },
+      {
+        id: 'colosseum-gear',
+        label: 'Recoger reliquias de combate (Gratis)',
+        description: 'Añade 1× Cinta de Caesar y 1× Clackers a tu mazo.',
+        effect: { kind: 'ADD_SPECIFIC_CARDS', cardIds: ['item-cinta-de-caesar', 'item-clackers'] },
+      },
+      {
+        id: 'colosseum-loot',
+        label: 'Reclamar botín de la arena (+40 Oro)',
+        description: 'Gana 40 de Oro de Expedición sin riesgos.',
+        effect: { kind: 'ADD_GOLD', amount: 40 },
+      },
+    ],
+  },
+  {
+    id: 'evt-cairo-bazaar',
+    title: 'Bazar Nocturno de El Cairo',
+    subtitle: 'EVENTO DE EGIPTO',
+    description:
+      'Entre lámparas de aceite y especias, Avdol señala un puesto oculto donde circulan artefactos de usuarios de Stand.',
+    featuredCardId: 'char-muhammad-avdol',
+    choices: [
+      {
+        id: 'cairo-chest',
+        label: 'Abrir cofre misterioso (-40 Oro)',
+        description: '65% de obtener 1 Reliquia aleatoria; si fallas, recuperas 25 Oro.',
+        goldCost: 40,
+        effect: { kind: 'GAMBLE_RELIC', winChance: 0.65, fallbackGold: 25 },
+      },
+      {
+        id: 'cairo-stand',
+        label: 'Rastrear un Stand oculto (-65 Oro)',
+        description: 'Añade 1 Stand Raro (R) o superior aleatorio a tu mazo.',
+        goldCost: 65,
+        effect: { kind: 'ADD_RANDOM_BY_TYPE', cardType: 'STAND', count: 1, minRarity: 'RARE' },
+      },
+      {
+        id: 'cairo-gold',
+        label: 'Negociar con mercaderes (+45 Oro)',
+        description: 'Gana 45 de Oro de Expedición.',
+        effect: { kind: 'ADD_GOLD', amount: 45 },
+      },
+    ],
+  },
+  {
+    id: 'evt-rohan-studio',
+    title: 'Estudio de Rohan Kishibe',
+    subtitle: 'EVENTO DE MORIOH',
+    description:
+      'Rohan te mira por encima de sus bocetos: «Tu vida parece interesante… déjame leer un par de páginas con Heaven’s Door».',
+    featuredCardId: 'char-rohan-kishibe',
+    choices: [
+      {
+        id: 'rohan-edit',
+        label: 'Dejar que Heaven’s Door edite tu mazo (Gratis)',
+        description: 'Purga 1 carta sobrante de tu mazo gratis.',
+        effect: { kind: 'OPEN_PURGE_PICK' },
+      },
+      {
+        id: 'rohan-pose',
+        label: 'Servir de referencia para su manga (Gratis)',
+        description: 'Gana +30 Oro y 1 carta Rara (R) o superior aleatoria.',
+        effect: { kind: 'ADD_GOLD_AND_RANDOM_CARD', gold: 30, minRarity: 'RARE' },
+      },
+      {
+        id: 'rohan-sketch',
+        label: 'Comprar manuscrito original (-70 Oro)',
+        description: 'Recibe 1 carta Súper Rara (SR) o Bizarre Rare (UR) aleatoria.',
+        goldCost: 70,
+        effect: { kind: 'ADD_RANDOM_CARDS', count: 1, minRarity: 'SUPER_RARE' },
+      },
+    ],
+  },
+  {
+    id: 'evt-shigechi-harvest',
+    title: 'Caza de Monedas con Shigechi',
+    subtitle: 'EVENTO DE MORIOH',
+    description:
+      'Decenas de pequeños Harvest zumban por las calles recogiendo monedas perdidas y objetos brillantes.',
+    featuredCardId: 'char-shigekiyo-yangu',
+    choices: [
+      {
+        id: 'shigechi-split',
+        label: 'Repartir el botín a medias (+55 Oro)',
+        description: 'Gana 55 de Oro de Expedición al instante.',
+        effect: { kind: 'ADD_GOLD', amount: 55 },
+      },
+      {
+        id: 'shigechi-search',
+        label: 'Enviar a Harvest a buscar tesoros (-25 Oro)',
+        description: '50% de encontrar 1 Reliquia aleatoria; si no, encuentras 45 Oro.',
+        goldCost: 25,
+        effect: { kind: 'GAMBLE_RELIC', winChance: 0.5, fallbackGold: 45 },
+      },
+      {
+        id: 'shigechi-cards',
+        label: 'Recoger cartas perdidas en el parque (Gratis)',
+        description: 'Añade 2 cartas aleatorias a tu mazo.',
+        effect: { kind: 'ADD_RANDOM_CARDS', count: 2, minRarity: 'COMMON' },
+      },
+    ],
+  },
+  {
+    id: 'evt-polpo-cell',
+    title: 'La Prueba de Polpo',
+    subtitle: 'EVENTO DE NÁPOLES',
+    description:
+      'Tras los barrotes de su lujosa celda, el capo de Passione te entrega una llama encendida y una oferta peligrosa.',
+    featuredCardId: 'char-giorno-giovanna',
+    choices: [
+      {
+        id: 'polpo-lighter',
+        label: 'Aceptar el Mechero (Gratis)',
+        description: 'Añade 1× Mechero de Polpo y 1× Energía de Stand a tu mazo.',
+        effect: {
+          kind: 'ADD_SPECIFIC_CARDS',
+          cardIds: ['item-mechero-de-polpo', 'energy-stand'],
+        },
+      },
+      {
+        id: 'polpo-evolution',
+        label: 'Sellar el pacto con Passione (-80 Oro)',
+        description: 'Añade 1 carta de Evolución SR/UR aleatoria a tu mazo.',
+        goldCost: 80,
+        effect: {
+          kind: 'ADD_RANDOM_BY_TYPE',
+          cardType: 'EVOLUTION',
+          count: 1,
+          minRarity: 'SUPER_RARE',
+        },
+      },
+      {
+        id: 'polpo-errand',
+        label: 'Cobrar un encargo rápido (+50 Oro)',
+        description: 'Gana 50 de Oro de Expedición.',
+        effect: { kind: 'ADD_GOLD', amount: 50 },
+      },
+    ],
+  },
+  {
+    id: 'evt-dio-mansion-cellar',
+    title: 'Sótano de la Mansión de DIO',
+    subtitle: 'EVENTO DE SOMBRAS',
+    description:
+      'En la penumbra del sótano descansan reliquias malditas y un cofre sellado con cadenas de hierro.',
+    featuredCardId: 'char-dio-brando',
+    choices: [
+      {
+        id: 'dio-cursed-items',
+        label: 'Tomar los artefactos malditos (Gratis)',
+        description: 'Añade 1× Máscara de Piedra y 1× Ataúd de DIO a tu mazo.',
+        effect: {
+          kind: 'ADD_SPECIFIC_CARDS',
+          cardIds: ['item-mascara-de-piedra', 'item-ataud-de-dio'],
+        },
+      },
+      {
+        id: 'dio-gamble',
+        label: 'Apostar tu destino (-35 Oro)',
+        description: 'Arriesga 35 Oro: 55% de ganar 100 Oro de Expedición.',
+        goldCost: 35,
+        effect: { kind: 'GAMBLE_GOLD', stake: 35, winGold: 100 },
+      },
+      {
+        id: 'dio-flee',
+        label: 'Huir con el botín seguro (+35 Oro)',
+        description: 'Gana 35 de Oro de Expedición sin riesgos.',
+        effect: { kind: 'ADD_GOLD', amount: 35 },
+      },
+    ],
+  },
+  {
+    id: 'evt-tibet-temple',
+    title: 'Templo de Tonpetty en el Tíbet',
+    subtitle: 'EVENTO ANCESTRAL',
+    description:
+      'El maestro Tonpetty lee las líneas de tu destino bajo el cielo helado del Himalaya.',
+    featuredCardId: 'char-tonpetty',
+    choices: [
+      {
+        id: 'tibet-meditate',
+        label: 'Meditar y purificar tu mazo (Gratis)',
+        description: 'Purga 1 carta de tu mazo y gana +10 Oro de Expedición.',
+        effect: { kind: 'OPEN_PURGE_PICK', bonusGold: 10 },
+      },
+      {
+        id: 'tibet-energy',
+        label: 'Canalizar energía solar (Gratis)',
+        description: 'Elige 3 cartas de Energía básica del color que prefieras.',
+        effect: { kind: 'OPEN_ENERGY_PICK', count: 3 },
+      },
+      {
+        id: 'tibet-prophecy',
+        label: 'Aceptar la profecía (-60 Oro)',
+        description: 'Recibe 1 Reliquia aleatoria para toda la expedición.',
+        goldCost: 60,
+        effect: { kind: 'ADD_RANDOM_RELIC' },
       },
     ],
   },

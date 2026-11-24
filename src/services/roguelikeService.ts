@@ -60,6 +60,8 @@ export interface RoguelikeEventState {
   eventId: string;
   resolvedMessage?: string;
   energyPickCount?: number;
+  purgePickOpen?: boolean;
+  purgePickBonusGold?: number;
 }
 
 export interface RoguelikeEnemySpec {
@@ -89,6 +91,7 @@ export interface RoguelikeRunState {
   pendingReward: RoguelikeRewardState | null;
   activeShop: RoguelikeShopState | null;
   activeEvent: RoguelikeEventState | null;
+  seenEventIds?: string[];
   battlesWon: number;
   elitesWon: number;
   bossesWon: number;
@@ -232,6 +235,7 @@ export function createRoguelikeRun(
     pendingReward: null,
     activeShop: null,
     activeEvent: null,
+    seenEventIds: [],
     battlesWon: 0,
     elitesWon: 0,
     bossesWon: 0,
@@ -293,6 +297,30 @@ export function getDraftChoiceCount(relicIds: readonly string[]): number {
     extra += getRoguelikeRelicById(rid)?.extraDraftChoices ?? 0;
   }
   return 3 + extra;
+}
+
+export function getShopExtraOfferCount(relicIds: readonly string[]): number {
+  let extra = 0;
+  for (const rid of relicIds) {
+    extra += getRoguelikeRelicById(rid)?.extraShopOffers ?? 0;
+  }
+  return extra;
+}
+
+export function getSkipCardGoldBonus(relicIds: readonly string[]): number {
+  let extra = 0;
+  for (const rid of relicIds) {
+    extra += getRoguelikeRelicById(rid)?.skipCardGoldBonus ?? 0;
+  }
+  return 15 + extra;
+}
+
+export function getRelicChoiceCount(relicIds: readonly string[]): number {
+  let extra = 0;
+  for (const rid of relicIds) {
+    extra += getRoguelikeRelicById(rid)?.extraRelicChoices ?? 0;
+  }
+  return 2 + extra;
 }
 
 /**
@@ -667,9 +695,15 @@ export function generateRoguelikeShop(run: RoguelikeRunState, seed: number): Rog
   const rng = createSeededRng(seed + run.currentFloor * 3571 + 17);
   const discount = getShopDiscountMultiplier(run.relicIds);
   const cardIds = generateCardDraftChoices(run, run.currentFloor >= 12 ? 'ELITE' : 'TREASURE', rng);
-  // Add 1-2 extra shop cards
+  // Add extra shop cards (+ any extra offers from relics like Guía de Morioh)
   const extraIds = generateCardDraftChoices(run, 'BATTLE', rng);
-  const uniqueCardIds = Array.from(new Set([...cardIds, ...extraIds])).slice(0, 5);
+  const extraIds2 =
+    getShopExtraOfferCount(run.relicIds) > 0 ? generateCardDraftChoices(run, 'TREASURE', rng) : [];
+  const maxCardOffers = 5 + getShopExtraOfferCount(run.relicIds);
+  const uniqueCardIds = Array.from(new Set([...cardIds, ...extraIds, ...extraIds2])).slice(
+    0,
+    maxCardOffers,
+  );
 
   const rarityBasePrice: Record<CardRarity, number> = {
     COMMON: 35,
@@ -754,7 +788,10 @@ export function enterRoguelikeNode(
     const goldAwarded = Math.round((40 + Math.floor(node.floor * 1.5) + bonusIfNoRelics) * mult);
     const relicChoices =
       unownedRelics.length > 0
-        ? rng.shuffle(unownedRelics).slice(0, Math.min(2, unownedRelics.length)).map((r) => r.id)
+        ? rng
+            .shuffle(unownedRelics)
+            .slice(0, Math.min(getRelicChoiceCount(run.relicIds), unownedRelics.length))
+            .map((r) => r.id)
         : undefined;
 
     // 60% chance to also discover 1 bonus card (either a regular card or an Energy card) in the chest
@@ -790,12 +827,16 @@ export function enterRoguelikeNode(
     };
   }
 
-  // EVENT room
-  const evt = pickRandom(ROGUELIKE_EVENTS, rng);
+  // EVENT room: prefer events not yet seen during this run
+  const seen = new Set(run.seenEventIds ?? []);
+  const unseenEvents = ROGUELIKE_EVENTS.filter((e) => !seen.has(e.id));
+  const eventPool = unseenEvents.length > 0 ? unseenEvents : ROGUELIKE_EVENTS;
+  const evt = pickRandom(eventPool, rng);
   return {
     nextRun: {
       ...baseRun,
       status: 'EVENT',
+      seenEventIds: [...(run.seenEventIds ?? []), evt.id],
       activeEvent: { eventId: evt.id },
     },
   };
@@ -848,7 +889,10 @@ export function resolveRoguelikeBattleOutcome(
   const unownedRelics = ROGUELIKE_RELICS.filter((r) => !run.relicIds.includes(r.id));
   const relicChoices =
     (roomType === 'ELITE' || roomType === 'BOSS') && unownedRelics.length > 0
-      ? rng.shuffle(unownedRelics).slice(0, Math.min(2, unownedRelics.length)).map((r) => r.id)
+      ? rng
+          .shuffle(unownedRelics)
+          .slice(0, Math.min(getRelicChoiceCount(run.relicIds), unownedRelics.length))
+          .map((r) => r.id)
       : undefined;
 
   return {
@@ -872,8 +916,10 @@ export function grantRelicToRun(run: RoguelikeRunState, relicId: string): Roguel
   if (run.relicIds.includes(relicId)) return run;
   const relic = getRoguelikeRelicById(relicId);
   const extraCards = relic?.grantCardIdsOnPickup ?? [];
+  const bonusGold = relic?.bonusGoldOnPickup ?? 0;
   return {
     ...run,
+    gold: run.gold + bonusGold,
     relicIds: [...run.relicIds, relicId],
     deckCardIds: [...run.deckCardIds, ...extraCards],
   };
@@ -882,10 +928,11 @@ export function grantRelicToRun(run: RoguelikeRunState, relicId: string): Roguel
 export function pickRoguelikeRewardCard(
   run: RoguelikeRunState,
   cardId: string | null,
-  skipBonusGold = 15,
+  skipBonusGold?: number,
 ): RoguelikeRunState {
+  const effectiveSkipGold = skipBonusGold ?? getSkipCardGoldBonus(run.relicIds);
   const nextDeck = cardId ? [...run.deckCardIds, cardId] : run.deckCardIds;
-  const nextGold = cardId ? run.gold : run.gold + skipBonusGold;
+  const nextGold = cardId ? run.gold : run.gold + effectiveSkipGold;
   return {
     ...run,
     status: 'MAP',
@@ -1043,6 +1090,68 @@ export function resolveRoguelikeEventChoice(
     } else {
       msg = `Mala suerte... pierdes los ${eff.stake} Oro apostados.`;
     }
+  } else if (eff.kind === 'OPEN_PURGE_PICK') {
+    if (nextRun.deckCardIds.length <= ROGUELIKE_MIN_DECK_SIZE) {
+      const fallbackGold = eff.bonusGold ?? 15;
+      nextRun.gold += fallbackGold;
+      msg = `Tu mazo ya está en el mínimo de ${ROGUELIKE_MIN_DECK_SIZE} cartas: recibes +${fallbackGold} Oro en compensación.`;
+    } else {
+      return {
+        ...nextRun,
+        activeEvent: {
+          eventId: eventDef.id,
+          purgePickOpen: true,
+          purgePickBonusGold: eff.bonusGold ?? 0,
+        },
+      };
+    }
+  } else if (eff.kind === 'ADD_RANDOM_BY_TYPE') {
+    const minRank = RARITY_ORDER[eff.minRarity ?? 'COMMON'];
+    let pool = COLLECTIBLE_POOL.filter(
+      (c) =>
+        c.type === eff.cardType &&
+        RARITY_ORDER[getCardRarity(c.id)] >= minRank &&
+        (c.type === 'ITEM'
+          ? nextRun.deckCardIds.filter((id) => id === c.id).length < 3
+          : !nextRun.deckCardIds.includes(c.id)),
+    );
+    if (pool.length === 0) {
+      pool = COLLECTIBLE_POOL.filter(
+        (c) => c.type === eff.cardType && !nextRun.deckCardIds.includes(c.id),
+      );
+    }
+    const picked = rng.shuffle(pool).slice(0, eff.count);
+    nextRun.deckCardIds = [...nextRun.deckCardIds, ...picked.map((c) => c.id)];
+    msg =
+      picked.length > 0
+        ? `¡Obtenido: ${picked.map((c) => c.name).join(', ')}!`
+        : 'No quedaban cartas nuevas de ese tipo para tu mazo.';
+  } else if (eff.kind === 'GAMBLE_RELIC') {
+    const unowned = ROGUELIKE_RELICS.filter((r) => !nextRun.relicIds.includes(r.id));
+    if (rng.nextFloat() < eff.winChance && unowned.length > 0) {
+      const relic: RoguelikeRelicDef = pickRandom(unowned, rng);
+      nextRun = grantRelicToRun(nextRun, relic.id);
+      msg = `¡Suerte bizarra! Reliquia obtenida: ${relic.icon} ${relic.name} (${relic.description}).`;
+    } else {
+      nextRun.gold += eff.fallbackGold;
+      msg =
+        eff.fallbackGold > 0
+          ? `No encontraste reliquia, pero recuperas +${eff.fallbackGold} Oro de Expedición.`
+          : 'No hubo suerte esta vez...';
+    }
+  } else if (eff.kind === 'ADD_GOLD_AND_RANDOM_CARD') {
+    nextRun.gold += eff.gold;
+    const minRank = RARITY_ORDER[eff.minRarity];
+    const pool = COLLECTIBLE_POOL.filter(
+      (c) => RARITY_ORDER[getCardRarity(c.id)] >= minRank && !nextRun.deckCardIds.includes(c.id),
+    );
+    const picked = pool.length > 0 ? pickRandom(pool, rng) : null;
+    if (picked) {
+      nextRun.deckCardIds = [...nextRun.deckCardIds, picked.id];
+      msg = `Has ganado +${eff.gold} Oro y la carta ${picked.name}.`;
+    } else {
+      msg = `Has ganado +${eff.gold} Oro de Expedición.`;
+    }
   }
 
   return {
@@ -1050,6 +1159,34 @@ export function resolveRoguelikeEventChoice(
     activeEvent: {
       eventId: eventDef.id,
       resolvedMessage: msg,
+    },
+  };
+}
+
+export function resolveEventPurgeCard(
+  run: RoguelikeRunState,
+  deckIndex: number,
+): RoguelikeRunState {
+  if (!run.activeEvent || !run.activeEvent.purgePickOpen) return run;
+  if (run.deckCardIds.length <= ROGUELIKE_MIN_DECK_SIZE) return run;
+  if (deckIndex < 0 || deckIndex >= run.deckCardIds.length) return run;
+
+  const removedId = run.deckCardIds[deckIndex]!;
+  const removedName = getCardById(removedId)?.name ?? removedId;
+  const nextDeck = [...run.deckCardIds];
+  nextDeck.splice(deckIndex, 1);
+  const bonusGold = run.activeEvent.purgePickBonusGold ?? 0;
+
+  return {
+    ...run,
+    gold: run.gold + bonusGold,
+    deckCardIds: nextDeck,
+    activeEvent: {
+      eventId: run.activeEvent.eventId,
+      resolvedMessage:
+        bonusGold > 0
+          ? `Has purgado ${removedName} de tu mazo y ganado +${bonusGold} Oro.`
+          : `Has purgado ${removedName} de tu mazo.`,
     },
   };
 }

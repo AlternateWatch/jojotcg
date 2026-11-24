@@ -38,9 +38,11 @@ import {
   computeRoguelikeMetaReward,
   enterRoguelikeNode,
   getSelectableNodeIds,
+  getSkipCardGoldBonus,
   pickRoguelikeRewardCard,
   pickRoguelikeRewardRelic,
   purgeCardFromRunDeck,
+  resolveEventPurgeCard,
   resolveRoguelikeEventChoice,
   type RoguelikeMapNode,
 } from '../../services/roguelikeService';
@@ -730,12 +732,12 @@ export function RoguelikeView() {
                   <button
                     type="button"
                     onClick={() => {
-                      const next = pickRoguelikeRewardCard(roguelikeRun, null, 15);
+                      const next = pickRoguelikeRewardCard(roguelikeRun, null);
                       setRoguelikeRun(next);
                     }}
                     className="jojo-btn-ink px-4 py-2 font-jojo-heading text-xs tracking-wider text-[#f2c12e] uppercase"
                   >
-                    Omitir carta (+15 Oro)
+                    Omitir carta (+{getSkipCardGoldBonus(roguelikeRun.relicIds)} Oro)
                   </button>
                 </div>
 
@@ -1043,6 +1045,33 @@ export function RoguelikeView() {
                         className="jojo-btn-primary px-3 py-2 text-xs font-bold uppercase"
                       >
                         +{roguelikeRun.activeEvent?.energyPickCount ?? 2} {eCard.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : roguelikeRun.activeEvent.purgePickOpen ? (
+              <div className="space-y-3">
+                <div className="text-xs font-bold text-rose-300">
+                  Elige 1 carta de tu mazo para purgar
+                  {roguelikeRun.activeEvent.purgePickBonusGold
+                    ? ` (+${roguelikeRun.activeEvent.purgePickBonusGold} Oro)`
+                    : ''}
+                  :
+                </div>
+                <div className="grid max-h-[240px] grid-cols-2 gap-2 overflow-y-auto border border-rose-500/40 bg-[#140b12] p-3 sm:grid-cols-3 md:grid-cols-4">
+                  {roguelikeRun.deckCardIds.map((cid, idx) => {
+                    const c = getCardById(cid);
+                    if (!c) return null;
+                    return (
+                      <button
+                        key={`${idx}-${cid}`}
+                        type="button"
+                        onClick={() => setRoguelikeRun(resolveEventPurgeCard(roguelikeRun, idx))}
+                        className="border border-[#060508] bg-[#1d121a] px-2.5 py-2 text-left text-xs text-zinc-200 transition hover:border-rose-400"
+                      >
+                        <div className="truncate font-bold">{c.name}</div>
+                        <div className="font-mono text-[10px] text-rose-300">Purgar ✕</div>
                       </button>
                     );
                   })}

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ALL_CARDS } from '../../data/cardRegistry';
+import { ALL_CARDS, getCardById } from '../../data/cardRegistry';
 import {
   createRoguelikeGeneralPack,
+  ROGUELIKE_EVENTS,
+  ROGUELIKE_RELICS,
   ROGUELIKE_STARTER_DECKS,
   ROGUELIKE_TOTAL_FLOORS,
 } from '../../data/roguelikeData';
@@ -16,11 +18,16 @@ import {
   createRoguelikeRun,
   enterRoguelikeNode,
   generateRoguelikeMap,
+  generateRoguelikeShop,
+  getRelicChoiceCount,
   getSelectableNodeIds,
+  getSkipCardGoldBonus,
   grantRelicToRun,
   pickRoguelikeRewardCard,
   purgeCardFromRunDeck,
+  resolveEventPurgeCard,
   resolveRoguelikeBattleOutcome,
+  resolveRoguelikeEventChoice,
 } from '../../services/roguelikeService';
 
 describe('Roguelike Expedition Mode (30 Floors)', () => {
@@ -190,5 +197,90 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
     const generalPack = createRoguelikeGeneralPack();
     const allCollectibleCount = ALL_CARDS.filter((c) => c.type !== 'ENERGY').length;
     expect(generalPack.poolCardIds).toHaveLength(allCollectibleCount);
+  });
+
+  it('validates all expanded relics (20) and events (14) and exercises new relic & event mechanics', () => {
+    expect(ROGUELIKE_RELICS.length).toBeGreaterThanOrEqual(20);
+    expect(ROGUELIKE_EVENTS.length).toBeGreaterThanOrEqual(14);
+
+    // Unique relic IDs and valid granted card IDs
+    const relicIds = new Set<string>();
+    for (const relic of ROGUELIKE_RELICS) {
+      expect(relicIds.has(relic.id)).toBe(false);
+      relicIds.add(relic.id);
+      for (const cid of relic.grantCardIdsOnPickup ?? []) {
+        expect(getCardById(cid), `Relic ${relic.id} references unknown card ${cid}`).toBeDefined();
+      }
+    }
+
+    // Unique event IDs, valid featuredCardId, and valid ADD_SPECIFIC_CARDS IDs
+    const eventIds = new Set<string>();
+    for (const evt of ROGUELIKE_EVENTS) {
+      expect(eventIds.has(evt.id)).toBe(false);
+      eventIds.add(evt.id);
+      expect(
+        getCardById(evt.featuredCardId),
+        `Event ${evt.id} references unknown featuredCardId ${evt.featuredCardId}`,
+      ).toBeDefined();
+      expect(evt.choices.length).toBeGreaterThanOrEqual(2);
+      for (const ch of evt.choices) {
+        if (ch.effect.kind === 'ADD_SPECIFIC_CARDS') {
+          for (const cid of ch.effect.cardIds) {
+            expect(getCardById(cid), `Event ${evt.id} choice ${ch.id} unknown card ${cid}`).toBeDefined();
+          }
+        }
+      }
+    }
+
+    // Exercise new relic mechanics: bonusGoldOnPickup, extraShopOffers, skipCardGoldBonus, extraRelicChoices
+    let run = createRoguelikeRun('starter-hamon', 'NORMAL', 9001);
+    const goldBefore = run.gold;
+    run = grantRelicToRun(run, 'relic-harvest-bolsa'); // +60 gold on pickup
+    expect(run.gold).toBe(goldBefore + 60);
+
+    run = grantRelicToRun(run, 'relic-ojo-tasador'); // +20 skip gold (35 total)
+    expect(getSkipCardGoldBonus(run.relicIds)).toBe(35);
+    const goldBeforeSkip = run.gold;
+    run = pickRoguelikeRewardCard(run, null);
+    expect(run.gold).toBe(goldBeforeSkip + 35);
+
+    run = grantRelicToRun(run, 'relic-brujula-destino'); // +1 relic choice (3 total)
+    expect(getRelicChoiceCount(run.relicIds)).toBe(3);
+
+    run = grantRelicToRun(run, 'relic-catalogo-morioh'); // +2 shop card offers (7 card offers)
+    const shop = generateRoguelikeShop(run, run.seed);
+    const cardOffers = shop.offers.filter((o) => o.kind === 'CARD');
+    expect(cardOffers.length).toBeGreaterThan(5);
+
+    // Exercise new event effects: OPEN_PURGE_PICK, ADD_RANDOM_BY_TYPE, ADD_GOLD_AND_RANDOM_CARD, GAMBLE_RELIC
+    // Add 1 extra card so deck is 17 (> 16 min) for purge test
+    run = { ...run, deckCardIds: [...run.deckCardIds, 'energy-electric'], gold: 300 };
+
+    const rohanEvt = ROGUELIKE_EVENTS.find((e) => e.id === 'evt-rohan-studio')!;
+    const afterPurgeOpen = resolveRoguelikeEventChoice(run, rohanEvt, 'rohan-edit');
+    expect(afterPurgeOpen.activeEvent?.purgePickOpen).toBe(true);
+    const afterPurgeDone = resolveEventPurgeCard(afterPurgeOpen, 0);
+    expect(afterPurgeDone.deckCardIds).toHaveLength(run.deckCardIds.length - 1);
+    expect(afterPurgeDone.activeEvent?.resolvedMessage).toContain('purgado');
+
+    const afterRohanPose = resolveRoguelikeEventChoice(run, rohanEvt, 'rohan-pose');
+    expect(afterRohanPose.gold).toBe(run.gold + 30);
+    expect(afterRohanPose.deckCardIds).toHaveLength(run.deckCardIds.length + 1);
+
+    const cairoEvt = ROGUELIKE_EVENTS.find((e) => e.id === 'evt-cairo-bazaar')!;
+    const afterStandSearch = resolveRoguelikeEventChoice(run, cairoEvt, 'cairo-stand');
+    const addedCardId = afterStandSearch.deckCardIds[afterStandSearch.deckCardIds.length - 1]!;
+    expect(getCardById(addedCardId)?.type).toBe('STAND');
+
+    const afterGambleRelic = resolveRoguelikeEventChoice(run, cairoEvt, 'cairo-chest');
+    expect(afterGambleRelic.activeEvent?.resolvedMessage).toBeTruthy();
+
+    // Seen events avoid immediate repeats across consecutive EVENT rooms
+    const eventNodes = run.map.filter((n) => n.type === 'EVENT');
+    if (eventNodes.length >= 2) {
+      const firstEvtRun = enterRoguelikeNode(run, eventNodes[0]!.id).nextRun;
+      const secondEvtRun = enterRoguelikeNode(firstEvtRun, eventNodes[1]!.id).nextRun;
+      expect(secondEvtRun.activeEvent?.eventId).not.toBe(firstEvtRun.activeEvent?.eventId);
+    }
   });
 });
