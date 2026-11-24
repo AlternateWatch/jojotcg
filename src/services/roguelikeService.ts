@@ -65,6 +65,8 @@ export interface RoguelikeEnemySpec {
   difficulty: AiDifficulty;
   aiErrorRate: number;
   deckIds: string[];
+  bonusMaxHp: number;
+  bonusDamage: number;
 }
 
 export interface RoguelikeRunState {
@@ -296,10 +298,12 @@ export function buildRoguelikeEnemy(
   if (roomType === 'BOSS' && floor === 10) {
     return {
       name: 'Dio Brando & Kars · Jefes Acto I',
-      subtitle: 'Piso 10 · Jefe del Acto I',
+      subtitle: 'Piso 10 · Jefe del Acto I (+20 PV)',
       featuredCardId: 'char-dio-brando',
-      difficulty: 'NORMAL',
-      aiErrorRate: 0.28,
+      difficulty: 'HARD',
+      aiErrorRate: 0.12,
+      bonusMaxHp: 20,
+      bonusDamage: 0,
       deckIds: [
         'char-dio-brando',
         'char-kars',
@@ -311,6 +315,8 @@ export function buildRoguelikeEnemy(
         'item-mascara-de-piedra',
         'item-piedra-roja-de-aja',
         'item-comida-de-tonio',
+        'item-muerte-de-danny',
+        'item-suministros-speedwagon',
         ...Array.from({ length: 8 }, () => 'energy-electric'),
         ...Array.from({ length: 8 }, () => 'energy-light'),
       ],
@@ -320,10 +326,12 @@ export function buildRoguelikeEnemy(
   if (roomType === 'BOSS' && floor === 20) {
     return {
       name: 'DIO · The World · Jefe Acto II',
-      subtitle: 'Piso 20 · Jefe del Acto II',
+      subtitle: 'Piso 20 · Jefe del Acto II (+30 PV, +10 daño)',
       featuredCardId: 'char-dio',
       difficulty: 'HARD',
-      aiErrorRate: 0.22,
+      aiErrorRate: 0.05,
+      bonusMaxHp: 30,
+      bonusDamage: 10,
       deckIds: [
         'char-dio',
         'char-vanilla-ice',
@@ -342,8 +350,11 @@ export function buildRoguelikeEnemy(
         'item-suministros-speedwagon',
         'item-comida-de-tonio',
         'item-ataud-de-dio',
-        ...Array.from({ length: 10 }, () => 'energy-psychic'),
-        ...Array.from({ length: 9 }, () => 'energy-water'),
+        'energy-stand',
+        'energy-stand',
+        'energy-stand',
+        ...Array.from({ length: 9 }, () => 'energy-psychic'),
+        ...Array.from({ length: 8 }, () => 'energy-water'),
       ],
     };
   }
@@ -351,10 +362,12 @@ export function buildRoguelikeEnemy(
   if (roomType === 'BOSS' && floor === 30) {
     return {
       name: 'Réquiem Definitivo · Jefe Final',
-      subtitle: 'Piso 30 · Jefe Final de la Expedición',
+      subtitle: 'Piso 30 · Jefe Final (+40 PV, +10 daño)',
       featuredCardId: 'evo-gold-experience-requiem',
       difficulty: 'HARD',
-      aiErrorRate: 0.14,
+      aiErrorRate: 0.0,
+      bonusMaxHp: 40,
+      bonusDamage: 10,
       deckIds: [
         'char-giorno-giovanna',
         'char-jotaro-kujo',
@@ -380,39 +393,60 @@ export function buildRoguelikeEnemy(
         'item-comida-de-tonio',
         'energy-stand',
         'energy-stand',
-        ...Array.from({ length: 11 }, () => 'energy-psychic'),
-        ...Array.from({ length: 11 }, () => 'energy-light'),
+        'energy-stand',
+        'energy-stand',
+        ...Array.from({ length: 10 }, () => 'energy-psychic'),
+        ...Array.from({ length: 10 }, () => 'energy-light'),
       ],
     };
   }
 
-  // Dynamic scaling for Floors 1..29 BATTLE and ELITE
+  // Dynamic coherent 1-2 color scaling for Floors 1..29 BATTLE and ELITE
   const maxRarity: CardRarity =
-    floor <= 5
+    floor <= 4
       ? roomType === 'ELITE'
         ? 'RARE'
         : 'COMMON'
-      : floor <= 14
+      : floor <= 12
         ? roomType === 'ELITE'
           ? 'SUPER_RARE'
           : 'RARE'
-        : floor <= 22
+        : floor <= 20
           ? 'SUPER_RARE'
           : 'BIZARRE_RARE';
 
   const targetDeckSize = Math.min(
     46,
-    16 + Math.floor(floor * 0.85) + (roomType === 'ELITE' ? 4 : 0),
+    18 + Math.floor(floor * 0.9) + (roomType === 'ELITE' ? 4 : 0),
   );
-  const charTarget = Math.min(8, 3 + Math.floor(floor / 5) + (roomType === 'ELITE' ? 1 : 0));
-  const eligibleChars = COLLECTIBLE_POOL.filter(
+  const charTarget = Math.min(8, 4 + Math.floor(floor / 6) + (roomType === 'ELITE' ? 1 : 0));
+
+  // Pick 2 cohesive elemental colors for this enemy so its attacks are always payable!
+  const colorPairs: [string, string][] = [
+    ['PSYCHIC', 'WATER'],
+    ['ELECTRIC', 'LIGHT'],
+    ['PSYCHIC', 'FIRE'],
+    ['WATER', 'LIGHT'],
+    ['PSYCHIC', 'NATURE'],
+  ];
+  const [primaryCol, secondaryCol] = pickRandom(colorPairs, rng);
+  const allowedCols = new Set([primaryCol, secondaryCol, 'COLORLESS', 'STAND']);
+
+  const cardFitsColors = (cardId: string): boolean => {
+    const c = getCardById(cardId);
+    if (!c || (c.type !== 'CHARACTER' && c.type !== 'STAND')) return true;
+    return c.attacks.every((atk) => atk.energyCost.every((e) => allowedCols.has(e)));
+  };
+
+  const allEligibleChars = COLLECTIBLE_POOL.filter(
     (c) =>
       c.type === 'CHARACTER' &&
       RARITY_ORDER[getCardRarity(c.id)] <= RARITY_ORDER[maxRarity] &&
-      (floor >= 8 || (c.dg === null || c.dg <= 4)),
+      (floor >= 6 || c.dg === null || c.dg <= 4),
   );
-  const shuffledChars = rng.shuffle(eligibleChars);
-  const pickedChars = shuffledChars.slice(0, charTarget);
+  const colorMatchedChars = allEligibleChars.filter((c) => cardFitsColors(c.id));
+  const charPool = colorMatchedChars.length >= charTarget ? colorMatchedChars : allEligibleChars;
+  const pickedChars = rng.shuffle(charPool).slice(0, charTarget);
 
   const deckIds: string[] = pickedChars.map((c) => c.id);
   const maxDg = pickedChars.reduce((m, c) => (c.type === 'CHARACTER' ? Math.max(m, c.dg ?? 0) : m), 0);
@@ -421,36 +455,61 @@ export function buildRoguelikeEnemy(
   ).length;
 
   if (standUsersCount > 0 && maxDg >= 3) {
-    const eligibleStands = COLLECTIBLE_POOL.filter(
+    const allEligibleStands = COLLECTIBLE_POOL.filter(
       (c) =>
         c.type === 'STAND' &&
         c.requiredDg <= maxDg &&
         RARITY_ORDER[getCardRarity(c.id)] <= RARITY_ORDER[maxRarity],
     );
-    const standsToAdd = rng.shuffle(eligibleStands).slice(0, Math.min(standUsersCount, 5));
+    const colorMatchedStands = allEligibleStands.filter((s) => cardFitsColors(s.id));
+    const standPool = colorMatchedStands.length >= 2 ? colorMatchedStands : allEligibleStands;
+    const standsToAdd = rng.shuffle(standPool).slice(0, Math.min(standUsersCount + 1, 6));
     for (const s of standsToAdd) deckIds.push(s.id);
   }
 
-  // Add a couple of scaling items
-  const itemPool = ['item-comida-de-tonio', 'item-suministros-speedwagon', 'item-atraccion-usuarios-stand', 'item-muerte-de-danny'];
-  const itemCount = floor <= 5 ? 1 : floor <= 15 ? 3 : 5;
-  for (let i = 0; i < itemCount && deckIds.length < targetDeckSize - 7; i++) {
+  // Add impactful tactical items
+  const itemPool = [
+    'item-comida-de-tonio',
+    'item-suministros-speedwagon',
+    'item-atraccion-usuarios-stand',
+    'item-muerte-de-danny',
+    'item-ataud-de-dio',
+  ];
+  const itemCount = floor <= 4 ? 2 : floor <= 14 ? 4 : 6;
+  for (let i = 0; i < itemCount && deckIds.length < targetDeckSize - 8; i++) {
     deckIds.push(pickRandom(itemPool, rng));
   }
 
-  // Fill remaining slots with matching energies
-  const neededColors = new Set<string>();
+  // Add Stand Energies for Stand-heavy enemies from Floor 6+
+  if (standUsersCount >= 2 && floor >= 6) {
+    const standEnergyCount = Math.min(floor >= 18 ? 3 : 2, Math.max(0, targetDeckSize - deckIds.length - 6));
+    for (let i = 0; i < standEnergyCount; i++) deckIds.push('energy-stand');
+  }
+
+  // Fill remaining slots strictly with needed colors (max 2 colors)
+  const colorWeights = new Map<string, number>();
   for (const id of deckIds) {
     const card = getCardById(id);
     if (card && (card.type === 'CHARACTER' || card.type === 'STAND')) {
       for (const atk of card.attacks) {
         for (const e of atk.energyCost) {
-          if (e !== 'COLORLESS' && e !== 'STAND') neededColors.add(`energy-${e.toLowerCase()}`);
+          if (e !== 'COLORLESS' && e !== 'STAND') {
+            const eid = `energy-${e.toLowerCase()}`;
+            colorWeights.set(eid, (colorWeights.get(eid) ?? 0) + 1);
+          }
         }
       }
     }
   }
-  const colorList = neededColors.size > 0 ? Array.from(neededColors) : ['energy-psychic', 'energy-electric'];
+  const sortedEnergyIds = Array.from(colorWeights.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([eid]) => eid);
+  const colorList =
+    sortedEnergyIds.length > 0
+      ? sortedEnergyIds
+      : [`energy-${primaryCol.toLowerCase()}`, `energy-${secondaryCol.toLowerCase()}`];
+
   let idx = 0;
   while (deckIds.length < targetDeckSize) {
     deckIds.push(colorList[idx % colorList.length]!);
@@ -460,26 +519,44 @@ export function buildRoguelikeEnemy(
   const featured = pickedChars[0]?.id ?? 'char-hol-horse';
   const featuredName = getCardById(featured)?.name ?? 'Rival';
   const difficulty: AiDifficulty =
-    floor <= 8 && roomType === 'BATTLE'
-      ? 'EASY'
-      : floor <= 18
+    floor <= 3 && roomType === 'BATTLE'
+      ? 'NORMAL'
+      : floor <= 10 && roomType === 'BATTLE'
         ? 'NORMAL'
         : 'HARD';
   const aiErrorRate = Math.max(
-    0.15,
-    0.46 - floor * 0.01 - (roomType === 'ELITE' ? 0.06 : 0),
+    0.03,
+    0.26 - floor * 0.008 - (roomType === 'ELITE' ? 0.08 : 0),
   );
+
+  // Enemy stat scaling across Acts
+  const bonusMaxHp =
+    roomType === 'ELITE'
+      ? floor <= 10
+        ? 10
+        : floor <= 20
+          ? 20
+          : 30
+      : floor <= 10
+        ? 0
+        : floor <= 20
+          ? 10
+          : 20;
+  const bonusDamage =
+    (roomType === 'ELITE' && floor >= 11) || floor >= 22 ? 10 : 0;
 
   return {
     name: roomType === 'ELITE' ? `${featuredName} · Élite Piso ${floor}` : `${featuredName} · Piso ${floor}`,
     subtitle:
       roomType === 'ELITE'
-        ? `Piso ${floor} · Combate Élite (${deckIds.length} cartas)`
-        : `Piso ${floor} · Combate (${deckIds.length} cartas)`,
+        ? `Piso ${floor} · Combate Élite (${deckIds.length} cartas${bonusMaxHp ? ` · +${bonusMaxHp} PV` : ''}${bonusDamage ? ` · +${bonusDamage} daño` : ''})`
+        : `Piso ${floor} · Combate (${deckIds.length} cartas${bonusMaxHp ? ` · +${bonusMaxHp} PV` : ''})`,
     featuredCardId: featured,
     difficulty,
     aiErrorRate,
     deckIds,
+    bonusMaxHp,
+    bonusDamage,
   };
 }
 

@@ -148,7 +148,7 @@ export function computeEffectiveMaxHp(
     (inst.wangChanHpBonus ?? 0) +
     (inst.foreverHpBonus ?? 0) +
     (inst.rubberSoulHpBonus ?? 0) +
-    (playerId === 'P1' ? (state.rules.p1BonusMaxHp ?? 0) : 0);
+    (playerId === 'P1' ? (state.rules.p1BonusMaxHp ?? 0) : (state.rules.p2BonusMaxHp ?? 0));
 
   // Okuyasu + Josuke on bench: +20 max HP while Okuyasu is active
   if (

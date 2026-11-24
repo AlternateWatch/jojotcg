@@ -50,9 +50,11 @@ export function triggerOnEnterFieldAbility(
   const opponentId = getOpponentId(playerId);
   const opponent = state.players[opponentId];
 
-  // Roguelike relic bonus max & starting HP for P1
-  if (playerId === 'P1' && state.rules.p1BonusMaxHp && state.rules.p1BonusMaxHp > 0) {
-    inst.currentHp += state.rules.p1BonusMaxHp;
+  // Roguelike relic bonus (P1) & enemy floor scaling (P2) max & starting HP
+  const bonusHp =
+    playerId === 'P1' ? (state.rules.p1BonusMaxHp ?? 0) : (state.rules.p2BonusMaxHp ?? 0);
+  if (bonusHp > 0) {
+    inst.currentHp += bonusHp;
   }
 
   // Erina Pendleton — AMOR FLAGRANTE: when Jonathan enters play while Erina is on bench, +10 HP & +10 next attack!

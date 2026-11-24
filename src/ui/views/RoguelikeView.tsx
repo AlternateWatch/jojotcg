@@ -321,7 +321,13 @@ export function RoguelikeView() {
     setShowEnergyPicker(false);
 
     if (enemy && nextRun.status === 'IN_BATTLE') {
-      const rules = computeRelicRulesOverrides(nextRun.relicIds);
+      const rules = {
+        ...computeRelicRulesOverrides(nextRun.relicIds),
+        p2BonusMaxHp: enemy.bonusMaxHp,
+        p2BonusDamage: enemy.bonusDamage,
+      };
+      const firstPlayerId =
+        node.type === 'BOSS' || (node.type === 'ELITE' && node.floor % 2 === 1) ? 'P2' : 'P1';
       startBattle(
         {
           mode: 'VS_AI',
@@ -329,7 +335,7 @@ export function RoguelikeView() {
           p2Name: enemy.name,
           p1DeckIds: nextRun.deckCardIds,
           p2DeckIds: enemy.deckIds,
-          firstPlayerId: 'P1',
+          firstPlayerId,
           aiDifficulty: enemy.difficulty,
           aiErrorRate: enemy.aiErrorRate,
           roguelikeNodeId: node.id,

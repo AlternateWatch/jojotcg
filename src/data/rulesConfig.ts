@@ -19,10 +19,12 @@ export interface GameRulesConfig {
   vampireRegenAmount: number;
   /** Prevents infinite back-to-back stun-locking on the same character */
   preventConsecutiveStun: boolean;
-  /** Optional Roguelike run relic bonuses for P1 (default 0 in normal matches) */
+  /** Optional Roguelike run relic bonuses for P1 & enemy scaling for P2 (default 0 in normal matches) */
   p1BonusMaxHp?: number;
   p1BonusDamage?: number;
   p1ExtraInitialHand?: number;
+  p2BonusMaxHp?: number;
+  p2BonusDamage?: number;
   /** When true (e.g. small-deck Roguelike mode), running out of cards with an empty discard simply skips drawing instead of causing instant deck-out loss */
   disableDeckOutLoss?: boolean;
 }

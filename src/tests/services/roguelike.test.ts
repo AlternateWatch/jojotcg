@@ -129,11 +129,11 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
     expect(run.deckCardIds).toHaveLength(17);
     expect(run.deckCardIds).toContain(chosenCard);
 
-    // Grant relic (Gravedad del Destino + Sangre Joestar) and verify rule overrides
+    // Grant relic (Sangre Joestar + Sobrecarga de Hamon) and verify rule overrides
     run = grantRelicToRun(run, 'relic-sangre-joestar');
     run = grantRelicToRun(run, 'relic-sobrecarga-hamon');
     const overrides = computeRelicRulesOverrides(run.relicIds);
-    expect(overrides.p1BonusMaxHp).toBe(15);
+    expect(overrides.p1BonusMaxHp).toBe(10);
     expect(overrides.p1BonusDamage).toBe(10);
 
     // Test Treasure room: grants gold + relic choices, NO card draft (card draft is combat-only)
