@@ -59,6 +59,16 @@ describe('Roguelike Expedition Mode (30 Floors)', () => {
       const nodes = map.filter((n) => n.floor === bossFloor);
       expect(nodes).toHaveLength(1);
       expect(nodes[0]!.type).toBe('BOSS');
+      expect(nodes[0]!.lane).toBe(1);
+    }
+
+    // Strict lane adjacency: every edge connects only to adjacent lanes (|nextLane - lane| <= 1)
+    for (const node of map) {
+      for (const nextId of node.nextNodeIds) {
+        const target = map.find((n) => n.id === nextId)!;
+        expect(target.floor).toBe(node.floor + 1);
+        expect(Math.abs(target.lane - node.lane)).toBeLessThanOrEqual(1);
+      }
     }
 
     // BFS reachability from Floor 1 reaches Floor 30 Boss

@@ -932,67 +932,128 @@ export function RoguelikeView() {
               </div>
             </div>
 
-            <div className="space-y-3">
-              {actFloors.map(({ floor, nodes }) => {
-                const isNextFloor = floor === roguelikeRun.currentFloor + 1;
-                return (
-                  <div
-                    key={floor}
-                    className={`flex flex-wrap items-center gap-3 border-2 p-2.5 ${
-                      isNextFloor
-                        ? 'border-[#f2c12e] bg-[#1e172c]'
-                        : 'border-[#060508] bg-[#0e0b14]'
-                    }`}
-                  >
-                    <div className="w-20 shrink-0 font-mono text-xs font-black text-zinc-400">
-                      PISO {floor}
-                      {isNextFloor && (
-                        <div className="text-[10px] text-[#f2c12e]">SIGUIENTE</div>
-                      )}
-                    </div>
+            <div className="space-y-1">
+              {/* 3-Lane Header */}
+              <div className="hidden items-center gap-3 px-2.5 pb-1 sm:flex">
+                <div className="w-20 shrink-0" />
+                <div className="grid flex-1 grid-cols-3 gap-2.5 text-center font-jojo-heading text-[11px] tracking-[0.2em] text-zinc-400 uppercase">
+                  <span>Carril Izquierdo</span>
+                  <span>Carril Central</span>
+                  <span>Carril Derecho</span>
+                </div>
+              </div>
 
-                    <div className="grid flex-1 grid-cols-1 gap-2.5 sm:grid-cols-3">
-                      {nodes.map((node) => {
-                        const style = ROOM_STYLE[node.type];
-                        const isSelectable = selectableNodeIds.has(node.id);
-                        const isCurrent = roguelikeRun.currentNodeId === node.id;
-                        return (
-                          <button
-                            key={node.id}
-                            type="button"
-                            disabled={!isSelectable}
-                            onClick={() => handleSelectNode(node)}
-                            className={`flex items-center justify-between gap-2 border-2 p-3 text-left transition ${
-                              isSelectable
-                                ? `${style.border} ${style.bg} cursor-pointer shadow-[3px_3px_0_#060508] ring-2 ring-[#f2c12e]/70 hover:-translate-y-0.5`
-                                : node.visited
-                                  ? 'border-emerald-600/60 bg-emerald-950/30 opacity-80'
-                                  : 'border-[#060508] bg-[#120e1a] opacity-45'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <span className={style.text}>
-                                <RoomIcon type={node.type} size={18} />
-                              </span>
-                              <div>
-                                <div className={`font-jojo-heading text-xs uppercase ${style.text}`}>
-                                  {node.label}
-                                </div>
-                                <div className="font-mono text-[10px] text-zinc-400">
-                                  {isCurrent
-                                    ? 'Posición actual'
+              {actFloors.map(({ floor, nodes }, rowIdx) => {
+                const isNextFloor = floor === roguelikeRun.currentFloor + 1;
+                const nextRow = actFloors[rowIdx + 1];
+                const laneCenters = [16.66, 50, 83.33];
+
+                return (
+                  <div key={floor}>
+                    <div
+                      className={`flex flex-wrap items-center gap-3 border-2 p-2.5 ${
+                        isNextFloor
+                          ? 'border-[#f2c12e] bg-[#1e172c]'
+                          : 'border-[#060508] bg-[#0e0b14]'
+                      }`}
+                    >
+                      <div className="w-20 shrink-0 font-mono text-xs font-black text-zinc-400">
+                        PISO {floor}
+                        {isNextFloor && (
+                          <div className="text-[10px] text-[#f2c12e]">SIGUIENTE</div>
+                        )}
+                      </div>
+
+                      <div className="grid flex-1 grid-cols-1 gap-2.5 sm:grid-cols-3">
+                        {[0, 1, 2].map((laneIdx) => {
+                          const node = nodes.find((n) => n.lane === laneIdx);
+                          if (!node) {
+                            return <div key={laneIdx} className="hidden sm:block" />;
+                          }
+                          const style = ROOM_STYLE[node.type];
+                          const isSelectable = selectableNodeIds.has(node.id);
+                          const isCurrent = roguelikeRun.currentNodeId === node.id;
+                          return (
+                            <button
+                              key={node.id}
+                              type="button"
+                              disabled={!isSelectable}
+                              onClick={() => handleSelectNode(node)}
+                              className={`flex items-center justify-between gap-2 border-2 p-3 text-left transition ${
+                                isSelectable
+                                  ? `${style.border} ${style.bg} cursor-pointer shadow-[3px_3px_0_#060508] ring-2 ring-[#f2c12e]/70 hover:-translate-y-0.5`
+                                  : isCurrent
+                                    ? 'border-[#00e599] bg-emerald-950/50 ring-2 ring-[#00e599]/60'
                                     : node.visited
-                                      ? 'Completada'
-                                      : isSelectable
-                                        ? 'Entrar ➔'
-                                        : `Carril ${node.lane + 1}`}
+                                      ? 'border-emerald-600/60 bg-emerald-950/30 opacity-80'
+                                      : 'border-[#060508] bg-[#120e1a] opacity-40'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <span className={style.text}>
+                                  <RoomIcon type={node.type} size={18} />
+                                </span>
+                                <div>
+                                  <div className={`font-jojo-heading text-xs uppercase ${style.text}`}>
+                                    {node.label}
+                                  </div>
+                                  <div className="font-mono text-[10px] text-zinc-400">
+                                    {isCurrent
+                                      ? 'Estás aquí'
+                                      : node.visited
+                                        ? 'Completada'
+                                        : isSelectable
+                                          ? 'Entrar ➔'
+                                          : 'Bloqueada'}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </button>
-                        );
-                      })}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
+
+                    {/* Visual SVG connectors between adjacent lanes */}
+                    {nextRow && (
+                      <div className="hidden items-center gap-3 px-2.5 sm:flex">
+                        <div className="w-20 shrink-0" />
+                        <svg
+                          viewBox="0 0 100 22"
+                          preserveAspectRatio="none"
+                          className="h-5 flex-1 overflow-visible"
+                        >
+                          {nodes.flatMap((src) =>
+                            src.nextNodeIds.map((targetId) => {
+                              const dst = nextRow.nodes.find((n) => n.id === targetId);
+                              if (!dst) return null;
+                              const isActiveEdge =
+                                roguelikeRun.currentNodeId === src.id &&
+                                selectableNodeIds.has(dst.id);
+                              const isVisitedEdge = src.visited && dst.visited;
+                              return (
+                                <line
+                                  key={`${src.id}-${dst.id}`}
+                                  x1={laneCenters[src.lane]}
+                                  y1={0}
+                                  x2={laneCenters[dst.lane]}
+                                  y2={22}
+                                  stroke={
+                                    isActiveEdge
+                                      ? '#f2c12e'
+                                      : isVisitedEdge
+                                        ? '#00e599'
+                                        : 'rgba(255,255,255,0.14)'
+                                  }
+                                  strokeWidth={isActiveEdge ? 1.4 : isVisitedEdge ? 1.1 : 0.6}
+                                  strokeDasharray={isActiveEdge || isVisitedEdge ? undefined : '2 2'}
+                                />
+                              );
+                            }),
+                          )}
+                        </svg>
+                      </div>
+                    )}
                   </div>
                 );
               })}

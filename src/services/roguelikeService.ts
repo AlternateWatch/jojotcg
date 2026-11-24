@@ -102,7 +102,9 @@ function pickRandom<T>(items: readonly T[], rng: RngProvider): T {
 }
 
 /**
- * Generates a connected 30-floor Slay-the-Spire style branching roadmap.
+ * Generates a connected 30-floor 3-lane branching roadmap.
+ * Every non-boss floor has 3 lanes (0 = Left, 1 = Center, 2 = Right), and Boss floors (10, 20, 30)
+ * sit in the Center lane (1). Each node connects strictly to adjacent lanes (|nextLane - lane| <= 1).
  */
 export function generateRoguelikeMap(seed: number): RoguelikeMapNode[] {
   const rng = createSeededRng(seed ^ 0x5f3759df);
@@ -113,10 +115,10 @@ export function generateRoguelikeMap(seed: number): RoguelikeMapNode[] {
     const isPreBossFloor = floor === 9 || floor === 19 || floor === 29;
     const isMiniEliteFloor = floor === 5 || floor === 15 || floor === 25;
 
-    const count = isBossFloor ? 1 : floor === 1 ? 3 : rng.nextFloat() < 0.55 ? 3 : 2;
+    const lanes = isBossFloor ? [1] : [0, 1, 2];
     const row: RoguelikeMapNode[] = [];
 
-    for (let lane = 0; lane < count; lane++) {
+    for (const lane of lanes) {
       let type: RoguelikeRoomType = 'BATTLE';
       if (isBossFloor) {
         type = 'BOSS';
@@ -162,38 +164,21 @@ export function generateRoguelikeMap(seed: number): RoguelikeMapNode[] {
     floors.push(row);
   }
 
-  // Connect every node on floor f to 1-2 nodes on floor f+1, ensuring every f+1 node has >= 1 parent
+  // Strictly connect each node to adjacent lanes (|next.lane - curr.lane| <= 1)
   for (let f = 0; f < floors.length - 1; f++) {
     const curr = floors[f]!;
     const next = floors[f + 1]!;
-    const incomingCount = new Map<string, number>();
-    for (const n of next) incomingCount.set(n.id, 0);
 
-    for (let i = 0; i < curr.length; i++) {
-      const node = curr[i]!;
-      const primaryIdx = Math.min(next.length - 1, Math.round((i / Math.max(1, curr.length - 1)) * (next.length - 1)));
-      const primary = next[primaryIdx]!;
-      node.nextNodeIds.push(primary.id);
-      incomingCount.set(primary.id, (incomingCount.get(primary.id) ?? 0) + 1);
-
-      // Optional branching edge to adjacent lane
-      if (next.length > 1 && rng.nextFloat() < 0.55) {
-        const altIdx = primaryIdx + (rng.nextFloat() < 0.5 ? 1 : -1);
-        const clampedAlt = Math.max(0, Math.min(next.length - 1, altIdx));
-        const alt = next[clampedAlt]!;
-        if (!node.nextNodeIds.includes(alt.id)) {
-          node.nextNodeIds.push(alt.id);
-          incomingCount.set(alt.id, (incomingCount.get(alt.id) ?? 0) + 1);
+    for (const node of curr) {
+      if (next.length === 1) {
+        // Converge all 3 lanes into the Boss node
+        node.nextNodeIds.push(next[0]!.id);
+      } else {
+        for (const target of next) {
+          if (Math.abs(target.lane - node.lane) <= 1) {
+            node.nextNodeIds.push(target.id);
+          }
         }
-      }
-    }
-
-    // Ensure no orphan nodes on next floor
-    for (let j = 0; j < next.length; j++) {
-      const target = next[j]!;
-      if ((incomingCount.get(target.id) ?? 0) === 0) {
-        const parentIdx = Math.min(curr.length - 1, j);
-        curr[parentIdx]!.nextNodeIds.push(target.id);
       }
     }
   }
