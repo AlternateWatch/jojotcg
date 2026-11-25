@@ -116,6 +116,80 @@ export const BATTLE_PLAYLIST: BattleTrack[] = [
     excludeFromCampaignPool: true,
     exclusiveStageId: 'p2-s20',
   },
+  // ==================== PART 3: STARDUST CRUSADERS ====================
+  {
+    id: 'p3-stardust-crusaders',
+    title: 'Stardust Crusaders (スターダストクルセイダース)',
+    jpTitle: 'スターダストクルセイダース',
+    part: 3,
+    src: '/assets/music/battle/p3-stardust-crusaders.ogg',
+  },
+  {
+    id: 'p3-koketsu-naru-kyoko',
+    title: 'Noble Pope (高潔なる教皇)',
+    jpTitle: '高潔なる教皇',
+    part: 3,
+    src: '/assets/music/battle/p3-koketsu-naru-kyoko.ogg',
+  },
+  {
+    id: 'p3-honoo-no-jujutsushi',
+    title: 'Fire Magician (炎の呪術師)',
+    jpTitle: '炎の呪術師',
+    part: 3,
+    src: '/assets/music/battle/p3-honoo-no-jujutsushi.ogg',
+  },
+  {
+    id: 'p3-gekitotsu',
+    title: 'Clash (激突)',
+    jpTitle: '激突',
+    part: 3,
+    src: '/assets/music/battle/p3-gekitotsu.ogg',
+  },
+  {
+    id: 'p3-kessen-no-toki',
+    title: 'Time of Decisive Battle (決戦の時)',
+    jpTitle: '決戦の時',
+    part: 3,
+    src: '/assets/music/battle/p3-kessen-no-toki.ogg',
+  },
+  {
+    id: 'p3-kinpaku',
+    title: 'Tension (緊迫)',
+    jpTitle: '緊迫',
+    part: 3,
+    src: '/assets/music/battle/p3-kinpaku.ogg',
+  },
+  {
+    id: 'p3-kyuhaku',
+    title: 'Imminence (急迫)',
+    jpTitle: '急迫',
+    part: 3,
+    src: '/assets/music/battle/p3-kyuhaku.ogg',
+  },
+  {
+    id: 'p3-makuake',
+    title: 'Makuake',
+    part: 3,
+    src: '/assets/music/battle/p3-makuake.ogg',
+  },
+  {
+    id: 'p3-gambler',
+    title: 'Gambler',
+    part: 3,
+    src: '/assets/music/battle/p3-gambler.ogg',
+  },
+  {
+    id: 'p3-kakero-the-bluff',
+    title: 'The Kakero the Bluff',
+    part: 3,
+    src: '/assets/music/battle/p3-kakero-the-bluff.ogg',
+  },
+  {
+    id: 'p3-fight-to-antagonize',
+    title: 'Fight to Antagonize',
+    part: 3,
+    src: '/assets/music/battle/p3-fight-to-antagonize.ogg',
+  },
 ];
 
 export function getBattleTracksByPart(
