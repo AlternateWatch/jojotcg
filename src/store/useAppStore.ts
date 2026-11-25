@@ -13,6 +13,7 @@ import { authService, type AuthUser } from '../services/authService';
 import {
   computeDraftMetaReward,
   createDraftRun,
+  resolveDraftBattleOutcome,
   type DraftRunState,
 } from '../services/draftService';
 import {
@@ -582,7 +583,13 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     try {
       const raw = window.localStorage.getItem('jojo_tcg_draft_v1');
       if (!raw) return null;
-      return JSON.parse(raw) as DraftRunState;
+      const parsed = JSON.parse(raw) as DraftRunState;
+      if (parsed && parsed.status === 'IN_BATTLE') {
+        const penalized = resolveDraftBattleOutcome(parsed, false);
+        window.localStorage.setItem('jojo_tcg_draft_v1', JSON.stringify(penalized));
+        return penalized;
+      }
+      return parsed;
     } catch {
       return null;
     }

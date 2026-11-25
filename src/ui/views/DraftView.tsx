@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Coins,
@@ -21,6 +21,7 @@ import {
   DRAFT_MAX_WINS,
   DRAFT_TOTAL_PICKS,
   pickDraftCard,
+  resolveDraftBattleOutcome,
 } from '../../services/draftService';
 import type { OpenPackOutcome } from '../../services/progressionService';
 import { useAppStore } from '../../store/useAppStore';
@@ -44,10 +45,20 @@ export function DraftView() {
   const lastBattleTrackId = useBattleStore((s) => s.activeBattleTrackId);
 
   const [showDeckModal, setShowDeckModal] = useState(false);
+  const [abandonNotice, setAbandonNotice] = useState(false);
   const [rewardPackModal, setRewardPackModal] = useState<{
     pack: BoosterPackDef;
     outcomes: OpenPackOutcome[];
   } | null>(null);
+
+  // If the player returned to Draft (or reloaded the page) while a Draft battle was marked IN_BATTLE,
+  // automatically count it as a loss so the Arena never gets stuck or exploited.
+  useEffect(() => {
+    if (draftRun && draftRun.status === 'IN_BATTLE') {
+      setDraftRun(resolveDraftBattleOutcome(draftRun, false));
+      setAbandonNotice(true);
+    }
+  }, [draftRun, setDraftRun]);
 
   const nextOpponent = useMemo(() => {
     if (!draftRun || draftRun.status !== 'READY') return null;
@@ -428,6 +439,17 @@ export function DraftView() {
     >
       <div className="pointer-events-none absolute inset-0 bg-[#0b090e]/92" />
       <div className="relative z-10 mx-auto max-w-[1040px] space-y-5 px-4">
+        {abandonNotice && (
+          <div className="flex items-center justify-between border-2 border-[#e6194b] bg-[#2a0c15] px-4 py-2.5 text-xs text-rose-200">
+            <span>
+              Abandonaste el combate anterior de Arena Draft. Se ha contabilizado automáticamente
+              como <strong>1 derrota</strong>.
+            </span>
+            <button type="button" onClick={() => setAbandonNotice(false)}>
+              <X size={14} />
+            </button>
+          </div>
+        )}
         {/* Arena Scoreboard */}
         <div className="jojo-panel flex flex-wrap items-center justify-between gap-4 p-5">
           <div>

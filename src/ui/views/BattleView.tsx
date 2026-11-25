@@ -697,8 +697,30 @@ export function BattleView() {
           <button
             type="button"
             onClick={() => {
+              if (gameState.phase !== 'GAME_OVER' && !battleRewardClaimed && !isSpectator) {
+                if (activeDraftMatchIndex !== null && draftRun && draftRun.status === 'IN_BATTLE') {
+                  setDraftRun(resolveDraftBattleOutcome(draftRun, false));
+                } else if (activeCompetitiveMode) {
+                  const compName = authUser?.username ?? myPlayer.name;
+                  void reportCompetitiveMatchResult({
+                    mode: activeCompetitiveMode,
+                    username: compName,
+                    won: false,
+                  });
+                } else if (activeRoguelikeNodeId && roguelikeRun) {
+                  setRoguelikeRun(resolveRoguelikeBattleOutcome(roguelikeRun, false));
+                }
+              }
+              const returnTarget =
+                activeDraftMatchIndex !== null
+                  ? 'DRAFT'
+                  : activeCompetitiveMode
+                    ? 'COMPETITIVE'
+                    : activeRoguelikeNodeId
+                      ? 'ROGUELIKE'
+                      : 'HOME';
               resetBattle();
-              setScreen('HOME');
+              setScreen(returnTarget);
             }}
             className="jojo-btn-ink flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold uppercase"
           >
