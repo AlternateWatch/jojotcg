@@ -24,5 +24,10 @@ Whenever adding a new official card (Character, Stand, Evolution, or Item):
 - **Statuses**: Stunned allows retreating (unless locked by *Ataúd de DIO*) and grants 1-turn consecutive stun resistance after clearing (`preventConsecutiveStun`); Bleed stacks independently (3 turns × 10 dmg); Burn deals 10 fixed dmg and clears immediately on any heal, leaving Active, or promotion to Active.
 - **Campaign & AI**: Stage 5 (1 pack) and Stage 10 (2 packs) are `HARD` bosses with strict one-time pickup rewards; mandatory themed Story Loaner Deck on 1st clear, Free Mode after clearing; AI featured card guaranteed in opening hand; `HARD` AI retains subtle human-like openings on non-lethal turns so fights reward skill rather than pure RNG.
 
+## Persistence, Roguelike & Cosmetics Invariants
+- **Dual Progression Normalizer (CRITICAL)**: Whenever adding any new persistent field to `PlayerProgression` (e.g., `foilCards`, `equippedFoilCardIds`, achievements, rankings), you MUST update **both** `normalizePlayerProgression()` in `src/services/progressionService.ts` **and** `normalizeProgression()` in `src/services/authService.ts`, plus add a regression test in `src/tests/services/progression.test.ts` verifying the field survives `authService.normalizeProgression` (otherwise `/api/auth/me` will strip the field on refresh and sync the wiped object back to MySQL).
+- **Roguelike Constraints**: Every starter deck in `ROGUELIKE_STARTER_DECKS` must only include colored basic energies actually required by at least one attack in that deck. Campfire cloning is strictly restricted to `ITEM` and `ENERGY` cards (never `CHARACTER`, `STAND`, or `EVOLUTION`).
+- **Holographic / Foil Cards**: Uniform drop rate is `0.1%` (`FOIL_DROP_RATE = 0.001`) across all rarities. Keep holo visuals off in general card grids unless explicitly equipped (`equippedFoilCardIds`); show the Inspector holo toggle/equip controls only for owned holographic cards.
+
 ## Verification
 - After engine, deck, campaign, or UI changes, run `npm run typecheck`, `npm run test` (including `src/tests/engine/balanceSimulation.test.ts`), and `npm run build`.
