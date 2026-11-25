@@ -61,6 +61,22 @@ export function normalizeProgression(
     }
   }
 
+  const hasFoil = raw.foilCards && typeof raw.foilCards === 'object';
+  const foilCards: Record<string, number> = hasFoil ? {} : { ...(baseline.foilCards ?? {}) };
+  if (hasFoil && raw.foilCards) {
+    for (const [id, count] of Object.entries(raw.foilCards)) {
+      if (typeof count === 'number' && Number.isFinite(count) && count > 0) {
+        foilCards[id] = Math.floor(count);
+      }
+    }
+  }
+
+  const equippedFoilCardIds = Array.isArray(raw.equippedFoilCardIds)
+    ? Array.from(
+        new Set(raw.equippedFoilCardIds.filter((id): id is string => typeof id === 'string')),
+      )
+    : [];
+
   const completedCampaignStages = Array.isArray(raw.completedCampaignStages)
     ? Array.from(
         new Set(raw.completedCampaignStages.filter((id): id is string => typeof id === 'string')),
@@ -85,6 +101,8 @@ export function normalizeProgression(
         ? Math.floor(raw.coins)
         : baseline.coins,
     ownedCards,
+    foilCards,
+    equippedFoilCardIds,
     packsOpened:
       typeof raw.packsOpened === 'number' && raw.packsOpened >= 0 ? Math.floor(raw.packsOpened) : 0,
     wins: typeof raw.wins === 'number' && raw.wins >= 0 ? Math.floor(raw.wins) : 0,

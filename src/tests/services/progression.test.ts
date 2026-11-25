@@ -8,6 +8,7 @@ import {
   isCampaignStageUnlocked,
 } from '../../data/campaignData';
 import { ALL_CARDS, getCardById, PRESET_DECKS } from '../../data/cardRegistry';
+import { normalizeProgression } from '../../services/authService';
 import {
   ALL_MILESTONES,
   CARD_SET_MILESTONES,
@@ -92,6 +93,16 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(prog.foilCards?.['stand-sticky-fingers']).toBeGreaterThanOrEqual(1);
     expect(prog.ownedCards['stand-sticky-fingers']).toBeGreaterThanOrEqual(1);
     expect(prog.equippedFoilCardIds).toEqual([]);
+
+    // Auth hydration/login normalization must preserve pulled foilCards and equippedFoilCardIds
+    const hydrated = normalizeProgression({
+      ...prog,
+      ownedCards: { ...prog.ownedCards, 'stand-the-world': 1 },
+      foilCards: { 'stand-sticky-fingers': 1, 'stand-the-world': 1 },
+      equippedFoilCardIds: ['stand-the-world'],
+    });
+    expect(hydrated.foilCards?.['stand-the-world']).toBe(1);
+    expect(hydrated.equippedFoilCardIds).toEqual(['stand-the-world']);
 
     // Elite preset decks require unlocking cards from packs
     const stardust = PRESET_DECKS.find((d) => d.id === 'preset-stardust-crusaders')!;
