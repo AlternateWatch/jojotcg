@@ -32,6 +32,7 @@ export function HomeView() {
   const setShowAuthModal = useAppStore((s) => s.setShowAuthModal);
   const roguelikeRun = useAppStore((s) => s.roguelikeRun);
   const bestRoguelikeFloor = useAppStore((s) => s.bestRoguelikeFloor);
+  const draftRun = useAppStore((s) => s.draftRun);
 
   const coll = getCollectionProgress(progression);
   const campaignTotal = CAMPAIGN_PARTS.reduce((sum, p) => sum + (p.available ? p.stages.length : 0), 0);
@@ -57,33 +58,42 @@ export function HomeView() {
       title: roguelikeRun
         ? `EXPEDICIÓN ROGUELIKE · PISO ${roguelikeRun.currentFloor}/30`
         : `MODO ROGUELIKE (30 NIVELES${bestRoguelikeFloor > 0 ? ` · RÉCORD PISO ${bestRoguelikeFloor}` : ''})`,
-      sub: 'Empieza con 16 cartas, elige ruta entre batallas, tiendas, eventos y jefes · Recompensas al final',
+      sub: 'Empieza con 16 cartas, elige ruta entre batallas, tiendas, eventos, Ascensión 1–5 y jefes',
       accent: 'bg-[#9333ea] text-white',
       onClick: () => setScreen('ROGUELIKE'),
     },
     {
       index: '03',
-      title: 'MULTIJUGADOR ONLINE 1V1',
-      sub: 'Busca partida automática o crea/únete a una sala privada con código',
+      title: draftRun
+        ? `ARENA DRAFT · ${draftRun.status === 'DRAFTING' ? `PICK ${draftRun.currentPick}/24` : `${draftRun.wins}V - ${draftRun.losses}D`}`
+        : 'MODO DRAFT / ARENA (5 VICTORIAS)',
+      sub: 'Construye un mazo de 46 cartas eligiendo 1 entre 3 · Hasta 500 Monedas y 2 Sobres Generales',
       accent: 'bg-[#00b87c] text-[#0b090e]',
-      onClick: () => openBattleSetup('ONLINE'),
+      onClick: () => setScreen('DRAFT'),
     },
     {
       index: '04',
+      title: 'MULTIJUGADOR ONLINE 1V1',
+      sub: 'Busca partida automática o crea/únete a una sala privada con código',
+      accent: 'bg-[#0f766e] text-white',
+      onClick: () => openBattleSetup('ONLINE'),
+    },
+    {
+      index: '05',
       title: 'COMBATE VS IA & LOCAL',
       sub: 'Duelos contra la IA (Fácil / Normal / Difícil) o 1v1 en el mismo equipo',
       accent: 'bg-[#f2c12e] text-[#0b090e]',
       onClick: () => openBattleSetup('VS_AI'),
     },
     {
-      index: '05',
+      index: '06',
       title: 'TIENDA DE SOBRES',
       sub: `Abre sobres por Parte o Correlación · ${progression.coins.toLocaleString()} monedas`,
       accent: 'bg-[#e6194b] text-white',
       onClick: () => setScreen('SHOP'),
     },
     {
-      index: '06',
+      index: '07',
       title:
         milestonesReady > 0
           ? `CARTAS, MAZOS & HITOS (${milestonesReady} ¡LISTO!)`

@@ -31,6 +31,7 @@ import { computeTutorialStep } from '../../engine/tutorial/tutorialCoach';
 import type { GamePhase } from '../../engine/types/state';
 import { CARD_BACK_PATTERN_URL, PLAYMAT_THEMES } from '../../services/assetResolver';
 import { onlineService } from '../../services/onlineService';
+import { resolveDraftBattleOutcome } from '../../services/draftService';
 import { computeBattleReward } from '../../services/progressionService';
 import {
   buildRoguelikeBattleModifiers,
@@ -123,6 +124,7 @@ export function BattleView() {
   const activeCampaignStageId = useBattleStore((s) => s.activeCampaignStageId);
   const activeTutorialLessonId = useBattleStore((s) => s.activeTutorialLessonId);
   const activeRoguelikeNodeId = useBattleStore((s) => s.activeRoguelikeNodeId);
+  const activeDraftMatchIndex = useBattleStore((s) => s.activeDraftMatchIndex);
   const activeBattleTrackId = useBattleStore((s) => s.activeBattleTrackId);
   const campaignPackReward = useBattleStore((s) => s.campaignPackReward);
   const setCampaignPackReward = useBattleStore((s) => s.setCampaignPackReward);
@@ -140,6 +142,8 @@ export function BattleView() {
   const completeTutorialLesson = useAppStore((s) => s.completeTutorialLesson);
   const roguelikeRun = useAppStore((s) => s.roguelikeRun);
   const setRoguelikeRun = useAppStore((s) => s.setRoguelikeRun);
+  const draftRun = useAppStore((s) => s.draftRun);
+  const setDraftRun = useAppStore((s) => s.setDraftRun);
   const setPlaymatTheme = useAppStore((s) => s.setPlaymatTheme);
   const setAnimationSpeed = useAppStore((s) => s.setAnimationSpeed);
   const setEnable3dVfx = useAppStore((s) => s.setEnable3dVfx);
@@ -251,6 +255,20 @@ export function BattleView() {
           label: `Derrota en el Piso ${roguelikeRun.currentFloor} · Vuelve a la Expedición para cobrar tus Monedas`,
         });
       }
+    } else if (activeDraftMatchIndex !== null && draftRun) {
+      const nextDraft = resolveDraftBattleOutcome(draftRun, didWin);
+      setDraftRun(nextDraft);
+      claimBattleReward({
+        coins: 0,
+        label:
+          nextDraft.status === 'FINISHED'
+            ? nextDraft.wins >= 5
+              ? '¡CAMPEÓN DE ARENA DRAFT (5 VICTORIAS)! Vuelve para reclamar tus premios'
+              : `Arena Draft finalizada (${nextDraft.wins}V - ${nextDraft.losses}D) · Vuelve para reclamar tus Monedas`
+            : didWin
+              ? `¡Victoria en Arena Draft! Marcador: ${nextDraft.wins}V - ${nextDraft.losses}D`
+              : `Derrota en Arena Draft · Marcador: ${nextDraft.wins}V - ${nextDraft.losses}D`,
+      });
     } else if (activeTutorialLessonId) {
       const lesson = getTutorialLessonById(activeTutorialLessonId);
       if (didWin && lesson) {
@@ -336,6 +354,12 @@ export function BattleView() {
     aiDifficulty,
     activeCampaignStageId,
     activeTutorialLessonId,
+    activeRoguelikeNodeId,
+    activeDraftMatchIndex,
+    roguelikeRun,
+    setRoguelikeRun,
+    draftRun,
+    setDraftRun,
     battleRewardClaimed,
     awardBattleReward,
     completeCampaignStage,
@@ -1498,11 +1522,16 @@ export function BattleView() {
         isCampaign={Boolean(activeCampaignStageId)}
         isTutorial={Boolean(activeTutorialLessonId)}
         isRoguelike={Boolean(activeRoguelikeNodeId)}
+        isDraft={activeDraftMatchIndex !== null}
         campaignPackReward={campaignPackReward}
         onOpenCampaignPacks={() => setShowCampaignPacks(true)}
         onReturnToRoguelike={() => {
           resetBattle();
           setScreen('ROGUELIKE');
+        }}
+        onReturnToDraft={() => {
+          resetBattle();
+          setScreen('DRAFT');
         }}
         onReturnToTutorial={() => {
           resetBattle();

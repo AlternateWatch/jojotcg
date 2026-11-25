@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Coins, Gift, Map, RefreshCw, ShoppingBag } from 'lucide-react';
+import { Coins, Gift, Map, RefreshCw, ShoppingBag, Sparkles, Swords, Trophy } from 'lucide-react';
 import { getCardById, getStandCard } from '../../../data/cardRegistry';
 import type { BoosterPackDef } from '../../../data/progressionData';
+import { computeBattlePostSummary } from '../../../services/battleStatsService';
 import {
   getCharacterUnlockTurn,
   hasAnyTurnOneEligibleCharacter,
@@ -24,11 +25,13 @@ interface BattleModalsProps {
   isCampaign?: boolean;
   isTutorial?: boolean;
   isRoguelike?: boolean;
+  isDraft?: boolean;
   campaignPackReward?: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null;
   onOpenCampaignPacks?: () => void;
   onReturnToCampaign?: () => void;
   onReturnToTutorial?: () => void;
   onReturnToRoguelike?: () => void;
+  onReturnToDraft?: () => void;
   onDispatch: (action: GameAction) => void;
   onConfirmHandoff: () => void;
   onRematch: () => void;
@@ -46,11 +49,13 @@ export function BattleModals({
   isCampaign = false,
   isTutorial = false,
   isRoguelike = false,
+  isDraft = false,
   campaignPackReward,
   onOpenCampaignPacks,
   onReturnToCampaign,
   onReturnToTutorial,
   onReturnToRoguelike,
+  onReturnToDraft,
   onDispatch,
   onConfirmHandoff,
   onRematch,
@@ -385,6 +390,55 @@ export function BattleModals({
               <p className="mt-2 text-sm text-zinc-300">{gameState.winReason}</p>
             </div>
 
+            {/* POST-BATTLE MVP & STATS SUMMARY */}
+            {(() => {
+              const summary = computeBattlePostSummary(gameState);
+              const myStats = myId === 'P1' ? summary.p1 : summary.p2;
+              const enemyStats = myId === 'P1' ? summary.p2 : summary.p1;
+              const totalCoins = myStats.coinHeads + myStats.coinTails;
+              return (
+                <div className="space-y-2.5 border-2 border-[#060508] bg-[#0e0b14] p-3.5 text-left">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2">
+                    <span className="inline-flex items-center gap-1.5 font-jojo-heading text-xs tracking-widest text-[#f2c12e] uppercase">
+                      <Trophy size={13} /> Resumen Post-Combate
+                    </span>
+                    {summary.mvp && (
+                      <span className="inline-flex items-center gap-1 border border-[#f2c12e]/50 bg-[#1f182d] px-2 py-0.5 font-mono text-[10px] font-bold text-[#f2c12e]">
+                        <Sparkles size={11} /> MVP: {summary.mvp.cardName} ({summary.mvp.damageDealt}{' '}
+                        daño{summary.mvp.kosScored > 0 ? ` · ${summary.mvp.kosScored} KO` : ''})
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 font-mono text-[11px] sm:grid-cols-4">
+                    <div className="border border-white/5 bg-[#15111f] p-2 text-center">
+                      <div className="text-[10px] text-zinc-400">DAÑO INFLIGIDO</div>
+                      <div className="text-sm font-black text-[#00e599]">
+                        {myStats.damageDealt}{' '}
+                        <span className="text-[10px] text-zinc-500">vs {enemyStats.damageDealt}</span>
+                      </div>
+                    </div>
+                    <div className="border border-white/5 bg-[#15111f] p-2 text-center">
+                      <div className="text-[10px] text-zinc-400">KOs LOGRADOS</div>
+                      <div className="text-sm font-black text-[#f2c12e]">
+                        {myStats.kosScored}{' '}
+                        <span className="text-[10px] text-zinc-500">vs {enemyStats.kosScored}</span>
+                      </div>
+                    </div>
+                    <div className="border border-white/5 bg-[#15111f] p-2 text-center">
+                      <div className="text-[10px] text-zinc-400">CURACIÓN</div>
+                      <div className="text-sm font-black text-sky-300">+{myStats.hpHealed} PV</div>
+                    </div>
+                    <div className="border border-white/5 bg-[#15111f] p-2 text-center">
+                      <div className="text-[10px] text-zinc-400">MONEDAS (C/X)</div>
+                      <div className="text-sm font-black text-zinc-200">
+                        {totalCoins > 0 ? `${myStats.coinHeads} / ${myStats.coinTails}` : '—'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {battleReward && (
               <motion.div
                 initial={{ scale: 0.85, opacity: 0 }}
@@ -422,6 +476,15 @@ export function BattleModals({
             )}
 
             <div className="flex flex-wrap justify-center gap-3 pt-2">
+              {isDraft && onReturnToDraft && (
+                <button
+                  type="button"
+                  onClick={onReturnToDraft}
+                  className="jojo-btn-primary inline-flex items-center gap-2 px-6 py-3 font-jojo-heading text-base tracking-[0.14em] uppercase"
+                >
+                  <Swords size={16} /> Continuar Arena Draft
+                </button>
+              )}
               {isRoguelike && onReturnToRoguelike && (
                 <button
                   type="button"
@@ -449,7 +512,7 @@ export function BattleModals({
                   <Map size={16} /> Mapa de Campaña
                 </button>
               )}
-              {mode !== 'ONLINE' && !isRoguelike && (
+              {mode !== 'ONLINE' && !isRoguelike && !isDraft && (
                 <button
                   type="button"
                   onClick={onRematch}

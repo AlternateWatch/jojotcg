@@ -5,10 +5,16 @@ import { PRESET_DECKS } from '../data/cardRegistry';
 import { getBoosterPackById, type BoosterPackDef } from '../data/progressionData';
 import {
   createRoguelikeGeneralPack,
+  getRoguelikeAchievements,
   type RoguelikeDifficulty,
 } from '../data/roguelikeData';
 import type { AiDifficulty } from '../engine/ai/tacticalAi';
 import { authService, type AuthUser } from '../services/authService';
+import {
+  computeDraftMetaReward,
+  createDraftRun,
+  type DraftRunState,
+} from '../services/draftService';
 import {
   claimAllReadyMilestones,
   claimCampaignStageReward,
@@ -45,6 +51,7 @@ export type AppScreen =
   | 'TUTORIAL'
   | 'CAMPAIGN'
   | 'ROGUELIKE'
+  | 'DRAFT'
   | 'BATTLE_SETUP'
   | 'BATTLE'
   | 'COLLECTION'
@@ -67,6 +74,7 @@ interface AppStoreState {
   selectedCampaignPart: 1 | 2 | 3 | 4 | 5;
   roguelikeRun: RoguelikeRunState | null;
   bestRoguelikeFloor: number;
+  draftRun: DraftRunState | null;
 
   setScreen: (screen: AppScreen) => void;
   setSelectedCampaignPart: (part: 1 | 2 | 3 | 4 | 5) => void;
@@ -114,7 +122,11 @@ interface AppStoreState {
   grantTestCoins: (amount: number) => void;
   resetProgression: () => void;
 
-  startRoguelikeRun: (starterId: string, difficulty?: RoguelikeDifficulty) => RoguelikeRunState;
+  startRoguelikeRun: (
+    starterId: string,
+    difficulty?: RoguelikeDifficulty,
+    ascensionLevel?: number,
+  ) => RoguelikeRunState;
   startDailyRoguelikeRun: () => RoguelikeRunState;
   setRoguelikeRun: (run: RoguelikeRunState | null) => void;
   claimRoguelikeEndReward: () => {
@@ -124,6 +136,18 @@ interface AppStoreState {
     packOutcomes: OpenPackOutcome[] | null;
   } | null;
   abandonRoguelikeRun: () => void;
+  claimRoguelikeAchievement: (achievementId: string) => { ok: boolean; coinsAwarded: number };
+
+  startDraftRun: () => DraftRunState;
+  setDraftRun: (run: DraftRunState | null) => void;
+  claimDraftEndReward: () => {
+    coins: number;
+    breakdown: string;
+    isChampion: boolean;
+    pack: BoosterPackDef | null;
+    packOutcomes: OpenPackOutcome[] | null;
+  } | null;
+  abandonDraftRun: () => void;
 }
 
 // Legacy localStorage cleanup so guest mode never persists data across window closes
@@ -534,8 +558,20 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     }
   })(),
 
-  startRoguelikeRun: (starterId, difficulty = 'NORMAL') => {
-    const run = createRoguelikeRun(starterId, difficulty);
+  draftRun: (() => {
+    if (typeof window === 'undefined' || !window.localStorage) return null;
+    try {
+      const raw = window.localStorage.getItem('jojo_tcg_draft_v1');
+      if (!raw) return null;
+      return JSON.parse(raw) as DraftRunState;
+    } catch {
+      return null;
+    }
+  })(),
+
+  startRoguelikeRun: (starterId, difficulty = 'NORMAL', ascensionLevel = 0) => {
+    const effectiveAsc = difficulty === 'HARD' ? Math.max(0, Math.min(5, ascensionLevel)) : 0;
+    const run = createRoguelikeRun(starterId, difficulty, undefined, effectiveAsc);
     try {
       window.localStorage?.setItem('jojo_tcg_roguelike_v1', JSON.stringify(run));
     } catch {
@@ -582,10 +618,23 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       ...run,
       metaCoinsClaimed: reward.coins,
     };
+    const prevProg = get().progression;
+    const prevStarters = prevProg.completedRoguelikeStarters ?? [];
+    const nextCompletedStarters =
+      run.status === 'VICTORY' && !prevStarters.includes(run.starterId)
+        ? [...prevStarters, run.starterId]
+        : prevStarters;
+    const nextMaxAscension =
+      run.status === 'VICTORY'
+        ? Math.max(prevProg.maxRoguelikeAscensionCleared ?? 0, run.ascensionLevel ?? 0)
+        : (prevProg.maxRoguelikeAscensionCleared ?? 0);
+
     let nextProg: PlayerProgression = {
-      ...get().progression,
-      coins: get().progression.coins + reward.coins,
-      wins: get().progression.wins + (run.status === 'VICTORY' ? 1 : 0),
+      ...prevProg,
+      coins: prevProg.coins + reward.coins,
+      wins: prevProg.wins + (run.status === 'VICTORY' ? 1 : 0),
+      completedRoguelikeStarters: nextCompletedStarters,
+      maxRoguelikeAscensionCleared: nextMaxAscension,
     };
 
     let pack: BoosterPackDef | null = null;
@@ -594,7 +643,14 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       pack = createRoguelikeGeneralPack();
       packOutcomes = [];
       for (let i = 0; i < reward.packCount; i++) {
-        const out = openBoosterPack(pack, nextProg, undefined, true);
+        const out = openBoosterPack(
+          pack,
+          nextProg,
+          undefined,
+          true,
+          undefined,
+          reward.bonusFoilRate,
+        );
         packOutcomes.push(out);
         nextProg = out.nextProgression;
       }
@@ -617,5 +673,109 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       // Ignore
     }
     set({ roguelikeRun: null });
+  },
+
+  claimRoguelikeAchievement: (achievementId) => {
+    const def = getRoguelikeAchievements().find((a) => a.id === achievementId);
+    if (!def) return { ok: false, coinsAwarded: 0 };
+    const prog = get().progression;
+    const claimed = prog.claimedRoguelikeAchievements ?? [];
+    if (claimed.includes(achievementId)) return { ok: false, coinsAwarded: 0 };
+
+    let unlocked = false;
+    if (def.category === 'STARTER' && def.starterId) {
+      unlocked = (prog.completedRoguelikeStarters ?? []).includes(def.starterId);
+    } else if (def.category === 'ASCENSION' && def.minAscension !== undefined) {
+      unlocked = (prog.maxRoguelikeAscensionCleared ?? 0) >= def.minAscension;
+    } else if (def.category === 'DRAFT' && def.minDraftChampions !== undefined) {
+      unlocked = (prog.draftChampionWins ?? 0) >= def.minDraftChampions;
+    }
+    if (!unlocked) return { ok: false, coinsAwarded: 0 };
+
+    const nextProg: PlayerProgression = {
+      ...prog,
+      coins: prog.coins + def.rewardCoins,
+      claimedRoguelikeAchievements: [...claimed, achievementId],
+    };
+    if (get().authUser) void authService.syncAccountData({ progression: nextProg });
+    set({ progression: nextProg });
+    return { ok: true, coinsAwarded: def.rewardCoins };
+  },
+
+  startDraftRun: () => {
+    const run = createDraftRun();
+    try {
+      window.localStorage?.setItem('jojo_tcg_draft_v1', JSON.stringify(run));
+    } catch {
+      // Ignore
+    }
+    set({ draftRun: run });
+    return run;
+  },
+
+  setDraftRun: (run) => {
+    try {
+      if (run) {
+        window.localStorage?.setItem('jojo_tcg_draft_v1', JSON.stringify(run));
+      } else {
+        window.localStorage?.removeItem('jojo_tcg_draft_v1');
+      }
+    } catch {
+      // Ignore
+    }
+    set({ draftRun: run });
+  },
+
+  claimDraftEndReward: () => {
+    const run = get().draftRun;
+    if (!run || run.metaCoinsClaimed !== null) return null;
+    const reward = computeDraftMetaReward(run);
+    const updatedRun: DraftRunState = {
+      ...run,
+      metaCoinsClaimed: reward.coins,
+    };
+    const prevProg = get().progression;
+    let nextProg: PlayerProgression = {
+      ...prevProg,
+      coins: prevProg.coins + reward.coins,
+      wins: prevProg.wins + (reward.isChampion ? 1 : 0),
+      draftChampionWins: (prevProg.draftChampionWins ?? 0) + (reward.isChampion ? 1 : 0),
+    };
+
+    let pack: BoosterPackDef | null = null;
+    let packOutcomes: OpenPackOutcome[] | null = null;
+    if (reward.packCount > 0) {
+      pack = createRoguelikeGeneralPack();
+      packOutcomes = [];
+      for (let i = 0; i < reward.packCount; i++) {
+        const out = openBoosterPack(pack, nextProg, undefined, true);
+        packOutcomes.push(out);
+        nextProg = out.nextProgression;
+      }
+    }
+
+    if (get().authUser) void authService.syncAccountData({ progression: nextProg });
+    try {
+      window.localStorage?.setItem('jojo_tcg_draft_v1', JSON.stringify(updatedRun));
+    } catch {
+      // Ignore
+    }
+    set({ draftRun: updatedRun, progression: nextProg });
+    return {
+      coins: reward.coins,
+      breakdown: reward.breakdown,
+      isChampion: reward.isChampion,
+      pack,
+      packOutcomes,
+    };
+  },
+
+  abandonDraftRun: () => {
+    try {
+      window.localStorage?.removeItem('jojo_tcg_draft_v1');
+    } catch {
+      // Ignore
+    }
+    set({ draftRun: null });
   },
 }));

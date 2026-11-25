@@ -38,6 +38,14 @@ export interface PlayerProgression {
   completedTutorialLessons: string[];
   /** Milestone IDs whose extra coin rewards have already been claimed (one-time pickup) */
   claimedMilestones: string[];
+  /** Roguelike starter deck IDs that have cleared Floor 30 */
+  completedRoguelikeStarters?: string[];
+  /** Highest Roguelike Ascension level cleared (0..5) */
+  maxRoguelikeAscensionCleared?: number;
+  /** Number of 5-win Draft Arena championships completed */
+  draftChampionWins?: number;
+  /** Claimed Roguelike/Draft achievement IDs */
+  claimedRoguelikeAchievements?: string[];
 }
 
 export interface PackPullResult {
@@ -160,6 +168,10 @@ export function createInitialProgression(): PlayerProgression {
     completedCampaignStages: [],
     completedTutorialLessons: [],
     claimedMilestones: [],
+    completedRoguelikeStarters: [],
+    maxRoguelikeAscensionCleared: 0,
+    draftChampionWins: 0,
+    claimedRoguelikeAchievements: [],
   };
 }
 
@@ -243,6 +255,36 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
       )
     : [];
 
+  const completedRoguelikeStarters = Array.isArray(progression.completedRoguelikeStarters)
+    ? Array.from(
+        new Set(
+          progression.completedRoguelikeStarters.filter((id): id is string => typeof id === 'string'),
+        ),
+      )
+    : [];
+
+  const maxRoguelikeAscensionCleared =
+    typeof progression.maxRoguelikeAscensionCleared === 'number' &&
+    Number.isFinite(progression.maxRoguelikeAscensionCleared)
+      ? Math.max(0, Math.min(5, Math.floor(progression.maxRoguelikeAscensionCleared)))
+      : 0;
+
+  const draftChampionWins =
+    typeof progression.draftChampionWins === 'number' &&
+    Number.isFinite(progression.draftChampionWins)
+      ? Math.max(0, Math.floor(progression.draftChampionWins))
+      : 0;
+
+  const claimedRoguelikeAchievements = Array.isArray(progression.claimedRoguelikeAchievements)
+    ? Array.from(
+        new Set(
+          progression.claimedRoguelikeAchievements.filter(
+            (id): id is string => typeof id === 'string',
+          ),
+        ),
+      )
+    : [];
+
   return {
     ...progression,
     ownedCards: nextOwned,
@@ -251,6 +293,10 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
     completedCampaignStages,
     completedTutorialLessons,
     claimedMilestones,
+    completedRoguelikeStarters,
+    maxRoguelikeAscensionCleared,
+    draftChampionWins,
+    claimedRoguelikeAchievements,
   };
 }
 
@@ -450,6 +496,7 @@ export function openBoosterPack(
   rng: RngProvider = createSystemRng(),
   free = false,
   forceFoilSlotIndex?: number,
+  bonusFoilRate = 0,
 ): OpenPackOutcome {
   const byRarity: Record<CardRarity, string[]> = {
     COMMON: [],
@@ -488,7 +535,7 @@ export function openBoosterPack(
     const nextCount = prevOwned + 1;
     nextOwned[cardId] = nextCount;
 
-    const foilChance = FOIL_DROP_RATE;
+    const foilChance = Math.min(1, FOIL_DROP_RATE + Math.max(0, bonusFoilRate));
     const isFoil = forceFoilSlotIndex === slot || rng.nextFloat() < foilChance;
     if (isFoil) {
       nextFoil[cardId] = (nextFoil[cardId] ?? 0) + 1;

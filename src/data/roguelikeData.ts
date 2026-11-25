@@ -78,6 +78,124 @@ export function createRoguelikeGeneralPack(): BoosterPackDef {
   };
 }
 
+export const ROGUELIKE_MAX_ASCENSION = 5;
+
+export interface RoguelikeAscensionDef {
+  level: number;
+  name: string;
+  effectText: string;
+  coinBonusPercent: number;
+  foilBonusPercent: number;
+}
+
+export const ROGUELIKE_ASCENSION_LEVELS: RoguelikeAscensionDef[] = [
+  {
+    level: 1,
+    name: 'Ascensión I · Presión Creciente',
+    effectText: 'Todos los enemigos ganan +10 PV adicionales.',
+    coinBonusPercent: 15,
+    foilBonusPercent: 0.5,
+  },
+  {
+    level: 2,
+    name: 'Ascensión II · Mercado Hostil',
+    effectText: 'Tiendas un 20% más caras y -5 Oro inicial.',
+    coinBonusPercent: 30,
+    foilBonusPercent: 1.0,
+  },
+  {
+    level: 3,
+    name: 'Ascensión III · Furia Élite',
+    effectText: 'Élites y Jefes infligen +10 de daño extra.',
+    coinBonusPercent: 45,
+    foilBonusPercent: 1.5,
+  },
+  {
+    level: 4,
+    name: 'Ascensión IV · Mente Maestra',
+    effectText: 'IA perfecta (0% de error) en todos los combates de Actos II y III.',
+    coinBonusPercent: 60,
+    foilBonusPercent: 2.0,
+  },
+  {
+    level: 5,
+    name: 'Ascensión V · Réquiem',
+    effectText: 'Los Jefes de Acto ganan +20 PV adicionales extra.',
+    coinBonusPercent: 75,
+    foilBonusPercent: 2.5,
+  },
+];
+
+export interface RoguelikeAchievementDef {
+  id: string;
+  title: string;
+  description: string;
+  category: 'STARTER' | 'ASCENSION' | 'DRAFT';
+  rewardCoins: number;
+  starterId?: string;
+  minAscension?: number;
+  minDraftChampions?: number;
+}
+
+export function getRoguelikeAchievements(): RoguelikeAchievementDef[] {
+  const starterAchievements: RoguelikeAchievementDef[] = ROGUELIKE_STARTER_DECKS.map((st) => ({
+    id: `rl-ach-starter-${st.id}`,
+    title: `Maestro de ${st.name}`,
+    description: `Completa los 30 pisos del Roguelike con el mazo inicial "${st.name}".`,
+    category: 'STARTER',
+    rewardCoins: 250,
+    starterId: st.id,
+  }));
+
+  const ascensionAchievements: RoguelikeAchievementDef[] = [
+    {
+      id: 'rl-ach-asc-1',
+      title: 'Ascensión I Superada',
+      description: 'Vence el Piso 30 en Difícil con Ascensión 1 o superior.',
+      category: 'ASCENSION',
+      rewardCoins: 300,
+      minAscension: 1,
+    },
+    {
+      id: 'rl-ach-asc-3',
+      title: 'Ascensión III Superada',
+      description: 'Vence el Piso 30 en Difícil con Ascensión 3 o superior.',
+      category: 'ASCENSION',
+      rewardCoins: 500,
+      minAscension: 3,
+    },
+    {
+      id: 'rl-ach-asc-5',
+      title: 'Conquistador Réquiem (Ascensión V)',
+      description: 'Vence el Piso 30 en el desafío máximo: Ascensión 5.',
+      category: 'ASCENSION',
+      rewardCoins: 900,
+      minAscension: 5,
+    },
+  ];
+
+  const draftAchievements: RoguelikeAchievementDef[] = [
+    {
+      id: 'rl-ach-draft-1',
+      title: 'Campeón de Arena Draft',
+      description: 'Logra las 5 victorias en una serie del Modo Draft.',
+      category: 'DRAFT',
+      rewardCoins: 400,
+      minDraftChampions: 1,
+    },
+    {
+      id: 'rl-ach-draft-3',
+      title: 'Leyenda del Draft (3×)',
+      description: 'Consigue 3 campeonatos completos de 5 victorias en Modo Draft.',
+      category: 'DRAFT',
+      rewardCoins: 750,
+      minDraftChampions: 3,
+    },
+  ];
+
+  return [...starterAchievements, ...ascensionAchievements, ...draftAchievements];
+}
+
 export interface RoguelikeStarterDeckDef {
   id: string;
   name: string;

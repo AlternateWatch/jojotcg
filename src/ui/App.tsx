@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import { BookOpen, Coins, GraduationCap, Layers, Map, Trophy, User, UserCheck, Wrench } from 'lucide-react';
+import { BookOpen, Coins, Compass, GraduationCap, Layers, Map, Shuffle, Trophy, User, UserCheck, Wrench } from 'lucide-react';
 import { CAMPAIGN_PARTS } from '../data/campaignData';
 import { ALL_MILESTONES } from '../data/milestonesData';
 import { TUTORIAL_LESSONS } from '../data/tutorialData';
@@ -16,6 +16,7 @@ import { BattleView } from './views/BattleView';
 import { CampaignView } from './views/CampaignView';
 import { CollectionView } from './views/CollectionView';
 import { DeckBuilderView } from './views/DeckBuilderView';
+import { DraftView } from './views/DraftView';
 import { HomeView } from './views/HomeView';
 import { MilestonesView } from './views/MilestonesView';
 import { RoguelikeView } from './views/RoguelikeView';
@@ -32,7 +33,7 @@ interface NavGroupItem {
 const NAV_ITEMS: NavGroupItem[] = [
   { id: 'HOME', num: '01', label: 'Portada', matchScreens: ['HOME'] },
   { id: 'CAMPAIGN', num: '02', label: 'Historia', matchScreens: ['CAMPAIGN', 'TUTORIAL'] },
-  { id: 'ROGUELIKE', num: '03', label: 'Roguelike', matchScreens: ['ROGUELIKE'] },
+  { id: 'ROGUELIKE', num: '03', label: 'Roguelike', matchScreens: ['ROGUELIKE', 'DRAFT'] },
   { id: 'BATTLE_SETUP', num: '04', label: 'Combate', matchScreens: ['BATTLE_SETUP'] },
   {
     id: 'COLLECTION',
@@ -48,12 +49,13 @@ const SCREEN_ORDER: Record<AppScreen, number> = {
   TUTORIAL: 1,
   CAMPAIGN: 2,
   ROGUELIKE: 3,
-  BATTLE_SETUP: 4,
-  COLLECTION: 5,
-  DECK_BUILDER: 6,
-  SHOP: 7,
-  MILESTONES: 8,
-  BATTLE: 9,
+  DRAFT: 4,
+  BATTLE_SETUP: 5,
+  COLLECTION: 6,
+  DECK_BUILDER: 7,
+  SHOP: 8,
+  MILESTONES: 9,
+  BATTLE: 10,
 };
 
 const pageVariants = {
@@ -287,6 +289,37 @@ export function App() {
             </div>
           )}
 
+          {(screen === 'ROGUELIKE' || screen === 'DRAFT') && (
+            <div className="border-b-2 border-[#060508] bg-[#16111f]">
+              <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-2 px-4 py-2 sm:px-6">
+                <button
+                  type="button"
+                  onClick={() => setScreen('ROGUELIKE')}
+                  className={`inline-flex items-center gap-1.5 border-2 border-[#060508] px-3.5 py-1.5 font-jojo-heading text-xs tracking-wider uppercase shadow-[2px_2px_0_#060508] transition ${
+                    screen === 'ROGUELIKE'
+                      ? 'bg-[#9333ea] text-white'
+                      : 'bg-[#1d1727] text-zinc-300 hover:bg-[#272035] hover:text-white'
+                  }`}
+                >
+                  <Compass size={14} />
+                  <span>Expedición Roguelike (30 Pisos)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScreen('DRAFT')}
+                  className={`inline-flex items-center gap-1.5 border-2 border-[#060508] px-3.5 py-1.5 font-jojo-heading text-xs tracking-wider uppercase shadow-[2px_2px_0_#060508] transition ${
+                    screen === 'DRAFT'
+                      ? 'bg-[#00b87c] text-[#0b090e]'
+                      : 'bg-[#1d1727] text-zinc-300 hover:bg-[#272035] hover:text-white'
+                  }`}
+                >
+                  <Shuffle size={14} />
+                  <span>Arena Draft (5 Victorias)</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {(screen === 'COLLECTION' || screen === 'DECK_BUILDER' || screen === 'MILESTONES') && (
             <div className="border-b-2 border-[#060508] bg-[#16111f]">
               <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-2 px-4 py-2 sm:px-6">
@@ -350,6 +383,7 @@ export function App() {
               {screen === 'TUTORIAL' && <TutorialView />}
               {screen === 'CAMPAIGN' && <CampaignView />}
               {screen === 'ROGUELIKE' && <RoguelikeView />}
+              {screen === 'DRAFT' && <DraftView />}
               {screen === 'BATTLE_SETUP' && <BattleSetupView />}
               {screen === 'BATTLE' && <BattleView />}
               {screen === 'COLLECTION' && <CollectionView />}

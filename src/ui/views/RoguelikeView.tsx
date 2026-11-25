@@ -22,17 +22,21 @@ import { getCardById } from '../../data/cardRegistry';
 import { getCardRarity, RARITY_META, type BoosterPackDef } from '../../data/progressionData';
 import {
   BASIC_ENERGY_IDS,
+  getRoguelikeAchievements,
   getRoguelikeRelicById,
   ROGUELIKE_ACTS,
+  ROGUELIKE_ASCENSION_LEVELS,
   ROGUELIKE_DIFFICULTY_META,
   ROGUELIKE_EVENTS,
+  ROGUELIKE_MAX_ASCENSION,
   ROGUELIKE_MIN_DECK_SIZE,
   ROGUELIKE_STARTER_DECKS,
   ROGUELIKE_TOTAL_FLOORS,
+  type RoguelikeAchievementDef,
   type RoguelikeDifficulty,
   type RoguelikeRoomType,
 } from '../../data/roguelikeData';
-import type { OpenPackOutcome } from '../../services/progressionService';
+import type { OpenPackOutcome, PlayerProgression } from '../../services/progressionService';
 import {
   fetchDailyLeaderboard,
   submitDailyScore,
@@ -140,6 +144,8 @@ export function RoguelikeView() {
   const setRoguelikeRun = useAppStore((s) => s.setRoguelikeRun);
   const claimRoguelikeEndReward = useAppStore((s) => s.claimRoguelikeEndReward);
   const abandonRoguelikeRun = useAppStore((s) => s.abandonRoguelikeRun);
+  const progression = useAppStore((s) => s.progression);
+  const claimRoguelikeAchievement = useAppStore((s) => s.claimRoguelikeAchievement);
   const setScreen = useAppStore((s) => s.setScreen);
   const openInspector = useAppStore((s) => s.openInspector);
   const authUser = useAppStore((s) => s.authUser);
@@ -149,6 +155,23 @@ export function RoguelikeView() {
   const lastBattleTrackId = useBattleStore((s) => s.activeBattleTrackId);
 
   const [selectedDifficulty, setSelectedDifficulty] = useState<RoguelikeDifficulty>('NORMAL');
+  const [selectedAscension, setSelectedAscension] = useState<number>(0);
+  const [showAchievementsModal, setShowAchievementsModal] = useState(false);
+
+  const allAchievements = useMemo(() => getRoguelikeAchievements(), []);
+  const claimableAchievementsCount = useMemo(() => {
+    const claimed = new Set(progression.claimedRoguelikeAchievements ?? []);
+    const completedStarters = new Set(progression.completedRoguelikeStarters ?? []);
+    const maxAsc = progression.maxRoguelikeAscensionCleared ?? 0;
+    const draftChamps = progression.draftChampionWins ?? 0;
+    return allAchievements.filter((a) => {
+      if (claimed.has(a.id)) return false;
+      if (a.category === 'STARTER' && a.starterId) return completedStarters.has(a.starterId);
+      if (a.category === 'ASCENSION' && a.minAscension !== undefined) return maxAsc >= a.minAscension;
+      if (a.category === 'DRAFT' && a.minDraftChampions !== undefined) return draftChamps >= a.minDraftChampions;
+      return false;
+    }).length;
+  }, [allAchievements, progression]);
   const [dailyLeaderboard, setDailyLeaderboard] = useState<DailyLeaderboardEntry[]>([]);
   const dailySpec = useMemo(() => getDailyChallengeSpec(), []);
   const dailyStarter = useMemo(
@@ -228,6 +251,18 @@ export function RoguelikeView() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAchievementsModal(true)}
+                className="jojo-btn-ink inline-flex items-center gap-1.5 px-3.5 py-2 font-jojo-heading text-xs tracking-wider text-[#00e599] uppercase"
+              >
+                <Trophy size={14} /> Logros de Expedición
+                {claimableAchievementsCount > 0 && (
+                  <span className="ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center border border-[#060508] bg-[#f2c12e] px-1 font-mono text-[10px] font-black text-[#0b090e]">
+                    {claimableAchievementsCount}
+                  </span>
+                )}
+              </button>
               <button
                 type="button"
                 onClick={() => setShowGuideModal(true)}
@@ -393,6 +428,57 @@ export function RoguelikeView() {
                 );
               })}
             </div>
+
+            {/* Ascension 1-5 Selector (Hard Difficulty) */}
+            {selectedDifficulty === 'HARD' && (
+              <div className="space-y-3 border-2 border-[#e6194b]/60 bg-[#1a0d16] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Flame size={15} className="text-[#ff4d79]" />
+                    <span className="font-jojo-heading text-xs tracking-[0.2em] text-[#ff4d79] uppercase">
+                      NIVEL DE ASCENSIÓN (ACUMULATIVO · SOLO EN DIFÍCIL)
+                    </span>
+                  </div>
+                  <span className="font-mono text-[11px] text-[#f2c12e]">
+                    {selectedAscension > 0
+                      ? `+${selectedAscension * 15}% Monedas · +${(selectedAscension * 0.5).toFixed(1)}% Holográfica en Sobres`
+                      : 'Sin modificadores de Ascensión'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {Array.from({ length: ROGUELIKE_MAX_ASCENSION + 1 }, (_, lvl) => {
+                    const active = selectedAscension === lvl;
+                    const cleared = (progression.maxRoguelikeAscensionCleared ?? 0) >= lvl && lvl > 0;
+                    return (
+                      <button
+                        key={lvl}
+                        type="button"
+                        onClick={() => setSelectedAscension(lvl)}
+                        className={`border-2 px-3 py-1.5 font-mono text-xs font-black uppercase transition ${
+                          active
+                            ? 'border-[#f2c12e] bg-[#e6194b] text-white shadow-[3px_3px_0_#060508]'
+                            : 'border-[#060508] bg-[#0e0b14] text-zinc-300 hover:border-zinc-500'
+                        }`}
+                      >
+                        {lvl === 0 ? 'Asc. 0' : `Asc. ${lvl}${cleared ? ' ✓' : ''}`}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedAscension > 0 && (
+                  <div className="grid grid-cols-1 gap-1.5 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
+                    {ROGUELIKE_ASCENSION_LEVELS.filter((a) => a.level <= selectedAscension).map((a) => (
+                      <div
+                        key={a.level}
+                        className="border border-[#e6194b]/30 bg-[#0e0b14] px-2.5 py-1.5 text-zinc-200"
+                      >
+                        <span className="font-bold text-[#ff6b8d]">{a.name}:</span> {a.effectText}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
@@ -412,7 +498,12 @@ export function RoguelikeView() {
                         {starter.badge}
                       </span>
                       <span className="font-mono text-xs text-zinc-400">
-                        {ROGUELIKE_DIFFICULTY_META[selectedDifficulty].startingGold} Oro inicial
+                        {Math.max(
+                          0,
+                          ROGUELIKE_DIFFICULTY_META[selectedDifficulty].startingGold -
+                            (selectedDifficulty === 'HARD' && selectedAscension >= 2 ? 5 : 0),
+                        )}{' '}
+                        Oro inicial
                       </span>
                     </div>
 
@@ -460,12 +551,21 @@ export function RoguelikeView() {
                   <button
                     type="button"
                     onClick={() => {
-                      startRoguelikeRun(starter.id, selectedDifficulty);
+                      startRoguelikeRun(
+                        starter.id,
+                        selectedDifficulty,
+                        selectedDifficulty === 'HARD' ? selectedAscension : 0,
+                      );
                       setActiveActTab(1);
                     }}
                     className="jojo-btn-primary w-full py-2.5 font-jojo-heading text-sm tracking-widest uppercase"
                   >
-                    <Compass size={15} className="mr-1.5 inline" /> Iniciar ({ROGUELIKE_DIFFICULTY_META[selectedDifficulty].label})
+                    <Compass size={15} className="mr-1.5 inline" /> Iniciar (
+                    {ROGUELIKE_DIFFICULTY_META[selectedDifficulty].label}
+                    {selectedDifficulty === 'HARD' && selectedAscension > 0
+                      ? ` · Asc. ${selectedAscension}`
+                      : ''}
+                    )
                   </button>
                 </div>
               );
@@ -473,6 +573,13 @@ export function RoguelikeView() {
           </div>
         </div>
         <RoguelikeGuideModal open={showGuideModal} onClose={() => setShowGuideModal(false)} />
+        <RoguelikeAchievementsModal
+          open={showAchievementsModal}
+          onClose={() => setShowAchievementsModal(false)}
+          achievements={allAchievements}
+          progression={progression}
+          onClaim={(id) => claimRoguelikeAchievement(id)}
+        />
         <PackOpeningModal
           pack={victoryPackModal?.pack ?? null}
           outcomes={victoryPackModal?.outcomes ?? null}
@@ -575,6 +682,11 @@ export function RoguelikeView() {
             >
               {ROGUELIKE_DIFFICULTY_META[roguelikeRun.difficulty ?? 'NORMAL'].label}
             </span>
+            {(roguelikeRun.ascensionLevel ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1 border-2 border-[#060508] bg-[#e6194b] px-2.5 py-1 font-mono text-xs font-black text-white uppercase">
+                <Flame size={12} /> ASC. {roguelikeRun.ascensionLevel}
+              </span>
+            )}
             <span className="inline-flex items-center gap-1.5 border-2 border-[#060508] bg-[#1e170a] px-3 py-1 font-mono text-xs font-black text-[#f2c12e]">
               <Coins size={14} /> {roguelikeRun.gold} Oro de Expedición
             </span>
@@ -1776,6 +1888,137 @@ function RoguelikeGuideModal({ open, onClose }: { open: boolean; onClose: () => 
               >
                 ¡Entendido!
               </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function RoguelikeAchievementsModal({
+  open,
+  onClose,
+  achievements,
+  progression,
+  onClaim,
+}: {
+  open: boolean;
+  onClose: () => void;
+  achievements: RoguelikeAchievementDef[];
+  progression: PlayerProgression;
+  onClaim: (id: string) => { ok: boolean; coinsAwarded: number };
+}) {
+  const claimedSet = new Set(progression.claimedRoguelikeAchievements ?? []);
+  const completedStarters = new Set(progression.completedRoguelikeStarters ?? []);
+  const maxAsc = progression.maxRoguelikeAscensionCleared ?? 0;
+  const draftChamps = progression.draftChampionWins ?? 0;
+
+  const isUnlocked = (a: RoguelikeAchievementDef): boolean => {
+    if (a.category === 'STARTER' && a.starterId) return completedStarters.has(a.starterId);
+    if (a.category === 'ASCENSION' && a.minAscension !== undefined) return maxAsc >= a.minAscension;
+    if (a.category === 'DRAFT' && a.minDraftChampions !== undefined)
+      return draftChamps >= a.minDraftChampions;
+    return false;
+  };
+
+  const groups: { key: RoguelikeAchievementDef['category']; label: string; accent: string }[] = [
+    { key: 'ASCENSION', label: 'Niveles de Ascensión', accent: 'text-[#ff4d79]' },
+    { key: 'DRAFT', label: 'Arena Draft (5 Victorias)', accent: 'text-[#00e599]' },
+    { key: 'STARTER', label: 'Maestría de Mazos Iniciales (Piso 30)', accent: 'text-[#f2c12e]' },
+  ];
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs"
+        >
+          <motion.div
+            initial={{ scale: 0.94, y: 12 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.94, y: 12 }}
+            onClick={(e) => e.stopPropagation()}
+            className="jojo-panel max-h-[88vh] w-full max-w-3xl space-y-4 overflow-y-auto p-5"
+          >
+            <div className="flex items-center justify-between border-b-2 border-[#060508] pb-3">
+              <div>
+                <div className="font-jojo-heading text-[11px] tracking-[0.22em] text-[#00e599] uppercase">
+                  ROGUELIKE · ASCENSIÓN · ARENA DRAFT
+                </div>
+                <h3 className="font-jojo-display text-2xl text-[#f2c12e] uppercase">
+                  Logros Específicos ({claimedSet.size}/{achievements.length})
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="jojo-btn-ink flex h-8 w-8 items-center justify-center"
+                title="Cerrar"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {groups.map((g) => {
+                const items = achievements.filter((a) => a.category === g.key);
+                return (
+                  <div key={g.key} className="space-y-2">
+                    <h4 className={`font-jojo-heading text-xs tracking-[0.2em] uppercase ${g.accent}`}>
+                      {g.label}
+                    </h4>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {items.map((a) => {
+                        const unlocked = isUnlocked(a);
+                        const claimed = claimedSet.has(a.id);
+                        return (
+                          <div
+                            key={a.id}
+                            className={`flex items-center justify-between gap-3 border-2 p-3 ${
+                              claimed
+                                ? 'border-[#00b87c]/40 bg-[#0d1f18]'
+                                : unlocked
+                                  ? 'border-[#f2c12e] bg-[#21190c]'
+                                  : 'border-[#060508] bg-[#0e0b14] opacity-80'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className="truncate font-jojo-heading text-xs tracking-wider text-[#f5efe0] uppercase">
+                                {a.title}
+                              </div>
+                              <p className="mt-0.5 text-[11px] text-zinc-400">{a.description}</p>
+                            </div>
+                            <div className="shrink-0">
+                              {claimed ? (
+                                <span className="border border-[#00b87c] bg-[#00b87c]/20 px-2 py-1 font-mono text-[10px] font-black text-[#00e599] uppercase">
+                                  RECLAMADO
+                                </span>
+                              ) : unlocked ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onClaim(a.id)}
+                                  className="jojo-btn-primary px-2.5 py-1.5 font-mono text-[10px] font-black uppercase"
+                                >
+                                  +{a.rewardCoins} 💰
+                                </button>
+                              ) : (
+                                <span className="border border-white/10 bg-[#171222] px-2 py-1 font-mono text-[10px] text-zinc-400">
+                                  +{a.rewardCoins} 💰
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </motion.div>
         </motion.div>

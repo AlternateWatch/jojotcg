@@ -106,6 +106,7 @@ export interface RoguelikeRunState {
   seed: number;
   starterId: string;
   difficulty: RoguelikeDifficulty;
+  ascensionLevel?: number;
   status: 'MAP' | 'IN_BATTLE' | 'REWARD' | 'SHOP' | 'EVENT' | 'CAMPFIRE' | 'VICTORY' | 'DEFEAT';
   currentFloor: number; // 0 before picking Floor 1, then 1..30
   currentNodeId: string | null;
@@ -247,21 +248,25 @@ export function createRoguelikeRun(
   starterId: string,
   difficulty: RoguelikeDifficulty = 'NORMAL',
   seed = Date.now(),
+  ascensionLevel = 0,
 ): RoguelikeRunState {
   const starter =
     ROGUELIKE_STARTER_DECKS.find((s) => s.id === starterId) ?? ROGUELIKE_STARTER_DECKS[0]!;
   const diffMeta = ROGUELIKE_DIFFICULTY_META[difficulty];
+  const clampedAsc = difficulty === 'HARD' ? Math.max(0, Math.min(5, Math.floor(ascensionLevel))) : 0;
+  const startGold = Math.max(10, diffMeta.startingGold - (clampedAsc >= 2 ? 5 : 0));
   return {
     runId: `run-${seed}-${Math.floor(Math.random() * 9999)}`,
     seed,
     starterId: starter.id,
     difficulty,
+    ascensionLevel: clampedAsc,
     status: 'MAP',
     currentFloor: 0,
     currentNodeId: null,
     activeNodeId: null,
     deckCardIds: [...starter.cardIds],
-    gold: diffMeta.startingGold,
+    gold: startGold,
     relicIds: [],
     campfireBonusMaxHp: 0,
     map: generateRoguelikeMap(seed),
@@ -372,12 +377,16 @@ export function getGoldMultiplier(relicIds: readonly string[]): number {
   return Math.max(0.5, 1 + pct / 100);
 }
 
-export function getShopDiscountMultiplier(relicIds: readonly string[]): number {
+export function getShopDiscountMultiplier(
+  relicIds: readonly string[],
+  ascensionLevel = 0,
+): number {
   let pct = 0;
   for (const rid of relicIds) {
     pct += getRoguelikeRelicById(rid)?.shopDiscountPercent ?? 0;
   }
-  return Math.min(1.5, Math.max(0.5, 1 - pct / 100));
+  const ascMult = ascensionLevel >= 2 ? 1.2 : 1.0;
+  return Math.min(1.8, Math.max(0.5, (1 - pct / 100) * ascMult));
 }
 
 export function getDraftChoiceCount(relicIds: readonly string[]): number {
@@ -421,21 +430,22 @@ export function buildRoguelikeEnemy(
   roomType: 'BATTLE' | 'ELITE' | 'BOSS',
   seed: number,
   runDifficulty: RoguelikeDifficulty = 'NORMAL',
+  ascensionLevel = 0,
 ): RoguelikeEnemySpec {
   const rng = createSeededRng(seed + floor * 7919 + (roomType === 'BOSS' ? 999 : roomType === 'ELITE' ? 333 : 0));
 
   const applyDiffAdjust = (spec: RoguelikeEnemySpec): RoguelikeEnemySpec => {
+    let adjusted = spec;
     if (runDifficulty === 'EASY') {
-      return {
+      adjusted = {
         ...spec,
         difficulty: roomType === 'BOSS' && floor >= 20 ? 'NORMAL' : floor <= 12 ? 'EASY' : 'NORMAL',
         aiErrorRate: Math.min(0.45, spec.aiErrorRate + 0.14),
         bonusMaxHp: Math.max(0, spec.bonusMaxHp - 15),
         bonusDamage: roomType === 'BOSS' && floor === 30 ? spec.bonusDamage : 0,
       };
-    }
-    if (runDifficulty === 'HARD') {
-      return {
+    } else if (runDifficulty === 'HARD') {
+      adjusted = {
         ...spec,
         difficulty: 'HARD',
         aiErrorRate: roomType === 'BOSS' && floor >= 20 ? 0 : Math.max(0.01, spec.aiErrorRate - 0.05),
@@ -444,7 +454,32 @@ export function buildRoguelikeEnemy(
           spec.bonusDamage + (roomType === 'BOSS' && floor === 30 ? 10 : roomType === 'ELITE' && floor >= 15 ? 10 : 0),
       };
     }
-    return spec;
+
+    // Apply Ascension 1-5 cumulative modifiers
+    if (ascensionLevel > 0) {
+      let extraHp = 0;
+      let extraDmg = 0;
+      let aiErr = adjusted.aiErrorRate;
+      let aiDiff = adjusted.difficulty;
+
+      if (ascensionLevel >= 1) extraHp += 10;
+      if (ascensionLevel >= 3 && (roomType === 'ELITE' || roomType === 'BOSS')) extraDmg += 10;
+      if (ascensionLevel >= 4 && floor >= 11) {
+        aiErr = 0;
+        aiDiff = 'HARD';
+      }
+      if (ascensionLevel >= 5 && roomType === 'BOSS') extraHp += 20;
+
+      adjusted = {
+        ...adjusted,
+        difficulty: aiDiff,
+        aiErrorRate: aiErr,
+        bonusMaxHp: adjusted.bonusMaxHp + extraHp,
+        bonusDamage: adjusted.bonusDamage + extraDmg,
+      };
+    }
+
+    return adjusted;
   };
 
   if (roomType === 'BOSS' && floor === 10) {
@@ -782,7 +817,7 @@ export function generateCardDraftChoices(
 
 export function generateRoguelikeShop(run: RoguelikeRunState, seed: number): RoguelikeShopState {
   const rng = createSeededRng(seed + run.currentFloor * 3571 + 17);
-  const discount = getShopDiscountMultiplier(run.relicIds);
+  const discount = getShopDiscountMultiplier(run.relicIds, run.ascensionLevel ?? 0);
   const cardIds = generateCardDraftChoices(run, run.currentFloor >= 12 ? 'ELITE' : 'TREASURE', rng);
   // Add extra shop cards (+ any extra offers from relics like Guía de Morioh)
   const extraIds = generateCardDraftChoices(run, 'BATTLE', rng);
@@ -856,7 +891,13 @@ export function enterRoguelikeNode(
   };
 
   if (node.type === 'BATTLE' || node.type === 'ELITE' || node.type === 'BOSS') {
-    const enemy = buildRoguelikeEnemy(node.floor, node.type, run.seed, run.difficulty ?? 'NORMAL');
+    const enemy = buildRoguelikeEnemy(
+      node.floor,
+      node.type,
+      run.seed,
+      run.difficulty ?? 'NORMAL',
+      run.ascensionLevel ?? 0,
+    );
     return {
       nextRun: { ...baseRun, status: 'IN_BATTLE' },
       enemy,
@@ -1399,10 +1440,14 @@ export function resolveCampfirePurgeCard(
 export function computeRoguelikeMetaReward(run: RoguelikeRunState): {
   coins: number;
   packCount: number;
+  bonusFoilRate: number;
   floorsCleared: number;
   breakdown: string;
 } {
   const diffMeta = ROGUELIKE_DIFFICULTY_META[run.difficulty ?? 'NORMAL'];
+  const asc = run.ascensionLevel ?? 0;
+  const ascCoinMult = 1 + asc * 0.15;
+  const bonusFoilRate = asc * 0.005; // +0.5% Holo chance per Ascension level on Victory packs!
   const floorsCleared =
     run.status === 'VICTORY'
       ? ROGUELIKE_TOTAL_FLOORS
@@ -1412,18 +1457,28 @@ export function computeRoguelikeMetaReward(run: RoguelikeRunState): {
   const bossCoins = run.bossesWon * 90;
   const victoryBonus = run.status === 'VICTORY' ? 400 : 0;
   const rawCoins = Math.max(25, floorCoins + eliteCoins + bossCoins + victoryBonus);
-  const coins = Math.max(25, Math.round(rawCoins * diffMeta.metaCoinMultiplier));
+  const coins = Math.max(25, Math.round(rawCoins * diffMeta.metaCoinMultiplier * ascCoinMult));
   const packCount = run.status === 'VICTORY' ? diffMeta.victoryPackCount : 0;
 
-  const parts = [`Dificultad ${diffMeta.label}`, `Pisos (${floorsCleared}): +${floorCoins}`];
+  const parts = [
+    asc > 0 ? `Dificultad ${diffMeta.label} · Asc. ${asc}` : `Dificultad ${diffMeta.label}`,
+    `Pisos (${floorsCleared}): +${floorCoins}`,
+  ];
   if (run.elitesWon > 0) parts.push(`Élites (${run.elitesWon}): +${eliteCoins}`);
   if (run.bossesWon > 0) parts.push(`Jefes (${run.bossesWon}): +${bossCoins}`);
   if (victoryBonus > 0) parts.push(`¡Victoria Piso 30!: +${victoryBonus}`);
-  if (packCount > 0) parts.push(`+${packCount} Sobre(s) General(es)`);
+  if (packCount > 0) {
+    parts.push(
+      bonusFoilRate > 0
+        ? `+${packCount} Sobre(s) General(es) (+${(bonusFoilRate * 100).toFixed(1)}% Holo)`
+        : `+${packCount} Sobre(s) General(es)`,
+    );
+  }
 
   return {
     coins,
     packCount,
+    bonusFoilRate,
     floorsCleared,
     breakdown: parts.join(' · '),
   };

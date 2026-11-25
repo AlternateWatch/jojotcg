@@ -58,6 +58,7 @@ export interface StartBattleConfig {
   campaignStageId?: string;
   tutorialLessonId?: string;
   roguelikeNodeId?: string;
+  draftMatchIndex?: number;
   rules?: Partial<GameRulesConfig>;
   p2GuaranteedOpeningCardId?: string;
   battleTrackId?: string | null;
@@ -88,6 +89,7 @@ interface BattleStoreState {
   activeCampaignStageId: string | null;
   activeTutorialLessonId: string | null;
   activeRoguelikeNodeId: string | null;
+  activeDraftMatchIndex: number | null;
   activeBattleTrackId: string | null;
   campaignPackReward: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null;
   onlineRoomCode: string | null;
@@ -313,6 +315,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   activeCampaignStageId: null,
   activeTutorialLessonId: null,
   activeRoguelikeNodeId: null,
+  activeDraftMatchIndex: null,
   activeBattleTrackId: null,
   campaignPackReward: null,
   onlineRoomCode: null,
@@ -361,6 +364,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       activeCampaignStageId: config.campaignStageId ?? null,
       activeTutorialLessonId: config.tutorialLessonId ?? null,
       activeRoguelikeNodeId: config.roguelikeNodeId ?? null,
+      activeDraftMatchIndex: config.draftMatchIndex ?? null,
       activeBattleTrackId: config.battleTrackId ?? null,
       campaignPackReward: null,
       onlineRoomCode: null,
@@ -721,6 +725,8 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       activeCampaignStageId: null,
       aiErrorRate: undefined,
       activeTutorialLessonId: null,
+      activeRoguelikeNodeId: null,
+      activeDraftMatchIndex: null,
       campaignPackReward: null,
       onlineRoomCode: null,
       onlineRole: null,
