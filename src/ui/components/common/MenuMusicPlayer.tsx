@@ -65,7 +65,9 @@ export function MenuMusicPlayer({ active }: MenuMusicPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const toggleBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  const [trackIndex, setTrackIndex] = useState(0);
+  const [trackIndex, setTrackIndex] = useState(() =>
+    MENU_PLAYLIST.length > 0 ? Math.floor(Math.random() * MENU_PLAYLIST.length) : 0,
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
   const [awaitingGesture, setAwaitingGesture] = useState(false);
