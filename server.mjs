@@ -47,6 +47,8 @@ function appendMatchLog(record) {
 const onlineRooms = new Map();
 // Queue of public room codes waiting for an opponent
 const matchmakingQueue = [];
+// Queue of competitive 1v1 room codes waiting for an opponent
+const competitiveMatchmakingQueue = [];
 
 function generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -65,6 +67,8 @@ function cleanupStaleRooms() {
       onlineRooms.delete(code);
       const qIdx = matchmakingQueue.indexOf(code);
       if (qIdx !== -1) matchmakingQueue.splice(qIdx, 1);
+      const cIdx = competitiveMatchmakingQueue.indexOf(code);
+      if (cIdx !== -1) competitiveMatchmakingQueue.splice(cIdx, 1);
     }
   }
 }
@@ -73,6 +77,8 @@ setInterval(cleanupStaleRooms, 60 * 1000).unref?.();
 
 // In-memory fallback for Daily Roguelike Leaderboard when MySQL is unavailable
 const memoryDailyScores = new Map();
+// In-memory fallback for Competitive Weekly Rankings (key: `${weekKey}:${mode}` -> Map<username, entry>)
+const memoryCompetitiveScores = new Map();
 
 async function initDatabase() {
   try {
@@ -111,6 +117,22 @@ async function initDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY uq_daily_user (date_str, username),
         INDEX idx_daily_rank (date_str, score DESC, floors_cleared DESC)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS competitive_weekly_scores (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        week_key VARCHAR(16) NOT NULL,
+        mode VARCHAR(8) NOT NULL,
+        username VARCHAR(40) NOT NULL,
+        points INT NOT NULL DEFAULT 0,
+        wins INT NOT NULL DEFAULT 0,
+        losses INT NOT NULL DEFAULT 0,
+        streak INT NOT NULL DEFAULT 0,
+        best_streak INT NOT NULL DEFAULT 0,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_comp_week_mode_user (week_key, mode, username),
+        INDEX idx_comp_rank (week_key, mode, points DESC, wins DESC)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
     console.log(`[JoJo TCG] MySQL connected (${DB_CONFIG.user}@${DB_CONFIG.host}/${DB_CONFIG.database})`);
@@ -238,6 +260,8 @@ async function handleApiRequest(req, res, pathname) {
       const playerToken = String(body.playerToken || '').trim();
       const playerName = String(body.playerName || 'Jugador').trim().slice(0, 24) || 'Jugador';
       const deckIds = Array.isArray(body.deckIds) ? body.deckIds : [];
+      const isCompetitive = body.queue === 'COMPETITIVE';
+      const targetQueue = isCompetitive ? competitiveMatchmakingQueue : matchmakingQueue;
 
       if (!playerToken || deckIds.length === 0) {
         sendJson(res, 400, { error: 'Token de jugador y mazo requeridos.' });
@@ -250,12 +274,14 @@ async function handleApiRequest(req, res, pathname) {
           onlineRooms.delete(code);
           const qIdx = matchmakingQueue.indexOf(code);
           if (qIdx !== -1) matchmakingQueue.splice(qIdx, 1);
+          const cIdx = competitiveMatchmakingQueue.indexOf(code);
+          if (cIdx !== -1) competitiveMatchmakingQueue.splice(cIdx, 1);
         }
       }
 
       // Find first available public waiting room in queue
-      while (matchmakingQueue.length > 0) {
-        const queuedCode = matchmakingQueue.shift();
+      while (targetQueue.length > 0) {
+        const queuedCode = targetQueue.shift();
         const room = onlineRooms.get(queuedCode);
         if (room && room.status === 'WAITING' && room.p1.token !== playerToken) {
           room.p2 = { token: playerToken, name: playerName, deckIds };
@@ -274,6 +300,7 @@ async function handleApiRequest(req, res, pathname) {
       const newRoom = {
         code,
         isPrivate: false,
+        isCompetitive,
         status: 'WAITING',
         p1: { token: playerToken, name: playerName, deckIds },
         p2: null,
@@ -286,7 +313,7 @@ async function handleApiRequest(req, res, pathname) {
         updatedAt: Date.now(),
       };
       onlineRooms.set(code, newRoom);
-      matchmakingQueue.push(code);
+      targetQueue.push(code);
 
       sendJson(res, 200, serializeOnlineRoom(newRoom, 'P1'));
       return;
@@ -602,6 +629,8 @@ async function handleApiRequest(req, res, pathname) {
       if (room && (room.p1?.token === playerToken || room.p2?.token === playerToken)) {
         const qIdx = matchmakingQueue.indexOf(code);
         if (qIdx !== -1) matchmakingQueue.splice(qIdx, 1);
+        const cIdx = competitiveMatchmakingQueue.indexOf(code);
+        if (cIdx !== -1) competitiveMatchmakingQueue.splice(cIdx, 1);
 
         if (room.status === 'WAITING') {
           onlineRooms.delete(code);
@@ -634,6 +663,147 @@ async function handleApiRequest(req, res, pathname) {
       }
 
       sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    // ==================== COMPETITIVE WEEKLY RANKINGS (AI & 1V1 PVP) ====================
+    if (req.method === 'GET' && pathname === '/api/competitive/rankings') {
+      const urlObj = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+      const mode = urlObj.searchParams.get('mode') === 'PVP' ? 'PVP' : 'AI';
+      const weekKey = String(urlObj.searchParams.get('week') || '').trim().slice(0, 16);
+      if (!weekKey) {
+        sendJson(res, 400, { error: 'Parámetro week requerido.' });
+        return;
+      }
+
+      if (pool) {
+        try {
+          const [rows] = await pool.query(
+            `SELECT username, points, wins, losses, streak, best_streak AS bestStreak, updated_at AS updatedAt
+             FROM competitive_weekly_scores
+             WHERE week_key = ? AND mode = ?
+             ORDER BY points DESC, wins DESC, losses ASC, updated_at ASC
+             LIMIT 50`,
+            [weekKey, mode],
+          );
+          sendJson(res, 200, { weekKey, mode, entries: Array.isArray(rows) ? rows : [] });
+          return;
+        } catch {
+          // Fall back to in-memory rankings
+        }
+      }
+
+      const bucketKey = `${weekKey}:${mode}`;
+      const list = Array.from((memoryCompetitiveScores.get(bucketKey) || new Map()).values())
+        .sort((a, b) => b.points - a.points || b.wins - a.wins || a.losses - b.losses)
+        .slice(0, 50);
+      sendJson(res, 200, { weekKey, mode, entries: list });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/competitive/report') {
+      const body = await readJsonBody(req);
+      const mode = body.mode === 'PVP' ? 'PVP' : 'AI';
+      const weekKey = String(body.weekKey || '').trim().slice(0, 16);
+      const username = String(body.username || 'Duelista').trim().slice(0, 32) || 'Duelista';
+      const won = Boolean(body.won);
+      if (!weekKey) {
+        sendJson(res, 400, { error: 'weekKey requerido.' });
+        return;
+      }
+
+      if (pool) {
+        try {
+          const [existingRows] = await pool.query(
+            `SELECT points, wins, losses, streak, best_streak AS bestStreak
+             FROM competitive_weekly_scores
+             WHERE week_key = ? AND mode = ? AND username = ?
+             LIMIT 1`,
+            [weekKey, mode, username],
+          );
+          const prev = Array.isArray(existingRows) && existingRows[0]
+            ? existingRows[0]
+            : { points: 0, wins: 0, losses: 0, streak: 0, bestStreak: 0 };
+
+          const nextStreak = won ? prev.streak + 1 : 0;
+          const streakBonus = won && nextStreak >= 2 ? Math.min(15, (nextStreak - 1) * 5) : 0;
+          const delta = won ? 40 + streakBonus : -15;
+          const nextPoints = Math.max(0, prev.points + delta);
+          const nextWins = prev.wins + (won ? 1 : 0);
+          const nextLosses = prev.losses + (won ? 0 : 1);
+          const nextBestStreak = Math.max(prev.bestStreak, nextStreak);
+
+          await pool.query(
+            `INSERT INTO competitive_weekly_scores (week_key, mode, username, points, wins, losses, streak, best_streak)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+               points = VALUES(points),
+               wins = VALUES(wins),
+               losses = VALUES(losses),
+               streak = VALUES(streak),
+               best_streak = VALUES(best_streak)`,
+            [weekKey, mode, username, nextPoints, nextWins, nextLosses, nextStreak, nextBestStreak],
+          );
+
+          const [rows] = await pool.query(
+            `SELECT username, points, wins, losses, streak, best_streak AS bestStreak, updated_at AS updatedAt
+             FROM competitive_weekly_scores
+             WHERE week_key = ? AND mode = ?
+             ORDER BY points DESC, wins DESC, losses ASC, updated_at ASC
+             LIMIT 50`,
+            [weekKey, mode],
+          );
+          sendJson(res, 200, {
+            ok: true,
+            weekKey,
+            mode,
+            delta,
+            points: nextPoints,
+            entries: Array.isArray(rows) ? rows : [],
+          });
+          return;
+        } catch {
+          // Fall back to in-memory rankings
+        }
+      }
+
+      const bucketKey = `${weekKey}:${mode}`;
+      if (!memoryCompetitiveScores.has(bucketKey)) {
+        memoryCompetitiveScores.set(bucketKey, new Map());
+      }
+      const map = memoryCompetitiveScores.get(bucketKey);
+      const prev = map.get(username) || {
+        username,
+        points: 0,
+        wins: 0,
+        losses: 0,
+        streak: 0,
+        bestStreak: 0,
+      };
+      const nextStreak = won ? prev.streak + 1 : 0;
+      const streakBonus = won && nextStreak >= 2 ? Math.min(15, (nextStreak - 1) * 5) : 0;
+      const delta = won ? 40 + streakBonus : -15;
+      const updated = {
+        username,
+        points: Math.max(0, prev.points + delta),
+        wins: prev.wins + (won ? 1 : 0),
+        losses: prev.losses + (won ? 0 : 1),
+        streak: nextStreak,
+        bestStreak: Math.max(prev.bestStreak, nextStreak),
+        updatedAt: new Date().toISOString(),
+      };
+      map.set(username, updated);
+      const list = Array.from(map.values())
+        .sort((a, b) => b.points - a.points || b.wins - a.wins || a.losses - b.losses)
+        .slice(0, 50);
+      sendJson(res, 200, {
+        ok: true,
+        weekKey,
+        mode,
+        delta,
+        points: updated.points,
+        entries: list,
+      });
       return;
     }
 

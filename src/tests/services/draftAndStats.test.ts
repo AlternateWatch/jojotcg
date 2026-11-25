@@ -8,6 +8,14 @@ import {
 import { DEFAULT_RULES_CONFIG } from '../../data/rulesConfig';
 import { computeBattlePostSummary } from '../../services/battleStatsService';
 import {
+  COMPETITIVE_ENTRY_FEE,
+  computeCompetitivePointsDelta,
+  computeWeeklyRankReward,
+  getCompetitiveClaimKey,
+  getIsoWeekKey,
+  getPreviousIsoWeekKey,
+} from '../../services/competitiveService';
+import {
   buildDraftOpponent,
   computeDraftMetaReward,
   createDraftRun,
@@ -218,5 +226,34 @@ describe('Draft Arena Mode', () => {
     expect(midReward.isChampion).toBe(false);
     expect(midReward.coins).toBe(240);
     expect(midReward.packCount).toBe(1);
+  });
+});
+
+describe('Competitive Weekly Rankings & Rewards', () => {
+  it('computes ISO week keys, entry fees, points deltas, and weekly reward tiers', () => {
+    const sampleDate = new Date(Date.UTC(2026, 10, 25, 12, 0, 0)); // Wed 2026-11-25
+    const curWeek = getIsoWeekKey(sampleDate);
+    const prevWeek = getPreviousIsoWeekKey(sampleDate);
+    expect(curWeek).toMatch(/^\d{4}-W\d{2}$/);
+    expect(prevWeek).toMatch(/^\d{4}-W\d{2}$/);
+    expect(prevWeek).not.toBe(curWeek);
+
+    expect(COMPETITIVE_ENTRY_FEE.AI).toBeGreaterThan(0);
+    expect(COMPETITIVE_ENTRY_FEE.PVP).toBeGreaterThan(0);
+
+    expect(computeCompetitivePointsDelta(true, 0)).toBe(40);
+    expect(computeCompetitivePointsDelta(true, 2)).toBe(50);
+    expect(computeCompetitivePointsDelta(false, 3)).toBe(-15);
+
+    const first = computeWeeklyRankReward(1);
+    const third = computeWeeklyRankReward(3);
+    const top10 = computeWeeklyRankReward(8);
+    const participant = computeWeeklyRankReward(40);
+    expect(first?.coins).toBe(1500);
+    expect(first?.packCount).toBe(3);
+    expect(third?.packCount).toBe(2);
+    expect(top10?.packCount).toBe(1);
+    expect(participant?.coins).toBe(100);
+    expect(getCompetitiveClaimKey(curWeek, 'PVP')).toBe(`${curWeek}:PVP`);
   });
 });

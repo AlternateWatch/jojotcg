@@ -17,6 +17,7 @@ import {
   type OnlineRoomSnapshot,
 } from '../services/onlineService';
 import type { OpenPackOutcome } from '../services/progressionService';
+import type { CompetitiveMode } from '../services/competitiveService';
 import {
   extractAttackingPlayerId,
   extractCardPopups,
@@ -59,6 +60,7 @@ export interface StartBattleConfig {
   tutorialLessonId?: string;
   roguelikeNodeId?: string;
   draftMatchIndex?: number;
+  competitiveMode?: CompetitiveMode;
   rules?: Partial<GameRulesConfig>;
   p2GuaranteedOpeningCardId?: string;
   battleTrackId?: string | null;
@@ -90,6 +92,7 @@ interface BattleStoreState {
   activeTutorialLessonId: string | null;
   activeRoguelikeNodeId: string | null;
   activeDraftMatchIndex: number | null;
+  activeCompetitiveMode: CompetitiveMode | null;
   activeBattleTrackId: string | null;
   campaignPackReward: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null;
   onlineRoomCode: string | null;
@@ -100,7 +103,11 @@ interface BattleStoreState {
   onlineSpectatorCount: number;
 
   startBattle: (config: StartBattleConfig, usePrivacyCurtain: boolean) => void;
-  startOnlineBattle: (room: OnlineRoomSnapshot, battleTrackId?: string | null) => Promise<void>;
+  startOnlineBattle: (
+    room: OnlineRoomSnapshot,
+    battleTrackId?: string | null,
+    competitiveMode?: CompetitiveMode | null,
+  ) => Promise<void>;
   startSpectatorBattle: (room: OnlineRoomSnapshot, battleTrackId?: string | null) => void;
   applyRemoteOnlineRoom: (room: OnlineRoomSnapshot) => void;
   setOnlineChatMessages: (messages: OnlineChatMessage[]) => void;
@@ -316,6 +323,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   activeTutorialLessonId: null,
   activeRoguelikeNodeId: null,
   activeDraftMatchIndex: null,
+  activeCompetitiveMode: null,
   activeBattleTrackId: null,
   campaignPackReward: null,
   onlineRoomCode: null,
@@ -365,6 +373,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       activeTutorialLessonId: config.tutorialLessonId ?? null,
       activeRoguelikeNodeId: config.roguelikeNodeId ?? null,
       activeDraftMatchIndex: config.draftMatchIndex ?? null,
+      activeCompetitiveMode: config.competitiveMode ?? null,
       activeBattleTrackId: config.battleTrackId ?? null,
       campaignPackReward: null,
       onlineRoomCode: null,
@@ -376,7 +385,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
     });
   },
 
-  startOnlineBattle: async (room, battleTrackId = null) => {
+  startOnlineBattle: async (room, battleTrackId = null, competitiveMode = null) => {
     const rng = createSystemRng();
     let initialState = room.gameState;
     let nextVersion = room.version;
@@ -413,6 +422,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       onlineRoomStatus: room.status,
       onlineChatMessages: Array.isArray(room.chatMessages) ? room.chatMessages : [],
       onlineSpectatorCount: room.spectatorCount ?? 0,
+      activeCompetitiveMode: competitiveMode,
       rng,
       lastError: null,
       coinShowcase: null,
@@ -727,6 +737,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       activeTutorialLessonId: null,
       activeRoguelikeNodeId: null,
       activeDraftMatchIndex: null,
+      activeCompetitiveMode: null,
       campaignPackReward: null,
       onlineRoomCode: null,
       onlineRole: null,

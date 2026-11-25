@@ -56,26 +56,26 @@ export function HomeView() {
     {
       index: '02',
       title: roguelikeRun
-        ? `EXPEDICIÓN ROGUELIKE · PISO ${roguelikeRun.currentFloor}/30`
-        : `MODO ROGUELIKE (30 NIVELES${bestRoguelikeFloor > 0 ? ` · RÉCORD PISO ${bestRoguelikeFloor}` : ''})`,
-      sub: 'Empieza con 16 cartas, elige ruta entre batallas, tiendas, eventos, Ascensión 1–5 y jefes',
+        ? `ARCADE · ROGUELIKE PISO ${roguelikeRun.currentFloor}/30 & DRAFT`
+        : draftRun
+          ? `ARCADE · DRAFT (${draftRun.wins}V-${draftRun.losses}D) & ROGUELIKE`
+          : `MODO ARCADE (ROGUELIKE & DRAFT${bestRoguelikeFloor > 0 ? ` · PISO ${bestRoguelikeFloor}` : ''})`,
+      sub: 'Expedición Roguelike de 30 pisos (con Ascensión 1–5) y Arena Draft de 5 victorias',
       accent: 'bg-[#9333ea] text-white',
       onClick: () => setScreen('ROGUELIKE'),
     },
     {
       index: '03',
-      title: draftRun
-        ? `ARENA DRAFT · ${draftRun.status === 'DRAFTING' ? `PICK ${draftRun.currentPick}/24` : `${draftRun.wins}V - ${draftRun.losses}D`}`
-        : 'MODO DRAFT / ARENA (5 VICTORIAS)',
-      sub: 'Construye un mazo de 46 cartas eligiendo 1 entre 3 · Hasta 500 Monedas y 2 Sobres Generales',
-      accent: 'bg-[#00b87c] text-[#0b090e]',
-      onClick: () => setScreen('DRAFT'),
+      title: 'LIGA COMPETITIVA (1V1 & VS IA)',
+      sub: 'Dos rankings semanales con entrada en monedas y recompensas al cierre de cada semana',
+      accent: 'bg-[#e6194b] text-white',
+      onClick: () => setScreen('COMPETITIVE'),
     },
     {
       index: '04',
       title: 'MULTIJUGADOR ONLINE 1V1',
       sub: 'Busca partida automática o crea/únete a una sala privada con código',
-      accent: 'bg-[#0f766e] text-white',
+      accent: 'bg-[#00b87c] text-[#0b090e]',
       onClick: () => openBattleSetup('ONLINE'),
     },
     {
@@ -89,7 +89,7 @@ export function HomeView() {
       index: '06',
       title: 'TIENDA DE SOBRES',
       sub: `Abre sobres por Parte o Correlación · ${progression.coins.toLocaleString()} monedas`,
-      accent: 'bg-[#e6194b] text-white',
+      accent: 'bg-[#b91c1c] text-white',
       onClick: () => setScreen('SHOP'),
     },
     {

@@ -26,12 +26,14 @@ interface BattleModalsProps {
   isTutorial?: boolean;
   isRoguelike?: boolean;
   isDraft?: boolean;
+  isCompetitive?: boolean;
   campaignPackReward?: { pack: BoosterPackDef; outcomes: OpenPackOutcome[] } | null;
   onOpenCampaignPacks?: () => void;
   onReturnToCampaign?: () => void;
   onReturnToTutorial?: () => void;
   onReturnToRoguelike?: () => void;
   onReturnToDraft?: () => void;
+  onReturnToCompetitive?: () => void;
   onDispatch: (action: GameAction) => void;
   onConfirmHandoff: () => void;
   onRematch: () => void;
@@ -50,12 +52,14 @@ export function BattleModals({
   isTutorial = false,
   isRoguelike = false,
   isDraft = false,
+  isCompetitive = false,
   campaignPackReward,
   onOpenCampaignPacks,
   onReturnToCampaign,
   onReturnToTutorial,
   onReturnToRoguelike,
   onReturnToDraft,
+  onReturnToCompetitive,
   onDispatch,
   onConfirmHandoff,
   onRematch,
@@ -476,6 +480,15 @@ export function BattleModals({
             )}
 
             <div className="flex flex-wrap justify-center gap-3 pt-2">
+              {isCompetitive && onReturnToCompetitive && (
+                <button
+                  type="button"
+                  onClick={onReturnToCompetitive}
+                  className="jojo-btn-primary inline-flex items-center gap-2 px-6 py-3 font-jojo-heading text-base tracking-[0.14em] uppercase"
+                >
+                  <Trophy size={16} /> Ver Ranking Competitivo
+                </button>
+              )}
               {isDraft && onReturnToDraft && (
                 <button
                   type="button"
@@ -512,7 +525,7 @@ export function BattleModals({
                   <Map size={16} /> Mapa de Campaña
                 </button>
               )}
-              {mode !== 'ONLINE' && !isRoguelike && !isDraft && (
+              {mode !== 'ONLINE' && !isRoguelike && !isDraft && !isCompetitive && (
                 <button
                   type="button"
                   onClick={onRematch}

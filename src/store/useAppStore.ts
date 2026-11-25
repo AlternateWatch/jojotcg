@@ -16,6 +16,11 @@ import {
   type DraftRunState,
 } from '../services/draftService';
 import {
+  computeWeeklyRankReward,
+  getCompetitiveClaimKey,
+  type CompetitiveMode,
+} from '../services/competitiveService';
+import {
   claimAllReadyMilestones,
   claimCampaignStageReward,
   claimMilestoneReward,
@@ -52,6 +57,7 @@ export type AppScreen =
   | 'CAMPAIGN'
   | 'ROGUELIKE'
   | 'DRAFT'
+  | 'COMPETITIVE'
   | 'BATTLE_SETUP'
   | 'BATTLE'
   | 'COLLECTION'
@@ -148,6 +154,19 @@ interface AppStoreState {
     packOutcomes: OpenPackOutcome[] | null;
   } | null;
   abandonDraftRun: () => void;
+
+  spendCoins: (amount: number) => boolean;
+  refundCoins: (amount: number) => void;
+  claimCompetitiveWeeklyReward: (
+    weekKey: string,
+    mode: CompetitiveMode,
+    rank: number,
+  ) => {
+    coins: number;
+    tierLabel: string;
+    pack: BoosterPackDef | null;
+    packOutcomes: OpenPackOutcome[] | null;
+  } | null;
 }
 
 // Legacy localStorage cleanup so guest mode never persists data across window closes
@@ -777,5 +796,66 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       // Ignore
     }
     set({ draftRun: null });
+  },
+
+  spendCoins: (amount) => {
+    const cost = Math.max(0, Math.floor(amount));
+    const prev = get().progression;
+    if (prev.coins < cost) return false;
+    const nextProg: PlayerProgression = {
+      ...prev,
+      coins: prev.coins - cost,
+    };
+    if (get().authUser) void authService.syncAccountData({ progression: nextProg });
+    set({ progression: nextProg });
+    return true;
+  },
+
+  refundCoins: (amount) => {
+    const refund = Math.max(0, Math.floor(amount));
+    if (refund <= 0) return;
+    const prev = get().progression;
+    const nextProg: PlayerProgression = {
+      ...prev,
+      coins: prev.coins + refund,
+    };
+    if (get().authUser) void authService.syncAccountData({ progression: nextProg });
+    set({ progression: nextProg });
+  },
+
+  claimCompetitiveWeeklyReward: (weekKey, mode, rank) => {
+    const tier = computeWeeklyRankReward(rank);
+    if (!tier) return null;
+    const claimKey = getCompetitiveClaimKey(weekKey, mode);
+    const prev = get().progression;
+    const claimed = prev.claimedCompetitiveWeeks ?? [];
+    if (claimed.includes(claimKey)) return null;
+
+    let nextProg: PlayerProgression = {
+      ...prev,
+      coins: prev.coins + tier.coins,
+      claimedCompetitiveWeeks: [...claimed, claimKey],
+    };
+
+    let pack: BoosterPackDef | null = null;
+    let packOutcomes: OpenPackOutcome[] | null = null;
+    if (tier.packCount > 0) {
+      pack = createRoguelikeGeneralPack();
+      packOutcomes = [];
+      for (let i = 0; i < tier.packCount; i++) {
+        const out = openBoosterPack(pack, nextProg, undefined, true);
+        packOutcomes.push(out);
+        nextProg = out.nextProgression;
+      }
+    }
+
+    if (get().authUser) void authService.syncAccountData({ progression: nextProg });
+    set({ progression: nextProg });
+    return {
+      coins: tier.coins,
+      tierLabel: tier.label,
+      pack,
+      packOutcomes,
+    };
   },
 }));

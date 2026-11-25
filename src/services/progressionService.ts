@@ -46,6 +46,8 @@ export interface PlayerProgression {
   draftChampionWins?: number;
   /** Claimed Roguelike/Draft achievement IDs */
   claimedRoguelikeAchievements?: string[];
+  /** Claimed Competitive weekly reward keys ("YYYY-Www:AI" or "YYYY-Www:PVP") */
+  claimedCompetitiveWeeks?: string[];
 }
 
 export interface PackPullResult {
@@ -172,6 +174,7 @@ export function createInitialProgression(): PlayerProgression {
     maxRoguelikeAscensionCleared: 0,
     draftChampionWins: 0,
     claimedRoguelikeAchievements: [],
+    claimedCompetitiveWeeks: [],
   };
 }
 
@@ -285,6 +288,14 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
       )
     : [];
 
+  const claimedCompetitiveWeeks = Array.isArray(progression.claimedCompetitiveWeeks)
+    ? Array.from(
+        new Set(
+          progression.claimedCompetitiveWeeks.filter((id): id is string => typeof id === 'string'),
+        ),
+      )
+    : [];
+
   return {
     ...progression,
     ownedCards: nextOwned,
@@ -297,6 +308,7 @@ export function normalizePlayerProgression(progression: PlayerProgression): Play
     maxRoguelikeAscensionCleared,
     draftChampionWins,
     claimedRoguelikeAchievements,
+    claimedCompetitiveWeeks,
   };
 }
 

@@ -15,6 +15,7 @@ import { BattleSetupView } from './views/BattleSetupView';
 import { BattleView } from './views/BattleView';
 import { CampaignView } from './views/CampaignView';
 import { CollectionView } from './views/CollectionView';
+import { CompetitiveView } from './views/CompetitiveView';
 import { DeckBuilderView } from './views/DeckBuilderView';
 import { DraftView } from './views/DraftView';
 import { HomeView } from './views/HomeView';
@@ -33,15 +34,16 @@ interface NavGroupItem {
 const NAV_ITEMS: NavGroupItem[] = [
   { id: 'HOME', num: '01', label: 'Portada', matchScreens: ['HOME'] },
   { id: 'CAMPAIGN', num: '02', label: 'Historia', matchScreens: ['CAMPAIGN', 'TUTORIAL'] },
-  { id: 'ROGUELIKE', num: '03', label: 'Roguelike', matchScreens: ['ROGUELIKE', 'DRAFT'] },
-  { id: 'BATTLE_SETUP', num: '04', label: 'Combate', matchScreens: ['BATTLE_SETUP'] },
+  { id: 'ROGUELIKE', num: '03', label: 'Arcade', matchScreens: ['ROGUELIKE', 'DRAFT'] },
+  { id: 'COMPETITIVE', num: '04', label: 'Competitivo', matchScreens: ['COMPETITIVE'] },
+  { id: 'BATTLE_SETUP', num: '05', label: 'Combate', matchScreens: ['BATTLE_SETUP'] },
   {
     id: 'COLLECTION',
-    num: '05',
+    num: '06',
     label: 'Cartas',
     matchScreens: ['COLLECTION', 'DECK_BUILDER', 'MILESTONES'],
   },
-  { id: 'SHOP', num: '06', label: 'Tienda', matchScreens: ['SHOP'] },
+  { id: 'SHOP', num: '07', label: 'Tienda', matchScreens: ['SHOP'] },
 ];
 
 const SCREEN_ORDER: Record<AppScreen, number> = {
@@ -50,12 +52,13 @@ const SCREEN_ORDER: Record<AppScreen, number> = {
   CAMPAIGN: 2,
   ROGUELIKE: 3,
   DRAFT: 4,
-  BATTLE_SETUP: 5,
-  COLLECTION: 6,
-  DECK_BUILDER: 7,
-  SHOP: 8,
-  MILESTONES: 9,
-  BATTLE: 10,
+  COMPETITIVE: 5,
+  BATTLE_SETUP: 6,
+  COLLECTION: 7,
+  DECK_BUILDER: 8,
+  SHOP: 9,
+  MILESTONES: 10,
+  BATTLE: 11,
 };
 
 const pageVariants = {
@@ -384,6 +387,7 @@ export function App() {
               {screen === 'CAMPAIGN' && <CampaignView />}
               {screen === 'ROGUELIKE' && <RoguelikeView />}
               {screen === 'DRAFT' && <DraftView />}
+              {screen === 'COMPETITIVE' && <CompetitiveView />}
               {screen === 'BATTLE_SETUP' && <BattleSetupView />}
               {screen === 'BATTLE' && <BattleView />}
               {screen === 'COLLECTION' && <CollectionView />}

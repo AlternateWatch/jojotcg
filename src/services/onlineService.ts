@@ -58,6 +58,7 @@ export const onlineService = {
   async findPublicMatch(
     playerName: string,
     deckIds: string[],
+    queue: 'CASUAL' | 'COMPETITIVE' = 'CASUAL',
   ): Promise<{ ok: true; room: OnlineRoomSnapshot } | { ok: false; error: string }> {
     try {
       const res = await fetch('/api/online/find-match', {
@@ -67,6 +68,7 @@ export const onlineService = {
           playerToken: getOnlinePlayerToken(),
           playerName,
           deckIds,
+          queue,
         }),
       });
       const json = (await res.json()) as OnlineRoomSnapshot & { error?: string };

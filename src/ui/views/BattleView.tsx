@@ -31,6 +31,7 @@ import { computeTutorialStep } from '../../engine/tutorial/tutorialCoach';
 import type { GamePhase } from '../../engine/types/state';
 import { CARD_BACK_PATTERN_URL, PLAYMAT_THEMES } from '../../services/assetResolver';
 import { onlineService } from '../../services/onlineService';
+import { reportCompetitiveMatchResult } from '../../services/competitiveService';
 import { resolveDraftBattleOutcome } from '../../services/draftService';
 import { computeBattleReward } from '../../services/progressionService';
 import {
@@ -125,6 +126,7 @@ export function BattleView() {
   const activeTutorialLessonId = useBattleStore((s) => s.activeTutorialLessonId);
   const activeRoguelikeNodeId = useBattleStore((s) => s.activeRoguelikeNodeId);
   const activeDraftMatchIndex = useBattleStore((s) => s.activeDraftMatchIndex);
+  const activeCompetitiveMode = useBattleStore((s) => s.activeCompetitiveMode);
   const activeBattleTrackId = useBattleStore((s) => s.activeBattleTrackId);
   const campaignPackReward = useBattleStore((s) => s.campaignPackReward);
   const setCampaignPackReward = useBattleStore((s) => s.setCampaignPackReward);
@@ -255,6 +257,20 @@ export function BattleView() {
           label: `Derrota en el Piso ${roguelikeRun.currentFloor} · Vuelve a la Expedición para cobrar tus Monedas`,
         });
       }
+    } else if (activeCompetitiveMode) {
+      const compName = authUser?.username ?? gameState.players[localPlayerId].name;
+      const modeLabel = activeCompetitiveMode === 'PVP' ? '1v1 Online' : 'Contra la IA';
+      claimBattleReward({
+        coins: 0,
+        label: didWin
+          ? `¡Victoria Competitiva (${modeLabel})! Puntos sumados al ranking semanal`
+          : `Derrota Competitiva (${modeLabel}) · Ranking semanal actualizado`,
+      });
+      void reportCompetitiveMatchResult({
+        mode: activeCompetitiveMode,
+        username: compName,
+        won: didWin,
+      });
     } else if (activeDraftMatchIndex !== null && draftRun) {
       const nextDraft = resolveDraftBattleOutcome(draftRun, didWin);
       setDraftRun(nextDraft);
@@ -356,6 +372,8 @@ export function BattleView() {
     activeTutorialLessonId,
     activeRoguelikeNodeId,
     activeDraftMatchIndex,
+    activeCompetitiveMode,
+    authUser,
     roguelikeRun,
     setRoguelikeRun,
     draftRun,
@@ -1523,6 +1541,7 @@ export function BattleView() {
         isTutorial={Boolean(activeTutorialLessonId)}
         isRoguelike={Boolean(activeRoguelikeNodeId)}
         isDraft={activeDraftMatchIndex !== null}
+        isCompetitive={Boolean(activeCompetitiveMode)}
         campaignPackReward={campaignPackReward}
         onOpenCampaignPacks={() => setShowCampaignPacks(true)}
         onReturnToRoguelike={() => {
@@ -1532,6 +1551,10 @@ export function BattleView() {
         onReturnToDraft={() => {
           resetBattle();
           setScreen('DRAFT');
+        }}
+        onReturnToCompetitive={() => {
+          resetBattle();
+          setScreen('COMPETITIVE');
         }}
         onReturnToTutorial={() => {
           resetBattle();
