@@ -1035,6 +1035,18 @@ export function executeAttack(
         }
         break;
       }
+      case 'REFLECT_NEXT_INCOMING_ATTACK': {
+        if (findCharacterOnBoard(state, playerId, attacker.instanceId)) {
+          attacker.reflectNextAttackBonus = eff.bonusDamage;
+          pushEvent(state, eventsOut, {
+            type: 'ABILITY_TRIGGERED',
+            playerId,
+            abilityName: attack.name,
+            message: `¡${attack.name}! En el siguiente turno, ${attackerProfile.name} reflejará el daño recibido +${eff.bonusDamage} al atacante.`,
+          });
+        }
+        break;
+      }
       case 'SWAP_ACTIVE_WITH_HAND_CHARACTER': {
         if (player.active?.instanceId === attacker.instanceId) {
           const eligibleHandIndices: number[] = [];

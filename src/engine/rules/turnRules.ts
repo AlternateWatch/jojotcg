@@ -119,6 +119,36 @@ export function triggerOnEnterFieldAbility(
     }
   }
 
+  if (profile.signatureAbility.id === 'AUDACITY_STEELY_DAN') {
+    const enemyBenchCount = opponent.bench.length;
+    if (enemyBenchCount > 0) {
+      let drawn = 0;
+      for (let i = 0; i < enemyBenchCount; i++) {
+        if (player.deck.length === 0) {
+          checkImmediateDeckOut(state, eventsOut, playerId);
+        }
+        if (player.deck.length > 0) {
+          player.hand.push(player.deck.shift()!);
+          drawn++;
+        }
+      }
+      if (drawn > 0) {
+        pushEvent(state, eventsOut, {
+          type: 'CARD_DRAWN',
+          playerId,
+          count: drawn,
+          message: `${player.name} roba ${drawn} carta(s) por Osadía.`,
+        });
+        pushEvent(state, eventsOut, {
+          type: 'ABILITY_TRIGGERED',
+          playerId,
+          abilityName: 'Osadía',
+          message: `¡Osadía! Por los ${enemyBenchCount} personaje(s) en la banca enemiga, ${player.name} roba ${drawn} carta(s) extra.`,
+        });
+      }
+    }
+  }
+
   if (profile.signatureAbility.id === 'SEDUCTION_NENA') {
     if (opponent.active && opponent.active.attachedEnergies.length > 0) {
       const stolenEnergy = opponent.active.attachedEnergies.pop()!;

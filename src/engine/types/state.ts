@@ -100,6 +100,8 @@ export interface CharacterInstance {
   rubberSoulHpBonus?: number;
   /** Yellow Temperance — Defensa Física: caps the next incoming enemy attack damage to this value */
   nextIncomingAttackDamageCap?: number | null;
+  /** Lovers — Sincronización del Dolor: reflects next incoming enemy attack damage + bonusDamage */
+  reflectNextAttackBonus?: number | null;
 }
 
 export interface PlayerState {

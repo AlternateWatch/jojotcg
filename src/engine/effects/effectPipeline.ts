@@ -749,6 +749,34 @@ export function dealDamageToCharacter(
     message: `${profile.name} recibe ${finalDamage} de daño (HP restante: ${character.currentHp}).`,
   });
 
+  // Lovers — Sincronización del Dolor: reflect incoming enemy attack damage + bonusDamage back to attacker
+  if (
+    isEnemyAttack &&
+    typeof character.reflectNextAttackBonus === 'number' &&
+    params.attackerPlayerId &&
+    finalDamage > 0
+  ) {
+    const bonus = character.reflectNextAttackBonus;
+    character.reflectNextAttackBonus = null;
+    const reflectTotal = finalDamage + bonus;
+    const attackerActive = state.players[params.attackerPlayerId].active;
+    if (attackerActive) {
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId: params.targetPlayerId,
+        abilityName: 'Sincronización del Dolor',
+        message: `¡Sincronización del Dolor! ${profile.name} refleja ${reflectTotal} de daño (${finalDamage} + ${bonus}) a ${getEffectiveCharacterProfile(attackerActive).name}.`,
+      });
+      dealDamageToCharacter(state, eventsOut, {
+        targetPlayerId: params.attackerPlayerId,
+        targetInstanceId: attackerActive.instanceId,
+        amount: reflectTotal,
+        source: 'RECOIL',
+        rng: params.rng,
+      });
+    }
+  }
+
   // Trigger damage-reactive abilities if still alive (or before KO check for Esidisi/Josuke)
   if (character.currentHp > 0) {
     if (profile.signatureAbility.id === 'HOT_BLOOD_ESIDISI') {

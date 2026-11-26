@@ -160,6 +160,8 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
       'stand-wheel-of-fortune',
       'char-enyaba-geil',
       'stand-justice',
+      'char-steely-dan',
+      'stand-lovers',
       'char-hol-horse',
       'char-n-doul',
       'char-mariah',

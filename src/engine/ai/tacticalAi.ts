@@ -198,6 +198,9 @@ function expectedAttackScore(
       score -= 100;
     }
   }
+  if (attack.specialEffects?.some((e) => e.kind === 'REFLECT_NEXT_INCOMING_ATTACK')) {
+    score += selfActive.reflectNextAttackBonus != null ? -40 : 42;
+  }
 
   // Avoid risky self-KO unless desperate or lethal
   if (isSelfKo) {

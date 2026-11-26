@@ -931,6 +931,34 @@ export const STAND_CARDS: StandCard[] = [
       },
     ],
   },
+  {
+    id: 'stand-lovers',
+    name: 'Lovers',
+    type: 'STAND',
+    part: 3,
+    imageId: 'lovers',
+    assetFolder: 'official',
+    requiredDg: 3,
+    attacks: [
+      {
+        id: 'atk-clones-de-deshecho-organico',
+        name: 'Clones de Deshecho Orgánico',
+        energyCost: ['NATURE'],
+        baseDamage: 30,
+        damageLabel: '30',
+      },
+      {
+        id: 'atk-sincronizacion-del-dolor',
+        name: 'Sincronización del Dolor',
+        energyCost: ['NATURE', 'PSYCHIC', 'COLORLESS'],
+        baseDamage: 0,
+        damageLabel: '—',
+        effectText:
+          'En el siguiente turno, si el usuario recibe algún ataque, refleja el daño sumándole 10 puntos de daño extra.',
+        specialEffects: [{ kind: 'REFLECT_NEXT_INCOMING_ATTACK', bonusDamage: 10 }],
+      },
+    ],
+  },
 
   // ===================== PART 5: GOLDEN WIND (VENTO AUREO) =====================
   {

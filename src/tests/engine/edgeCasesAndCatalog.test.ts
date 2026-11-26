@@ -14,9 +14,9 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 92 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 94 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(92);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(94);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1802,5 +1802,69 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     });
     expect(noBleedState.pendingPrompt).toBeNull();
     expect(noBleedState.players.P2.active!.currentHp).toBe(140);
+  });
+
+  it('resolves Steely Dan (110 HP, DG 3): Osadía draws 1 extra card per enemy bench character on entry', () => {
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-hol-horse',
+      p1Hand: ['char-steely-dan'],
+      p1Deck: ['energy-nature', 'stand-lovers', 'energy-psychic', 'energy-colorless'],
+      p2ActiveId: 'char-jotaro-kujo',
+      p2BenchIds: ['char-iggy', 'char-muhammad-avdol'], // 2 enemy bench characters -> draw 2!
+      phase: 'PREPARATION',
+    });
+
+    state = mustDispatch(state, {
+      type: 'PLAY_TO_BENCH',
+      playerId: 'P1',
+      handIndex: 0,
+    });
+
+    expect(state.players.P1.hand).toEqual(['energy-nature', 'stand-lovers']);
+    expect(state.players.P1.deck).toEqual(['energy-psychic', 'energy-colorless']);
+  });
+
+  it('resolves Lovers (DG 3): Clones de Deshecho Orgánico (1 NATURE, 30 dmg) and Sincronización del Dolor (reflects next incoming attack damage +10)', () => {
+    // 1. Clones de Deshecho Orgánico (30 dmg)
+    let atkState = buildControlledBattleState({
+      p1ActiveId: 'char-steely-dan',
+      p1ActiveStandId: 'stand-lovers',
+      p1ActiveEnergies: ['NATURE'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    atkState = mustDispatch(atkState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-clones-de-deshecho-organico',
+    });
+    expect(atkState.players.P2.active!.currentHp).toBe(130); // 160 - 30
+
+    // 2. Sincronización del Dolor -> opponent attacks for 50 -> Steely Dan takes 50 (110 -> 60) and reflects 60 (50 + 10) back!
+    let reflectState = buildControlledBattleState({
+      p1ActiveId: 'char-steely-dan', // 110 HP
+      p1ActiveStandId: 'stand-lovers',
+      p1ActiveEnergies: ['NATURE', 'PSYCHIC', 'COLORLESS'],
+      p2ActiveId: 'char-dio-brando', // 140 HP
+      p2ActiveEnergies: ['ELECTRIC', 'ELECTRIC'],
+      phase: 'COMBAT',
+    });
+    reflectState = mustDispatch(reflectState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-sincronizacion-del-dolor',
+    });
+    expect(reflectState.players.P1.active!.reflectNextAttackBonus).toBe(10);
+
+    // P2 attacks with Space Ripper Stingy Eyes (90 dmg) -> Steely Dan takes 90 (110 -> 20) and reflects 100 (90 + 10) to Dio Brando (140 -> 40)!
+    reflectState = mustDispatch(reflectState, { type: 'ENTER_COMBAT_PHASE', playerId: 'P2' });
+    reflectState = mustDispatch(reflectState, {
+      type: 'USE_ATTACK',
+      playerId: 'P2',
+      attackId: 'atk-space-ripper-stingy-eyes',
+    });
+    expect(reflectState.players.P1.active!.currentHp).toBe(20);
+    expect(reflectState.players.P1.active!.reflectNextAttackBonus).toBeNull();
+    expect(reflectState.players.P2.active!.currentHp).toBe(40); // 140 - 100
   });
 });
