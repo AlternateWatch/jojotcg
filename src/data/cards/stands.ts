@@ -404,6 +404,42 @@ export const STAND_CARDS: StandCard[] = [
     ],
   },
   {
+    id: 'stand-the-sun',
+    name: 'The Sun',
+    type: 'STAND',
+    part: 3,
+    imageId: 'the-sun',
+    assetFolder: 'official',
+    requiredDg: 3,
+    attacks: [
+      {
+        id: 'atk-calor-sofocante',
+        name: 'Calor Sofocante',
+        energyCost: ['COLORLESS', 'COLORLESS'],
+        baseDamage: 30,
+        damageLabel: '30',
+        effectText:
+          'Lanza una moneda. Si sale cara y el enemigo tiene alguna energía de agua en el campo, descártala.',
+        coinFlip: {
+          count: 1,
+          onHeads: [{ kind: 'DISCARD_ENEMY_FIELD_ENERGY', energyType: 'WATER' }],
+        },
+      },
+      {
+        id: 'atk-rayos-de-energia-solar',
+        name: 'Rayos de Energía Solar',
+        energyCost: ['FIRE', 'FIRE'],
+        baseDamage: 60,
+        damageLabel: '60',
+        effectText: 'Lanza una moneda. Si sale cruz, el oponente pasa a estar quemado.',
+        coinFlip: {
+          count: 1,
+          onTails: [{ kind: 'STATUS', status: 'BURN', target: 'DEFENDER' }],
+        },
+      },
+    ],
+  },
+  {
     id: 'stand-emperor',
     name: 'Emperor',
     type: 'STAND',

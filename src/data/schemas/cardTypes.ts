@@ -38,7 +38,8 @@ export type CoinEffectOutcome =
   | { kind: 'CANCEL_ATTACK' }
   | { kind: 'DODGE_NEXT_ENEMY_ATTACK' }
   | { kind: 'DAMAGE_AND_HEAL'; damageToDefender: number; healSelf: number }
-  | { kind: 'DAMAGE'; target: 'DEFENDER' | 'SELF'; amount: number };
+  | { kind: 'DAMAGE'; target: 'DEFENDER' | 'SELF'; amount: number }
+  | { kind: 'DISCARD_ENEMY_FIELD_ENERGY'; energyType: EnergyType };
 
 export interface CoinFlipSpec {
   count: number;
@@ -161,6 +162,7 @@ export type SignatureEffectId =
   | 'COWARD_ZETA_ZETA'
   | 'DIO_LACKEY_ENYABA'
   | 'AUDACITY_STEELY_DAN'
+  | 'ESCONDITE_ARABIA_FATS'
   | 'NONE';
 
 export interface SignatureAbilityDef {

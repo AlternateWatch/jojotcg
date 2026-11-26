@@ -162,6 +162,8 @@ export const CARD_SET_MILESTONES: MilestoneDef[] = [
       'stand-justice',
       'char-steely-dan',
       'stand-lovers',
+      'char-arabia-fats',
+      'stand-the-sun',
       'char-hol-horse',
       'char-n-doul',
       'char-mariah',

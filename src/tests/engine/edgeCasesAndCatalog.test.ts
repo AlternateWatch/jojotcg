@@ -14,9 +14,9 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 94 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 96 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(94);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(96);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1866,5 +1866,98 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(reflectState.players.P1.active!.currentHp).toBe(20);
     expect(reflectState.players.P1.active!.reflectNextAttackBonus).toBeNull();
     expect(reflectState.players.P2.active!.currentHp).toBe(40); // 140 - 100
+  });
+
+  it('resolves Arabia Fats (100 HP, DG 3, Escondite) and The Sun (DG 3, Calor Sofocante & Rayos de Energía Solar)', () => {
+    // 1. Arabia Fats — Escondite: HEADS shuffles own deck; TAILS shuffles opponent deck
+    const p1DeckOrder = ['energy-fire', 'energy-water', 'energy-psychic', 'energy-electric', 'energy-light'];
+    const p2DeckOrder = ['item-comida-de-tonio', 'item-pluck', 'item-clackers', 'energy-nature', 'energy-colorless'];
+
+    let shuffleCountP1 = 0;
+    let shuffleCountP2 = 0;
+    const headsShuffleRng = {
+      ...createSeededRng(77),
+      flipCoin: () => 'HEADS' as const,
+      shuffle: <T,>(items: readonly T[]): T[] => {
+        shuffleCountP1++;
+        return [...items].reverse();
+      },
+    };
+    let stateHeads = buildControlledBattleState({
+      p1ActiveId: 'char-hol-horse',
+      p1Hand: ['char-arabia-fats'],
+      p1Deck: p1DeckOrder,
+      p2ActiveId: 'char-dio',
+      p2Deck: p2DeckOrder,
+      phase: 'PREPARATION',
+    });
+    stateHeads = mustDispatch(
+      stateHeads,
+      { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: 0 },
+      headsShuffleRng,
+    );
+    expect(shuffleCountP1).toBe(1);
+    expect(stateHeads.players.P1.deck).toEqual([...p1DeckOrder].reverse());
+
+    const tailsShuffleRng = {
+      ...createSeededRng(77),
+      flipCoin: () => 'TAILS' as const,
+      shuffle: <T,>(items: readonly T[]): T[] => {
+        shuffleCountP2++;
+        return [...items].reverse();
+      },
+    };
+    let stateTails = buildControlledBattleState({
+      p1ActiveId: 'char-hol-horse',
+      p1Hand: ['char-arabia-fats'],
+      p1Deck: p1DeckOrder,
+      p2ActiveId: 'char-dio',
+      p2Deck: p2DeckOrder,
+      phase: 'PREPARATION',
+    });
+    stateTails = mustDispatch(
+      stateTails,
+      { type: 'PLAY_TO_BENCH', playerId: 'P1', handIndex: 0 },
+      tailsShuffleRng,
+    );
+    expect(shuffleCountP2).toBe(1);
+    // P2 deck was reversed, then P2 drew the new top card (energy-colorless) on turn start
+    expect(stateTails.players.P2.hand).toContain('energy-colorless');
+
+    // 2. The Sun — Calor Sofocante (2 Colorless, 30 dmg): HEADS discards 1 enemy WATER energy on field
+    const headsRng = { ...createSeededRng(1), flipCoin: () => 'HEADS' as const };
+    let heatState = buildControlledBattleState({
+      p1ActiveId: 'char-arabia-fats',
+      p1ActiveStandId: 'stand-the-sun',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS'],
+      p2ActiveId: 'char-dio', // 160 HP
+      p2ActiveEnergies: ['WATER', 'PSYCHIC'],
+      phase: 'COMBAT',
+    });
+    heatState = mustDispatch(
+      heatState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-calor-sofocante' },
+      headsRng,
+    );
+    expect(heatState.players.P2.active!.currentHp).toBe(130); // 160 - 30
+    expect(heatState.players.P2.active!.attachedEnergies).toEqual(['PSYCHIC']);
+    expect(heatState.players.P2.discard).toContain('energy-water');
+
+    // 3. The Sun — Rayos de Energía Solar (2 Fire, 60 dmg): TAILS inflicts BURN
+    const tailsRng = { ...createSeededRng(1), flipCoin: () => 'TAILS' as const };
+    let raysState = buildControlledBattleState({
+      p1ActiveId: 'char-arabia-fats',
+      p1ActiveStandId: 'stand-the-sun',
+      p1ActiveEnergies: ['FIRE', 'FIRE'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    raysState = mustDispatch(
+      raysState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-rayos-de-energia-solar' },
+      tailsRng,
+    );
+    expect(raysState.players.P2.active!.currentHp).toBe(100); // 160 - 60
+    expect(raysState.players.P2.active!.statuses.burn.active).toBe(true);
   });
 });

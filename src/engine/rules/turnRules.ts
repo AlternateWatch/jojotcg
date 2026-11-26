@@ -28,7 +28,7 @@ import {
   nextEntityId,
   pushEvent,
 } from '../helpers/stateHelpers';
-import type { RngProvider } from '../rng';
+import { createSystemRng, type RngProvider } from '../rng';
 import { cleanseBurn, tryApplyElementalStatus } from '../statuses/statusSystem';
 import {
   healCharacter,
@@ -44,6 +44,7 @@ export function triggerOnEnterFieldAbility(
   eventsOut: CombatEvent[],
   playerId: PlayerId,
   inst: CharacterInstance,
+  rng?: RngProvider,
 ): void {
   const profile = getEffectiveCharacterProfile(inst);
   const player = state.players[playerId];
@@ -169,6 +170,38 @@ export function triggerOnEnterFieldAbility(
         message: `¡Seducción! El activo rival no tenía energías: Nena roba 1 carta del mazo de ${opponent.name} a la mano de ${player.name}.`,
       });
       checkImmediateDeckOut(state, eventsOut, opponentId);
+    }
+  }
+
+  if (profile.signatureAbility.id === 'ESCONDITE_ARABIA_FATS') {
+    const effectiveRng = rng ?? createSystemRng();
+    const flip = effectiveRng.flipCoin();
+    pushEvent(state, eventsOut, {
+      type: 'COIN_FLIPPED',
+      playerId,
+      attackName: 'Escondite',
+      results: [flip],
+      message:
+        flip === 'HEADS'
+          ? `Escondite (Arabia Fats): ¡Cara! ${player.name} baraja su mazo.`
+          : `Escondite (Arabia Fats): ¡Cruz! Se baraja el mazo de ${opponent.name}.`,
+    });
+    if (flip === 'HEADS') {
+      player.deck = effectiveRng.shuffle(player.deck);
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: 'Escondite',
+        message: `¡Escondite! Salió cara: ${player.name} baraja su mazo.`,
+      });
+    } else {
+      opponent.deck = effectiveRng.shuffle(opponent.deck);
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: 'Escondite',
+        message: `¡Escondite! Salió cruz: se baraja el mazo de ${opponent.name}.`,
+      });
     }
   }
 
@@ -1263,7 +1296,7 @@ export function applyPlayToBench(
     message: `${player.name} coloca a ${charCard.name} en la banca (consume la acción principal y finaliza el turno).`,
   });
 
-  triggerOnEnterFieldAbility(state, eventsOut, playerId, inst);
+  triggerOnEnterFieldAbility(state, eventsOut, playerId, inst, rng);
 
   if (state.pendingPrompt) {
     state.promptContinuation = 'FINISH_END_TURN';

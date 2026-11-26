@@ -19,6 +19,7 @@ export interface CardAssetInfo {
  */
 export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'akira-otoishi',
+  'arabia-fats',
   'bastet',
   'bruford',
   'bruno-bucciarati',
@@ -100,6 +101,7 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'tarkus',
   'the-fool',
   'the-hand',
+  'the-sun',
   'the-world',
   'tonpetty',
   'tower-of-gray',

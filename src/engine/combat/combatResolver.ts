@@ -492,6 +492,7 @@ export function executeAttack(
   let grantDodgeNextAttack = false;
   const statusesToDefender: ('STUNNED' | 'BLEED' | 'BURN')[] = [];
   const statusesToSelf: ('STUNNED' | 'BLEED' | 'BURN')[] = [];
+  const discardEnemyFieldEnergies: string[] = [];
   let burnEnemyBenchChoice = false;
   let bounceDefenderToHand = false;
 
@@ -548,6 +549,9 @@ export function executeAttack(
             break;
           case 'DODGE_NEXT_ENEMY_ATTACK':
             grantDodgeNextAttack = true;
+            break;
+          case 'DISCARD_ENEMY_FIELD_ENERGY':
+            discardEnemyFieldEnergies.push(outcome.energyType);
             break;
         }
       }
@@ -694,6 +698,30 @@ export function executeAttack(
   if (!defenderDodgedOrImmune && findCharacterOnBoard(state, opponentId, defender.instanceId)) {
     for (const st of statusesToDefender) {
       tryApplyElementalStatus(state, eventsOut, opponentId, defender.instanceId, st, attack.name);
+    }
+  }
+  if (!defenderDodgedOrImmune && discardEnemyFieldEnergies.length > 0) {
+    for (const targetEnergyType of discardEnemyFieldEnergies) {
+      const enemyField = [...(opponent.active ? [opponent.active] : []), ...opponent.bench];
+      const holder = enemyField.find((ch) =>
+        ch.attachedEnergies.includes(targetEnergyType as (typeof ch.attachedEnergies)[number]),
+      );
+      if (holder) {
+        const idx = holder.attachedEnergies.indexOf(
+          targetEnergyType as (typeof holder.attachedEnergies)[number],
+        );
+        if (idx !== -1) {
+          holder.attachedEnergies.splice(idx, 1);
+          opponent.discard.push(`energy-${targetEnergyType.toLowerCase()}`);
+          const holderName = getEffectiveCharacterProfile(holder).name;
+          pushEvent(state, eventsOut, {
+            type: 'ABILITY_TRIGGERED',
+            playerId,
+            abilityName: attack.name,
+            message: `¡${attack.name}! Salió cara: se descarta 1 energía ${targetEnergyType} de ${holderName}.`,
+          });
+        }
+      }
     }
   }
   if (findCharacterOnBoard(state, playerId, attacker.instanceId)) {
