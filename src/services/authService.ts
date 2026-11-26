@@ -95,6 +95,41 @@ export function normalizeProgression(
       )
     : [];
 
+  const completedRoguelikeStarters = Array.isArray(raw.completedRoguelikeStarters)
+    ? Array.from(
+        new Set(
+          raw.completedRoguelikeStarters.filter((id): id is string => typeof id === 'string'),
+        ),
+      )
+    : [];
+
+  const maxRoguelikeAscensionCleared =
+    typeof raw.maxRoguelikeAscensionCleared === 'number' &&
+    Number.isFinite(raw.maxRoguelikeAscensionCleared)
+      ? Math.max(0, Math.min(5, Math.floor(raw.maxRoguelikeAscensionCleared)))
+      : 0;
+
+  const draftChampionWins =
+    typeof raw.draftChampionWins === 'number' && Number.isFinite(raw.draftChampionWins)
+      ? Math.max(0, Math.floor(raw.draftChampionWins))
+      : 0;
+
+  const claimedRoguelikeAchievements = Array.isArray(raw.claimedRoguelikeAchievements)
+    ? Array.from(
+        new Set(
+          raw.claimedRoguelikeAchievements.filter((id): id is string => typeof id === 'string'),
+        ),
+      )
+    : [];
+
+  const claimedCompetitiveWeeks = Array.isArray(raw.claimedCompetitiveWeeks)
+    ? Array.from(
+        new Set(
+          raw.claimedCompetitiveWeeks.filter((id): id is string => typeof id === 'string'),
+        ),
+      )
+    : [];
+
   return {
     coins:
       typeof raw.coins === 'number' && Number.isFinite(raw.coins) && raw.coins >= 0
@@ -110,6 +145,11 @@ export function normalizeProgression(
     completedCampaignStages,
     completedTutorialLessons,
     claimedMilestones,
+    completedRoguelikeStarters,
+    maxRoguelikeAscensionCleared,
+    draftChampionWins,
+    claimedRoguelikeAchievements,
+    claimedCompetitiveWeeks,
   };
 }
 

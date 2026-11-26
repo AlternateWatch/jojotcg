@@ -591,4 +591,21 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
     expect(claimAllRes.nextProgression.coins).toBe(coinsBeforeAll + claimAllRes.totalCoinsAwarded);
     expect(getClaimableMilestonesCount(claimAllRes.nextProgression)).toBe(0);
   });
+
+  it('preserves roguelike, ascension, draft, and competitive fields across authService.normalizeProgression', () => {
+    const raw = {
+      ...createInitialProgression(),
+      completedRoguelikeStarters: ['starter-joestar-hamon', 'starter-joestar-hamon'],
+      maxRoguelikeAscensionCleared: 4,
+      draftChampionWins: 2,
+      claimedRoguelikeAchievements: ['ach-asc-1', 'ach-draft-1'],
+      claimedCompetitiveWeeks: ['2026-W47:AI', '2026-W47:PVP'],
+    };
+    const normalized = normalizeProgression(raw);
+    expect(normalized.completedRoguelikeStarters).toEqual(['starter-joestar-hamon']);
+    expect(normalized.maxRoguelikeAscensionCleared).toBe(4);
+    expect(normalized.draftChampionWins).toBe(2);
+    expect(normalized.claimedRoguelikeAchievements).toEqual(['ach-asc-1', 'ach-draft-1']);
+    expect(normalized.claimedCompetitiveWeeks).toEqual(['2026-W47:AI', '2026-W47:PVP']);
+  });
 });
