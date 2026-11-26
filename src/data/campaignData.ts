@@ -1820,11 +1820,13 @@ const PART_3_STAGES: CampaignStageDef[] = [
     opponentDeckIds: buildPart1Deck(
       [
         'char-dio',
+        'char-enyaba-geil',
         'char-vanilla-ice',
         'char-pet-shop',
         'char-hol-horse',
         'char-mariah',
         'stand-the-world',
+        'stand-justice',
         'stand-cream',
         'stand-horus',
         'stand-emperor',
@@ -1836,8 +1838,8 @@ const PART_3_STAGES: CampaignStageDef[] = [
         ...rep('item-suministros-speedwagon', 3),
       ],
       [
-        ['energy-psychic', 15],
-        ['energy-water', 7],
+        ['energy-psychic', 14],
+        ['energy-water', 6],
       ],
     ),
     storyDeckName: P3_STORY_FINALE_NAME,

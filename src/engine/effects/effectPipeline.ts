@@ -504,6 +504,26 @@ export function handleCharacterKo(
     }
   }
 
+  // 6c. Enyaba Geil ("Lacaya de DIO"): if DIO is on bench when Enyaba is KO'd, increase DIO's HP by +40
+  if (profile.signatureAbility.id === 'DIO_LACKEY_ENYABA') {
+    const benchDio = owner.bench.find((b) => {
+      const bId = getEffectiveCharacterProfile(b).currentCardId;
+      return bId === 'char-dio' || bId === 'char-dio-brando';
+    });
+    if (benchDio) {
+      benchDio.wangChanHpBonus = (benchDio.wangChanHpBonus ?? 0) + 40;
+      benchDio.currentHp += 40;
+      const dioProfile = getEffectiveCharacterProfile(benchDio);
+      const newMax = computeEffectiveMaxHp(state, ownerPlayerId, benchDio);
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId: ownerPlayerId,
+        abilityName: 'Lacaya de DIO',
+        message: `¡Lacaya de DIO! Al caer Enyaba Geil, ${dioProfile.name} en la banca aumenta su vida en +40 HP (${benchDio.currentHp}/${newMax} HP).`,
+      });
+    }
+  }
+
   pushEvent(state, eventsOut, {
     type: 'CHARACTER_KO',
     ownerPlayerId,

@@ -80,7 +80,8 @@ export type AttackSpecialEffect =
   | { kind: 'CAP_NEXT_INCOMING_ATTACK_DAMAGE'; maxDamage: number }
   | { kind: 'SWAP_ACTIVE_WITH_HAND_CHARACTER' }
   | { kind: 'BONUS_IF_MIRROR_CHARACTER_ON_BOARD'; bonusDamage: number }
-  | { kind: 'DRAW_CARDS'; count: number };
+  | { kind: 'DRAW_CARDS'; count: number }
+  | { kind: 'CONTROL_BY_WOUNDS' };
 
 export interface AttackDef {
   id: string;
@@ -157,6 +158,7 @@ export type SignatureEffectId =
   | 'ABSOLUTE_CRUELTY_J_GEIL'
   | 'SEDUCTION_NENA'
   | 'COWARD_ZETA_ZETA'
+  | 'DIO_LACKEY_ENYABA'
   | 'NONE';
 
 export interface SignatureAbilityDef {

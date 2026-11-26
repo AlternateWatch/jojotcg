@@ -363,6 +363,47 @@ export function executeAttack(
     return;
   }
 
+  // Justice — Control por Heridas: if defender is bleeding, choose one of their attacks and force them to hit themselves
+  if (attack.specialEffects?.some((e) => e.kind === 'CONTROL_BY_WOUNDS')) {
+    if (defender.statuses.bleedStacks.length === 0) {
+      pushEvent(state, eventsOut, {
+        type: 'ABILITY_TRIGGERED',
+        playerId,
+        abilityName: 'Control por Heridas',
+        message: `${defenderProfile.name} no tiene sangrado; Control por Heridas no surte efecto.`,
+      });
+      advanceAfterCombatAction(state, eventsOut, rng);
+      return;
+    }
+    const usableEnemyAttacks = getAvailableAttacks(defender)
+      .map((a) => a.attack)
+      .filter(
+        (a) =>
+          !a.specialEffects?.some(
+            (se) => se.kind === 'COPY_ENEMY_STAND_ATTACK' || se.kind === 'CONTROL_BY_WOUNDS',
+          ),
+      );
+    if (usableEnemyAttacks.length > 0) {
+      enqueuePrompt(state, {
+        kind: 'CHOOSE_ENEMY_STAND_ATTACK',
+        playerId,
+        targetPlayerId: opponentId,
+        availableAttackIds: usableEnemyAttacks.map((a) => a.id),
+        sourceLabel: 'Control por Heridas',
+      });
+      state.promptContinuation = 'FINISH_COMBAT_ACTION';
+      return;
+    }
+    pushEvent(state, eventsOut, {
+      type: 'ABILITY_TRIGGERED',
+      playerId,
+      abilityName: 'Control por Heridas',
+      message: `${defenderProfile.name} no tiene ataques que Justice pueda controlar.`,
+    });
+    advanceAfterCombatAction(state, eventsOut, rng);
+    return;
+  }
+
   // Special Soul Swap (Silver Chariot Requiem — Intercambio de Almas)
   if (attack.specialEffects?.some((e) => e.kind === 'SOUL_SWAP_HP')) {
     const myHp = attacker.currentHp;

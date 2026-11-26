@@ -14,9 +14,9 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 90 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 92 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(90);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(92);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1717,5 +1717,90 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       attackId: 'atk-comunicacion-por-radio',
     });
     expect(radioState.players.P1.hand).toContain('item-suministros-speedwagon');
+  });
+
+  it('resolves Enyaba Geil (90 HP, DG 4): Lacaya de DIO grants +40 HP to bench DIO when Enyaba is KO’d', () => {
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-dio-brando',
+      p1ActiveEnergies: ['ELECTRIC', 'ELECTRIC'],
+      p2ActiveId: 'char-enyaba-geil', // 90 HP
+      p2BenchIds: ['char-dio'], // 160 HP
+      phase: 'COMBAT',
+    });
+
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-space-ripper-stingy-eyes', // guaranteed 90 dmg -> KOs Enyaba!
+    });
+
+    // DIO auto-promotes from bench with +40 HP bonus (160 -> 200 HP)!
+    expect(state.players.P2.active!.cardId).toBe('char-dio');
+    expect(state.players.P2.active!.currentHp).toBe(200);
+    expect(state.players.P2.active!.wangChanHpBonus).toBe(40);
+  });
+
+  it('resolves Justice (DG 4): Cuchillos Ilusorios (40 dmg + Bleed on heads) and Control por Heridas (forces bleeding opponent to hit themselves with their own attack)', () => {
+    const headsRng = { ...createSeededRng(1), flipCoin: () => 'HEADS' as const };
+
+    // 1. Cuchillos Ilusorios on HEADS -> 40 dmg + Bleed
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-enyaba-geil',
+      p1ActiveStandId: 'stand-justice',
+      p1ActiveEnergies: ['PSYCHIC', 'PSYCHIC', 'COLORLESS'],
+      p2ActiveId: 'char-jotaro-kujo', // 140 HP
+      p2ActiveStandId: 'stand-star-platinum', // Ora Ora (60 dmg)
+      phase: 'COMBAT',
+    });
+
+    state = mustDispatch(
+      state,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-cuchillos-ilusorios' },
+      headsRng,
+    );
+    expect(state.players.P2.active!.currentHp).toBe(100); // 140 - 40
+    expect(state.players.P2.active!.statuses.bleedStacks).toHaveLength(1);
+
+    // 2. Control por Heridas while opponent is bleeding -> prompts CHOOSE_ENEMY_STAND_ATTACK -> executes Ora Ora (60 dmg) against Jotaro!
+    let controlState = buildControlledBattleState({
+      p1ActiveId: 'char-enyaba-geil',
+      p1ActiveStandId: 'stand-justice',
+      p1ActiveEnergies: ['PSYCHIC', 'PSYCHIC', 'COLORLESS'],
+      p2ActiveId: 'char-jotaro-kujo', // 140 HP
+      p2ActiveStandId: 'stand-star-platinum',
+      phase: 'COMBAT',
+    });
+    controlState.players.P2.active!.statuses.bleedStacks.push({ turnsRemaining: 3, damagePerTurn: 10 });
+
+    controlState = mustDispatch(controlState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-control-por-heridas',
+    });
+    expect(controlState.pendingPrompt?.kind).toBe('CHOOSE_ENEMY_STAND_ATTACK');
+
+    controlState = mustDispatch(controlState, {
+      type: 'RESPOND_PROMPT',
+      playerId: 'P1',
+      response: { kind: 'CHOOSE_ENEMY_STAND_ATTACK', attackId: 'atk-ora-ora' },
+    });
+    expect(controlState.players.P2.active!.currentHp).toBe(80); // 140 - 60
+
+    // 3. Control por Heridas when opponent is NOT bleeding -> fizzles cleanly without prompt
+    let noBleedState = buildControlledBattleState({
+      p1ActiveId: 'char-enyaba-geil',
+      p1ActiveStandId: 'stand-justice',
+      p1ActiveEnergies: ['PSYCHIC', 'PSYCHIC', 'COLORLESS'],
+      p2ActiveId: 'char-jotaro-kujo', // 140 HP, no bleed
+      p2ActiveStandId: 'stand-star-platinum',
+      phase: 'COMBAT',
+    });
+    noBleedState = mustDispatch(noBleedState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-control-por-heridas',
+    });
+    expect(noBleedState.pendingPrompt).toBeNull();
+    expect(noBleedState.players.P2.active!.currentHp).toBe(140);
   });
 });

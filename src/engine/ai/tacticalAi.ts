@@ -189,6 +189,15 @@ function expectedAttackScore(
   if (drawEff) {
     score += player.hand.length <= 4 ? 22 * drawEff.count : 12 * drawEff.count;
   }
+  if (attack.specialEffects?.some((e) => e.kind === 'CONTROL_BY_WOUNDS')) {
+    const enemyAttacks = getAvailableAttacks(enemyActive);
+    if (enemyActive.statuses.bleedStacks.length > 0 && enemyAttacks.length > 0) {
+      const bestEnemyDmg = enemyAttacks.reduce((m, a) => Math.max(m, a.attack.baseDamage), 0);
+      score += 40 + bestEnemyDmg;
+    } else {
+      score -= 100;
+    }
+  }
 
   // Avoid risky self-KO unless desperate or lethal
   if (isSelfKo) {

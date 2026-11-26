@@ -898,6 +898,39 @@ export const STAND_CARDS: StandCard[] = [
       },
     ],
   },
+  {
+    id: 'stand-justice',
+    name: 'Justice',
+    type: 'STAND',
+    part: 3,
+    imageId: 'justice',
+    assetFolder: 'official',
+    requiredDg: 4,
+    attacks: [
+      {
+        id: 'atk-cuchillos-ilusorios',
+        name: 'Cuchillos Ilusorios',
+        energyCost: ['COLORLESS', 'COLORLESS'],
+        baseDamage: 40,
+        damageLabel: '2x20',
+        effectText: 'Lanza una moneda. Si sale cara, el oponente pasa a tener sangrado.',
+        coinFlip: {
+          count: 1,
+          onHeads: [{ kind: 'STATUS', status: 'BLEED', target: 'DEFENDER' }],
+        },
+      },
+      {
+        id: 'atk-control-por-heridas',
+        name: 'Control por Heridas',
+        energyCost: ['PSYCHIC', 'PSYCHIC', 'COLORLESS'],
+        baseDamage: 0,
+        damageLabel: '—',
+        effectText:
+          'Si el oponente tiene sangrado, elige uno de sus ataques, y haz que use ese ataque contra sí mismo.',
+        specialEffects: [{ kind: 'CONTROL_BY_WOUNDS' }],
+      },
+    ],
+  },
 
   // ===================== PART 5: GOLDEN WIND (VENTO AUREO) =====================
   {
