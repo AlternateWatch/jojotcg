@@ -286,17 +286,37 @@ export function HandActionRibbon({
     }
 
     if (card.type === 'CHARACTER') {
-      const action: GameAction = { type: 'PLAY_TO_BENCH', playerId, handIndex };
-      const check = validateAction(gameState, action);
+      const benchAction: GameAction = { type: 'PLAY_TO_BENCH', playerId, handIndex };
+      const benchCheck = validateAction(gameState, benchAction);
+      const hasHandAbility = card.signatureAbility.trigger === 'IN_HAND_PREP';
+      const handAbilityAction: GameAction = { type: 'USE_HAND_ABILITY', playerId, handIndex };
+      const handAbilityCheck = hasHandAbility
+        ? validateAction(gameState, handAbilityAction)
+        : { ok: false, reason: '' };
+
       return (
-        <button
-          type="button"
-          disabled={!check.ok}
-          onClick={() => onDispatch(action)}
-          className="jojo-btn-crimson px-3 py-1 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-40"
-        >
-          {check.ok ? 'Bajar a Banca (Finaliza turno)' : check.reason}
-        </button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {hasHandAbility && (
+            <button
+              type="button"
+              disabled={!handAbilityCheck.ok}
+              onClick={() => onDispatch(handAbilityAction)}
+              className="jojo-btn-primary px-3 py-1 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-40"
+            >
+              {handAbilityCheck.ok
+                ? `${card.signatureAbility.name} (Descartar → Robar 2)`
+                : handAbilityCheck.reason}
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={!benchCheck.ok}
+            onClick={() => onDispatch(benchAction)}
+            className="jojo-btn-crimson px-3 py-1 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-40"
+          >
+            {benchCheck.ok ? 'Bajar a Banca (Finaliza turno)' : benchCheck.reason}
+          </button>
+        </div>
       );
     }
 

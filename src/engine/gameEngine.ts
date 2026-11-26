@@ -1,7 +1,8 @@
-import { getCardById } from '../data/cardRegistry';
+import { getCardById, getCharacterCard } from '../data/cardRegistry';
 import { DEFAULT_RULES_CONFIG, type GameRulesConfig } from '../data/rulesConfig';
 import { getAvailableAttacks } from './helpers/cardStats';
 import {
+  checkImmediateDeckOut,
   cloneState,
   createCharacterInstance,
   getOpponentId,
@@ -347,6 +348,22 @@ export function validateAction(state: GameState, action: GameAction): Validation
     case 'USE_PREP_ABILITY':
       return validateUsePrepAbility(state, action.playerId, action.sourceInstanceId);
 
+    case 'USE_HAND_ABILITY': {
+      if (state.activePlayerId !== action.playerId) {
+        return { ok: false, reason: 'No es tu turno.' };
+      }
+      if (state.phase !== 'PREPARATION') {
+        return { ok: false, reason: 'Solo puedes usar habilidades de mano en Fase de Preparación.' };
+      }
+      const p = state.players[action.playerId];
+      const cid = p.hand[action.handIndex];
+      const ch = cid ? getCharacterCard(cid) : undefined;
+      if (!ch || ch.signatureAbility.id !== 'COWARD_ZETA_ZETA') {
+        return { ok: false, reason: 'Esta carta no tiene una habilidad activable desde la mano.' };
+      }
+      return { ok: true };
+    }
+
     case 'PLAY_TO_BENCH':
       return validatePlayToBench(state, action.playerId, action.handIndex);
 
@@ -446,6 +463,38 @@ export function dispatchAction(
     case 'USE_PREP_ABILITY':
       applyUsePrepAbility(state, events, action.playerId, action.sourceInstanceId);
       break;
+
+    case 'USE_HAND_ABILITY': {
+      const p = state.players[action.playerId];
+      const removedId = p.hand.splice(action.handIndex, 1)[0];
+      if (removedId) {
+        p.discard.push(removedId);
+        let drawnCount = 0;
+        for (let i = 0; i < 2; i++) {
+          if (p.deck.length === 0) {
+            checkImmediateDeckOut(state, events, action.playerId, rng);
+          }
+          if (p.deck.length > 0) {
+            const top = p.deck.shift()!;
+            p.hand.push(top);
+            drawnCount++;
+            pushEvent(state, events, {
+              type: 'CARD_DRAWN',
+              playerId: action.playerId,
+              count: 1,
+              message: `${p.name} roba una carta por COBARDE.`,
+            });
+          }
+        }
+        pushEvent(state, events, {
+          type: 'ABILITY_TRIGGERED',
+          playerId: action.playerId,
+          abilityName: 'COBARDE',
+          message: `¡COBARDE! ${p.name} descarta a Zeta Zeta de su mano y roba ${drawnCount} carta(s) extra.`,
+        });
+      }
+      break;
+    }
 
     case 'PLAY_TO_BENCH':
       applyPlayToBench(state, events, action.playerId, action.handIndex, rng);

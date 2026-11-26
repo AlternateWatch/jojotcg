@@ -14,9 +14,9 @@ import {
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 88 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 90 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(88);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(90);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
 
@@ -1641,5 +1641,81 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     // Deals 40 damage to DIO (160 -> 120) and heals Nena by 10 HP (70 -> 80)
     expect(state.players.P2.active!.currentHp).toBe(120);
     expect(state.players.P1.active!.currentHp).toBe(80);
+  });
+
+  it('resolves Zeta Zeta (90 HP, DG 3): COBARDE discards Zeta Zeta from hand during PREPARATION and draws 2 extra cards without ending the turn', () => {
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-hol-horse',
+      p1Hand: ['char-zeta-zeta'],
+      p1Deck: ['energy-fire', 'stand-wheel-of-fortune', 'energy-colorless'],
+      p2ActiveId: 'char-dio',
+      phase: 'PREPARATION',
+    });
+
+    state = mustDispatch(state, {
+      type: 'USE_HAND_ABILITY',
+      playerId: 'P1',
+      handIndex: 0,
+    });
+
+    expect(state.activePlayerId).toBe('P1');
+    expect(state.phase).toBe('PREPARATION');
+    expect(state.players.P1.discard).toContain('char-zeta-zeta');
+    expect(state.players.P1.hand).toEqual(['energy-fire', 'stand-wheel-of-fortune']);
+    expect(state.players.P1.deck).toEqual(['energy-colorless']);
+  });
+
+  it('resolves Wheel Of Fortune (DG 3): Balas de Gasolina (COLORLESS + FIRE, 50 dmg + Burn on heads) and Comunicación por Radio (2 COLORLESS, draws 1 card)', () => {
+    const headsRng = { ...createSeededRng(1), flipCoin: () => 'HEADS' as const };
+    const tailsRng = { ...createSeededRng(1), flipCoin: () => 'TAILS' as const };
+
+    // 1. Balas de Gasolina (HEADS -> 50 dmg + Burn!)
+    let burnState = buildControlledBattleState({
+      p1ActiveId: 'char-zeta-zeta',
+      p1ActiveStandId: 'stand-wheel-of-fortune',
+      p1ActiveEnergies: ['COLORLESS', 'FIRE'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    burnState = mustDispatch(
+      burnState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-balas-de-gasolina' },
+      headsRng,
+    );
+    expect(burnState.players.P2.active!.currentHp).toBe(110); // 160 - 50
+    expect(burnState.players.P2.active!.statuses.burn?.active).toBe(true);
+
+    // 2. Balas de Gasolina (TAILS -> 50 dmg, no Burn)
+    let noBurnState = buildControlledBattleState({
+      p1ActiveId: 'char-zeta-zeta',
+      p1ActiveStandId: 'stand-wheel-of-fortune',
+      p1ActiveEnergies: ['COLORLESS', 'FIRE'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    noBurnState = mustDispatch(
+      noBurnState,
+      { type: 'USE_ATTACK', playerId: 'P1', attackId: 'atk-balas-de-gasolina' },
+      tailsRng,
+    );
+    expect(noBurnState.players.P2.active!.currentHp).toBe(110);
+    expect(noBurnState.players.P2.active!.statuses.burn).toBeNull();
+
+    // 3. Comunicación por Radio (2 COLORLESS -> draws 1 card)
+    let radioState = buildControlledBattleState({
+      p1ActiveId: 'char-zeta-zeta',
+      p1ActiveStandId: 'stand-wheel-of-fortune',
+      p1ActiveEnergies: ['COLORLESS', 'COLORLESS'],
+      p1Hand: [],
+      p1Deck: ['item-suministros-speedwagon', 'energy-fire'],
+      p2ActiveId: 'char-dio',
+      phase: 'COMBAT',
+    });
+    radioState = mustDispatch(radioState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-comunicacion-por-radio',
+    });
+    expect(radioState.players.P1.hand).toContain('item-suministros-speedwagon');
   });
 });

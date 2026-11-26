@@ -79,7 +79,8 @@ export type AttackSpecialEffect =
   | { kind: 'HEAL_SELF_ON_KO'; amount: number }
   | { kind: 'CAP_NEXT_INCOMING_ATTACK_DAMAGE'; maxDamage: number }
   | { kind: 'SWAP_ACTIVE_WITH_HAND_CHARACTER' }
-  | { kind: 'BONUS_IF_MIRROR_CHARACTER_ON_BOARD'; bonusDamage: number };
+  | { kind: 'BONUS_IF_MIRROR_CHARACTER_ON_BOARD'; bonusDamage: number }
+  | { kind: 'DRAW_CARDS'; count: number };
 
 export interface AttackDef {
   id: string;
@@ -96,6 +97,7 @@ export type SignatureTrigger =
   | 'PASSIVE'
   | 'ON_ENTER_FIELD'
   | 'ONCE_PER_TURN_PREP'
+  | 'IN_HAND_PREP'
   | 'ON_KO'
   | 'ON_END_TURN'
   | 'ON_RECEIVE_DAMAGE'
@@ -154,6 +156,7 @@ export type SignatureEffectId =
   | 'NARCISSISM_RUBBER_SOUL'
   | 'ABSOLUTE_CRUELTY_J_GEIL'
   | 'SEDUCTION_NENA'
+  | 'COWARD_ZETA_ZETA'
   | 'NONE';
 
 export interface SignatureAbilityDef {

@@ -782,6 +782,34 @@ export function executeAttack(
         }
         break;
       }
+      case 'DRAW_CARDS': {
+        let drawn = 0;
+        for (let i = 0; i < eff.count; i++) {
+          if (player.deck.length === 0) {
+            checkImmediateDeckOut(state, eventsOut, playerId, rng);
+          }
+          if (player.deck.length > 0) {
+            const top = player.deck.shift()!;
+            player.hand.push(top);
+            drawn++;
+            pushEvent(state, eventsOut, {
+              type: 'CARD_DRAWN',
+              playerId,
+              count: 1,
+              message: `${player.name} roba una carta con ${attack.name}.`,
+            });
+          }
+        }
+        if (drawn > 0) {
+          pushEvent(state, eventsOut, {
+            type: 'ABILITY_TRIGGERED',
+            playerId,
+            abilityName: attack.name,
+            message: `${player.name} roba ${drawn} carta(s) gracias a ${attack.name}.`,
+          });
+        }
+        break;
+      }
       case 'HEAL_DEFENDER': {
         if (!defenderDodgedOrImmune && findCharacterOnBoard(state, opponentId, defender.instanceId)) {
           healCharacter(state, eventsOut, opponentId, defender.instanceId, eff.amount, attack.name);

@@ -183,6 +183,12 @@ function expectedAttackScore(
   if (attack.specialEffects?.some((e) => e.kind === 'RETURN_ENEMY_BENCH_TO_DECK')) {
     score += opponent.bench.length > 0 ? 35 : 0;
   }
+  const drawEff = attack.specialEffects?.find(
+    (e): e is Extract<typeof e, { kind: 'DRAW_CARDS' }> => e.kind === 'DRAW_CARDS',
+  );
+  if (drawEff) {
+    score += player.hand.length <= 4 ? 22 * drawEff.count : 12 * drawEff.count;
+  }
 
   // Avoid risky self-KO unless desperate or lethal
   if (isSelfKo) {

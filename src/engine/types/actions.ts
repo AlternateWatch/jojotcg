@@ -40,6 +40,7 @@ export type GameAction =
   | { type: 'PLAY_ITEM'; playerId: PlayerId; handIndex: number; targetInstanceId?: string }
   | { type: 'EVOLVE_CARD'; playerId: PlayerId; handIndex: number }
   | { type: 'USE_PREP_ABILITY'; playerId: PlayerId; sourceInstanceId: string }
+  | { type: 'USE_HAND_ABILITY'; playerId: PlayerId; handIndex: number }
   | { type: 'PLAY_TO_BENCH'; playerId: PlayerId; handIndex: number }
   | { type: 'SWAP_ACTIVE_WITH_BENCH'; playerId: PlayerId; benchInstanceId: string }
   | { type: 'RETREAT_ACTIVE'; playerId: PlayerId; benchInstanceId: string }

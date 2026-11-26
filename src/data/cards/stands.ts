@@ -866,6 +866,38 @@ export const STAND_CARDS: StandCard[] = [
       },
     ],
   },
+  {
+    id: 'stand-wheel-of-fortune',
+    name: 'Wheel Of Fortune',
+    type: 'STAND',
+    part: 3,
+    imageId: 'wheel-of-fortune',
+    assetFolder: 'official',
+    requiredDg: 3,
+    attacks: [
+      {
+        id: 'atk-balas-de-gasolina',
+        name: 'Balas de Gasolina',
+        energyCost: ['COLORLESS', 'FIRE'],
+        baseDamage: 50,
+        damageLabel: '5x10',
+        effectText: 'Lanza una moneda. Si sale cara, el oponente pasa a estar quemado.',
+        coinFlip: {
+          count: 1,
+          onHeads: [{ kind: 'STATUS', status: 'BURN', target: 'DEFENDER' }],
+        },
+      },
+      {
+        id: 'atk-comunicacion-por-radio',
+        name: 'Comunicación por Radio',
+        energyCost: ['COLORLESS', 'COLORLESS'],
+        baseDamage: 0,
+        damageLabel: '—',
+        effectText: 'Roba una carta.',
+        specialEffects: [{ kind: 'DRAW_CARDS', count: 1 }],
+      },
+    ],
+  },
 
   // ===================== PART 5: GOLDEN WIND (VENTO AUREO) =====================
   {

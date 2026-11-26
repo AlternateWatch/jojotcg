@@ -102,10 +102,12 @@ export const OFFICIAL_CARD_IMAGE_IDS = new Set<string>([
   'vanilla-ice',
   'wamuu',
   'wang-chan',
+  'wheel-of-fortune',
   'will-a-zeppeli',
   'yellow-temperance',
   'yoshikage-kira',
   'yukako-yamagishi',
+  'zeta-zeta',
 ]);
 
 export const OFFICIAL_ITEM_IMAGE_IDS = new Set<string>([
