@@ -229,6 +229,7 @@ export function CollectionView() {
                 ['STAND', 'Stands'],
                 ['EVOLUTION', 'Evoluciones'],
                 ['ITEM', 'Objetos'],
+                ['LOCATION', 'Lugares'],
                 ['ENERGY', 'Energías'],
               ] as const
             ).map(([val, label]) => (

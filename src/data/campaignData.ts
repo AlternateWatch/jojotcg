@@ -14,6 +14,8 @@ export interface CampaignStageDef {
   /** Optional explicit AI mistake probability (0..1); defaults to progressive 42%->18% across each Part's bosses */
   aiErrorRate?: number;
   opponentDeckIds: string[];
+  /** Optional lore-accurate Location card already active on the field at the start of this stage */
+  initialLocationId?: string;
   /** Mandatory themed loaner deck for first clear (replay unlocks any player deck) */
   storyDeckName: string;
   storyDeckDescription: string;
@@ -139,6 +141,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
     stageNumber: 1,
     title: 'El Invasor de la Mansión',
     location: 'Mansión Joestar · 1880',
+    initialLocationId: 'loc-mansion-de-los-joestar',
     storyText:
       'Dio Brando llega a la finca de los Joestar decidido a arrebatarle todo a Jonathan. Supera tu primer enfrentamiento.',
     opponentName: 'Dio Brando (Juventud)',
@@ -165,6 +168,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
     stageNumber: 2,
     title: 'La Tragedia de Danny',
     location: 'Jardines de la Mansión · 1880',
+    initialLocationId: 'loc-mansion-de-los-joestar',
     storyText:
       'La crueldad de Dio no tiene límites. Canaliza la furia de Jonathan tras la pérdida de Danny para doblegar a su rival.',
     opponentName: 'Dio Brando · Crueldad',
@@ -220,6 +224,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
     stageNumber: 4,
     title: 'El Secreto de la Máscara',
     location: 'Laboratorio de la Mansión',
+    initialLocationId: 'loc-mansion-de-los-joestar',
     storyText:
       'La Máscara de Piedra despierta un poder antinatural al contacto con la sangre. Enfrenta a su primer portador.',
     opponentName: 'Portador de la Máscara',
@@ -246,6 +251,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
     stageNumber: 5,
     title: 'El Incendio de la Mansión Joestar',
     location: 'Mansión Joestar en Llamas',
+    initialLocationId: 'loc-mansion-de-los-joestar',
     storyText:
       '¡MINIJEFE 1! Dio rechaza su humanidad y se transforma en vampiro entre las llamas junto a Wang Chan. ¡Sobrevive a su furia congelante!',
     opponentName: 'Dio Brando · Vampiro',

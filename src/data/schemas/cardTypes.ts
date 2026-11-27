@@ -1,4 +1,4 @@
-export type CardType = 'CHARACTER' | 'STAND' | 'ITEM' | 'EVOLUTION' | 'ENERGY';
+export type CardType = 'CHARACTER' | 'STAND' | 'ITEM' | 'EVOLUTION' | 'ENERGY' | 'LOCATION';
 
 export type CharacterCategory =
   | 'STAND_USER'
@@ -27,7 +27,7 @@ export interface BaseCard {
   type: CardType;
   part: JoJoPart;
   imageId: string;
-  assetFolder: 'official' | 'items' | 'energies';
+  assetFolder: 'official' | 'items' | 'energies' | 'locations';
   description?: string;
   tags?: string[];
 }
@@ -253,7 +253,18 @@ export interface EnergyCard extends BaseCard {
   energyType: EnergyType;
 }
 
-export type AnyCard = CharacterCard | StandCard | ItemCard | EvolutionCard | EnergyCard;
+export type LocationEffect = {
+  kind: 'JOESTAR_HP_AND_DAMAGE_BONUS';
+  bonusHp: number;
+  bonusDamage: number;
+};
+
+export interface LocationCard extends BaseCard {
+  type: 'LOCATION';
+  effects: LocationEffect[];
+}
+
+export type AnyCard = CharacterCard | StandCard | ItemCard | EvolutionCard | EnergyCard | LocationCard;
 
 export const ENERGY_META: Record<
   EnergyType,

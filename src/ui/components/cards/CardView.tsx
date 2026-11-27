@@ -34,6 +34,7 @@ const TYPE_HEADER_BG: Record<AnyCard['type'], string> = {
   STAND: 'bg-[#e6194b] text-white',
   EVOLUTION: 'bg-[#f2c12e] text-[#0b090e]',
   ITEM: 'bg-[#00b87c] text-[#0b090e]',
+  LOCATION: 'bg-[#2952d9] text-white',
   ENERGY: 'bg-[#f5efe0] text-[#0b090e]',
 };
 
@@ -42,6 +43,7 @@ const TYPE_SPANISH: Record<AnyCard['type'], string> = {
   STAND: 'Stand',
   EVOLUTION: 'Evolución',
   ITEM: 'Objeto',
+  LOCATION: 'Lugar',
   ENERGY: 'Energía',
 };
 

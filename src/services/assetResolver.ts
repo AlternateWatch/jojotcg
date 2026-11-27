@@ -1,6 +1,6 @@
 import type { PlaymatThemeId } from '../services/storageService';
 
-export type AssetCardFolder = 'official' | 'items' | 'energies';
+export type AssetCardFolder = 'official' | 'items' | 'energies' | 'locations';
 
 export interface CardAssetInfo {
   imageId: string;
@@ -146,6 +146,10 @@ export const OFFICIAL_ENERGY_IMAGE_IDS = new Set<string>([
   'energy-stand',
 ]);
 
+export const OFFICIAL_LOCATION_IMAGE_IDS = new Set<string>([
+  'mansion-de-los-joestar',
+]);
+
 export const OFFICIAL_CARD_EXTENSIONS: Record<string, 'webp'> = {
   'capitan-tenille': 'webp',
   'dark-blue-moon': 'webp',
@@ -179,6 +183,13 @@ export function resolveCardAsset(
     };
   }
   if (folder === 'energies' && OFFICIAL_ENERGY_IMAGE_IDS.has(imageId)) {
+    return {
+      url: expectedPath,
+      isFullCardRender: true,
+      expectedPath,
+    };
+  }
+  if (folder === 'locations' && OFFICIAL_LOCATION_IMAGE_IDS.has(imageId)) {
     return {
       url: expectedPath,
       isFullCardRender: true,

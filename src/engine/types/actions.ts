@@ -38,6 +38,7 @@ export type GameAction =
     }
   | { type: 'ATTACH_ENERGY'; playerId: PlayerId; handIndex: number; targetInstanceId: string }
   | { type: 'PLAY_ITEM'; playerId: PlayerId; handIndex: number; targetInstanceId?: string }
+  | { type: 'PLAY_LOCATION'; playerId: PlayerId; handIndex: number }
   | { type: 'EVOLVE_CARD'; playerId: PlayerId; handIndex: number }
   | { type: 'USE_PREP_ABILITY'; playerId: PlayerId; sourceInstanceId: string }
   | { type: 'USE_HAND_ABILITY'; playerId: PlayerId; handIndex: number }

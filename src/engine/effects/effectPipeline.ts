@@ -6,6 +6,7 @@ import {
   getAvailableAttacks,
   getEffectiveCharacterProfile,
   getEffectiveStandProfile,
+  getLocationDamageBonusForCharacter,
 } from '../helpers/cardStats';
 import {
   checkImmediateDeckOut,
@@ -224,6 +225,9 @@ export function computeAttackDamageBonus(
       }
     }
   }
+
+  // 7. Active Location passive damage bonuses (e.g. Mansión De Los Joestar +10 dmg to Joestars & their Stands)
+  bonus += getLocationDamageBonusForCharacter(state, attackerInst);
 
   return {
     bonus,

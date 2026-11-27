@@ -4,6 +4,7 @@ import {
   getEnergyCard,
   getEvolutionCard,
   getItemCard,
+  getLocationCard,
   getStandCard,
 } from '../../data/cardRegistry';
 import {
@@ -13,6 +14,7 @@ import {
   getAvailableAttacks,
   getCharacterUnlockTurn,
   getEffectiveCharacterProfile,
+  getLocationHpBonusForCharacter,
   getMaxEnergyAttachmentsThisTurn,
   getMaxPlayableCharacterDg,
   isCharacterDgAllowedOnTurn,
@@ -36,6 +38,7 @@ import {
   triggerOpponentExtraDrawReaction,
 } from '../effects/effectPipeline';
 import { finishTurnToEndPhase } from '../combat/combatResolver';
+import type { ValidationResult } from '../types/actions';
 import type { CombatEvent } from '../types/events';
 import type { CharacterInstance, GameState, PlayerId } from '../types/state';
 
@@ -56,6 +59,12 @@ export function triggerOnEnterFieldAbility(
     playerId === 'P1' ? (state.rules.p1BonusMaxHp ?? 0) : (state.rules.p2BonusMaxHp ?? 0);
   if (bonusHp > 0) {
     inst.currentHp += bonusHp;
+  }
+
+  // Active Location HP bonus (e.g. Mansión De Los Joestar +10 HP to Joestars on entry)
+  const locationHpBonus = getLocationHpBonusForCharacter(state, inst);
+  if (locationHpBonus > 0) {
+    inst.currentHp += locationHpBonus;
   }
 
   // Erina Pendleton — AMOR FLAGRANTE: when Jonathan enters play while Erina is on bench, +10 HP & +10 next attack!
@@ -1225,6 +1234,92 @@ export function applyUsePrepAbility(
       break;
     }
   }
+}
+
+export function validatePlayLocation(
+  state: GameState,
+  playerId: PlayerId,
+  handIndex: number,
+): ValidationResult {
+  if (state.phase !== 'PREPARATION') {
+    return { ok: false, reason: 'Solo puedes jugar cartas de Lugar en Fase de Preparación.' };
+  }
+  if (state.activePlayerId !== playerId) {
+    return { ok: false, reason: 'No es tu turno.' };
+  }
+  const player = state.players[playerId];
+  const cardId = player.hand[handIndex];
+  if (!cardId) {
+    return { ok: false, reason: 'Carta no encontrada en tu mano.' };
+  }
+  const location = getLocationCard(cardId);
+  if (!location) {
+    return { ok: false, reason: 'La carta seleccionada no es una carta de Lugar.' };
+  }
+  if (state.activeLocation?.cardId === location.id) {
+    return { ok: false, reason: `${location.name} ya está activa en el campo.` };
+  }
+  return { ok: true };
+}
+
+export function applyPlayLocation(
+  state: GameState,
+  eventsOut: CombatEvent[],
+  playerId: PlayerId,
+  handIndex: number,
+): void {
+  const player = state.players[playerId];
+  const cardId = player.hand.splice(handIndex, 1)[0]!;
+  const newLoc = getLocationCard(cardId)!;
+
+  const allBoardChars = (): { pid: PlayerId; ch: CharacterInstance }[] => [
+    ...(state.players.P1.active ? [{ pid: 'P1' as const, ch: state.players.P1.active }] : []),
+    ...state.players.P1.bench.map((ch) => ({ pid: 'P1' as const, ch })),
+    ...(state.players.P2.active ? [{ pid: 'P2' as const, ch: state.players.P2.active }] : []),
+    ...state.players.P2.bench.map((ch) => ({ pid: 'P2' as const, ch })),
+  ];
+
+  // Snapshot previous location HP bonuses per character before swapping
+  const prevBonuses = new Map<string, number>();
+  for (const { ch } of allBoardChars()) {
+    prevBonuses.set(ch.instanceId, getLocationHpBonusForCharacter(state, ch));
+  }
+
+  const prevLocation = state.activeLocation;
+  let replacedName: string | null = null;
+  if (prevLocation) {
+    replacedName = getLocationCard(prevLocation.cardId)?.name ?? prevLocation.cardId;
+    if (prevLocation.playedBy !== 'CAMPAIGN') {
+      state.players[prevLocation.playedBy].discard.push(prevLocation.cardId);
+    }
+  }
+
+  state.activeLocation = {
+    cardId: newLoc.id,
+    playedBy: playerId,
+  };
+
+  // Update HP of all characters on both sides cleanly when location changes
+  for (const { pid, ch } of allBoardChars()) {
+    const oldBonus = prevBonuses.get(ch.instanceId) ?? 0;
+    const newBonus = getLocationHpBonusForCharacter(state, ch);
+    const delta = newBonus - oldBonus;
+    const newMax = computeEffectiveMaxHp(state, pid, ch);
+    if (delta > 0) {
+      ch.currentHp = Math.min(newMax, ch.currentHp + delta);
+    } else if (ch.currentHp > newMax) {
+      ch.currentHp = newMax;
+    }
+  }
+
+  pushEvent(state, eventsOut, {
+    type: 'ABILITY_TRIGGERED',
+    playerId,
+    abilityName: newLoc.name,
+    message: replacedName
+      ? `${player.name} juega el Lugar ${newLoc.name}, reemplazando a ${replacedName} (afecta a ambos jugadores).`
+      : `${player.name} juega el Lugar ${newLoc.name} en el centro del campo (afecta a ambos jugadores).`,
+  });
 }
 
 export function validatePlayToBench(

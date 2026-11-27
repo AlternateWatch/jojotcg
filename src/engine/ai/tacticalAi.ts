@@ -959,6 +959,14 @@ export function chooseAiAction(
       }
     }
 
+    // 4d-bis. Play Location cards in hand
+    for (let i = 0; i < player.hand.length; i++) {
+      const card = getCardById(player.hand[i]!);
+      if (!card || card.type !== 'LOCATION') continue;
+      const act: GameAction = { type: 'PLAY_LOCATION', playerId: aiPlayerId, handIndex: i };
+      if (validateAction(state, act).ok) return act;
+    }
+
     // 4e. Attach Energy (respecting bonus energy attachments from Impulso Espiritual!)
     const maxAttachments = getMaxEnergyAttachmentsThisTurn(state, aiPlayerId);
     if (player.energyAttachedThisTurn < maxAttachments) {

@@ -270,6 +270,25 @@ export function HandActionRibbon({
       );
     }
 
+    if (card.type === 'LOCATION') {
+      const action: GameAction = {
+        type: 'PLAY_LOCATION',
+        playerId,
+        handIndex,
+      };
+      const check = validateAction(gameState, action);
+      return (
+        <button
+          type="button"
+          disabled={!check.ok}
+          onClick={() => onDispatch(action)}
+          className="jojo-btn-primary px-3 py-1 font-jojo-heading text-xs tracking-wider uppercase disabled:opacity-40"
+        >
+          {check.ok ? 'Activar Lugar en el Campo' : (check.reason ?? 'No se puede activar')}
+        </button>
+      );
+    }
+
     if (card.type === 'EVOLUTION') {
       const action: GameAction = { type: 'EVOLVE_CARD', playerId, handIndex };
       const check = validateAction(gameState, action);

@@ -271,6 +271,12 @@ export type PlayerPrompt =
       sourceLabel: string;
     };
 
+export interface ActiveLocationState {
+  cardId: string;
+  /** Player who played this Location, or 'CAMPAIGN' when pre-placed as a lore-accurate stage arena */
+  playedBy: PlayerId | 'CAMPAIGN';
+}
+
 export interface GameState {
   rules: GameRulesConfig;
   phase: GamePhase;
@@ -280,6 +286,8 @@ export interface GameState {
   winnerId: PlayerId | null;
   winReason: string | null;
   players: Record<PlayerId, PlayerState>;
+  /** Shared active Location (Lugar) card sitting between both players; affects both sides */
+  activeLocation: ActiveLocationState | null;
   pendingPrompt: PlayerPrompt | null;
   queuedPrompts: PlayerPrompt[];
   promptContinuation: PromptContinuation;

@@ -1,4 +1,4 @@
-export type RulesCardType = 'CHARACTER' | 'STAND' | 'ITEM' | 'EVOLUTION' | 'ENERGY';
+export type RulesCardType = 'CHARACTER' | 'STAND' | 'ITEM' | 'EVOLUTION' | 'ENERGY' | 'LOCATION';
 
 export interface GameRulesConfig {
   minDeckSize: number;
@@ -42,6 +42,7 @@ export const DEFAULT_RULES_CONFIG: GameRulesConfig = {
     STAND: 1,
     EVOLUTION: 1,
     ITEM: 3,
+    LOCATION: 1,
     ENERGY: null, // Basic Energy cards have no copy limit (classic Pokémon TCG rule)
   },
   maxStandEnergyCopies: 4,

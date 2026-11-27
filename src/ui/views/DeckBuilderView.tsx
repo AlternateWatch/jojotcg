@@ -19,6 +19,7 @@ const TYPE_LEFT_BAR: Record<CardType, string> = {
   STAND: 'border-l-[#e6194b]',
   EVOLUTION: 'border-l-yellow-300',
   ITEM: 'border-l-[#00b87c]',
+  LOCATION: 'border-l-[#2952d9]',
   ENERGY: 'border-l-[#f5efe0]',
 };
 
@@ -226,7 +227,8 @@ export function DeckBuilderView() {
       STAND: 2,
       EVOLUTION: 3,
       ITEM: 4,
-      ENERGY: 5,
+      LOCATION: 5,
+      ENERGY: 6,
     };
     entries.sort((a, b) => order[a.type] - order[b.type] || a.name.localeCompare(b.name));
     return entries;
@@ -366,7 +368,7 @@ export function DeckBuilderView() {
                 />
               </div>
 
-              {(['ALL', 'CHARACTER', 'STAND', 'EVOLUTION', 'ITEM', 'ENERGY'] as const).map((t) => (
+              {(['ALL', 'CHARACTER', 'STAND', 'EVOLUTION', 'ITEM', 'LOCATION', 'ENERGY'] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -375,7 +377,7 @@ export function DeckBuilderView() {
                     typeFilter === t ? 'jojo-btn-primary' : 'jojo-btn-ink text-zinc-400'
                   }`}
                 >
-                  {t === 'ALL' ? 'Todos' : t.slice(0, 5)}
+                  {t === 'ALL' ? 'Todos' : t === 'LOCATION' ? 'Lugar' : t.slice(0, 5)}
                 </button>
               ))}
               <button

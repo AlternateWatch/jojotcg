@@ -10,7 +10,10 @@ import {
   OFFICIAL_CARD_IMAGE_IDS,
   OFFICIAL_ENERGY_IMAGE_IDS,
   OFFICIAL_ITEM_IMAGE_IDS,
+  OFFICIAL_LOCATION_IMAGE_IDS,
 } from '../../services/assetResolver';
+import { validateDeck } from '../../services/deckValidator';
+import { CAMPAIGN_PARTS } from '../../data/campaignData';
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
@@ -19,6 +22,7 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(96);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
+    expect(OFFICIAL_LOCATION_IMAGE_IDS.size).toBe(1);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
       const filePath = path.join(
@@ -1959,5 +1963,64 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     );
     expect(raysState.players.P2.active!.currentHp).toBe(100); // 160 - 60
     expect(raysState.players.P2.active!.statuses.burn.active).toBe(true);
+  });
+
+  it('supports Location cards (max 1 copy, PLAY_LOCATION, affects both players) and Mansión De Los Joestar (+10 HP & +10 dmg to Joestars and their Stands, pre-active in Part 1 Mansion stages)', () => {
+    // 1. Asset file exists on disk
+    const projectRoot = path.resolve(process.cwd());
+    expect(
+      fs.existsSync(
+        path.join(projectRoot, 'public', 'assets', 'cards', 'locations', 'mansion-de-los-joestar.png'),
+      ),
+    ).toBe(true);
+
+    // 2. Deck validation enforces max 1 copy per Location card
+    const dupDeck = [
+      'char-jonathan-joestar',
+      'loc-mansion-de-los-joestar',
+      'loc-mansion-de-los-joestar',
+      ...Array.from({ length: 43 }, () => 'energy-electric'),
+    ];
+    const val = validateDeck(dupDeck);
+    expect(val.errors.some((e) => e.code === 'COPY_LIMIT_EXCEEDED')).toBe(true);
+
+    // 3. Playing Mansión De Los Joestar boosts BOTH P1 and P2 Joestars (+10 HP & +10 dmg) without boosting non-Joestars (DIO)
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar', // 130 HP Joestar
+      p1Hand: ['loc-mansion-de-los-joestar'],
+      p1ActiveEnergies: ['COLORLESS'],
+      p2ActiveId: 'char-dio-brando', // 140 HP non-Joestar
+      p2BenchIds: ['char-joseph-joestar'], // 120 HP Joestar on opponent's bench!
+      phase: 'PREPARATION',
+    });
+
+    state = mustDispatch(state, {
+      type: 'PLAY_LOCATION',
+      playerId: 'P1',
+      handIndex: 0,
+    });
+    expect(state.phase).toBe('PREPARATION'); // Playing a Location does NOT end the turn
+    expect(state.activeLocation?.cardId).toBe('loc-mansion-de-los-joestar');
+    expect(state.players.P1.active!.currentHp).toBe(140); // 130 + 10
+    expect(state.players.P2.active!.currentHp).toBe(140); // Dio Brando unchanged!
+    expect(state.players.P2.bench[0]!.currentHp).toBe(130); // Opponent's Joseph Joestar ALSO gets +10 HP!
+
+    // Attack with Jonathan's Zoom Punch (base 20 + 10 Mansion = 30 dmg -> Dio 140 -> 110)
+    state = mustDispatch(state, { type: 'ENTER_COMBAT_PHASE', playerId: 'P1' });
+    state = mustDispatch(state, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-zoom-punch',
+    });
+    expect(state.players.P2.active!.currentHp).toBe(110);
+
+    // 4. Campaign Part 1 Mansion stages (p1-s1, p1-s2, p1-s4, p1-s5) start with Mansión De Los Joestar already active!
+    const part1 = CAMPAIGN_PARTS.find((p) => p.part === 1)!;
+    for (const sid of ['p1-s1', 'p1-s2', 'p1-s4', 'p1-s5']) {
+      const stage = part1.stages.find((s) => s.id === sid)!;
+      expect(stage.initialLocationId).toBe('loc-mansion-de-los-joestar');
+    }
+    const ogreStage = part1.stages.find((s) => s.id === 'p1-s3')!;
+    expect(ogreStage.initialLocationId).toBeUndefined();
   });
 });

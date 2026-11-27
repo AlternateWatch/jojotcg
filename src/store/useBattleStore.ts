@@ -63,6 +63,7 @@ export interface StartBattleConfig {
   competitiveMode?: CompetitiveMode;
   rules?: Partial<GameRulesConfig>;
   p2GuaranteedOpeningCardId?: string;
+  initialLocationId?: string;
   battleTrackId?: string | null;
 }
 
@@ -343,6 +344,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       p1IsAi: false,
       p2IsAi: config.mode === 'VS_AI',
       p2GuaranteedOpeningCardId: config.p2GuaranteedOpeningCardId,
+      initialLocationId: config.initialLocationId,
       firstPlayerId: config.firstPlayerId,
       rules: config.rules,
       rng,

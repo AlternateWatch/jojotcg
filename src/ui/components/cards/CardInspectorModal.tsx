@@ -366,7 +366,8 @@ export function CardInspectorModal() {
             </div>
           )}
 
-          {(card.type === 'ITEM' || card.type === 'ENERGY') && card.description && (
+          {(card.type === 'ITEM' || card.type === 'ENERGY' || card.type === 'LOCATION') &&
+            card.description && (
             <div className="jojo-panel-cream p-3.5 text-sm font-medium">{card.description}</div>
           )}
 

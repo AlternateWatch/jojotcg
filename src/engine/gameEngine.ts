@@ -1,4 +1,4 @@
-import { getCardById, getCharacterCard } from '../data/cardRegistry';
+import { getCardById, getCharacterCard, getLocationCard } from '../data/cardRegistry';
 import { DEFAULT_RULES_CONFIG, type GameRulesConfig } from '../data/rulesConfig';
 import { getAvailableAttacks } from './helpers/cardStats';
 import {
@@ -28,6 +28,7 @@ import {
   applyEquipStand,
   applyEvolveCard,
   applyPlayItem,
+  applyPlayLocation,
   applyPlayToBench,
   applySummonStandFromDeck,
   applySwapOrRetreat,
@@ -37,6 +38,7 @@ import {
   validateEquipStand,
   validateEvolveCard,
   validatePlayItem,
+  validatePlayLocation,
   validatePlayToBench,
   validateSummonStandFromDeck,
   validateSwapOrRetreat,
@@ -56,6 +58,8 @@ export interface CreateGameOptions {
   p2IsAi?: boolean;
   p1GuaranteedOpeningCardId?: string;
   p2GuaranteedOpeningCardId?: string;
+  /** Optional Location card pre-placed in the active Location zone at battle start (e.g. Campaign) */
+  initialLocationId?: string;
   firstPlayerId?: PlayerId;
   rules?: Partial<GameRulesConfig>;
   rng?: RngProvider;
@@ -261,6 +265,10 @@ export function createGame(options: CreateGameOptions): GameState {
     options.p2GuaranteedOpeningCardId,
   );
 
+  const initialLocation = options.initialLocationId
+    ? getLocationCard(options.initialLocationId)
+    : undefined;
+
   const state: GameState = {
     rules,
     phase: 'SETUP_MULLIGAN',
@@ -270,6 +278,9 @@ export function createGame(options: CreateGameOptions): GameState {
     winnerId: null,
     winReason: null,
     players: { P1: p1, P2: p2 },
+    activeLocation: initialLocation
+      ? { cardId: initialLocation.id, playedBy: 'CAMPAIGN' }
+      : null,
     pendingPrompt: null,
     queuedPrompts: [],
     promptContinuation: 'NONE',
@@ -278,6 +289,14 @@ export function createGame(options: CreateGameOptions): GameState {
   };
 
   const initialEvents: CombatEvent[] = [];
+  if (initialLocation) {
+    pushEvent(state, initialEvents, {
+      type: 'ABILITY_TRIGGERED',
+      playerId: firstPlayerId,
+      abilityName: initialLocation.name,
+      message: `Lugar activo de inicio: ${initialLocation.name}. ${initialLocation.description ?? ''}`,
+    });
+  }
   pushEvent(state, initialEvents, {
     type: 'PHASE_CHANGED',
     playerId: firstPlayerId,
@@ -341,6 +360,9 @@ export function validateAction(state: GameState, action: GameAction): Validation
 
     case 'PLAY_ITEM':
       return validatePlayItem(state, action.playerId, action.handIndex, action.targetInstanceId);
+
+    case 'PLAY_LOCATION':
+      return validatePlayLocation(state, action.playerId, action.handIndex);
 
     case 'EVOLVE_CARD':
       return validateEvolveCard(state, action.playerId, action.handIndex);
@@ -454,6 +476,10 @@ export function dispatchAction(
 
     case 'PLAY_ITEM':
       applyPlayItem(state, events, action.playerId, action.handIndex, action.targetInstanceId, rng);
+      break;
+
+    case 'PLAY_LOCATION':
+      applyPlayLocation(state, events, action.playerId, action.handIndex);
       break;
 
     case 'EVOLVE_CARD':

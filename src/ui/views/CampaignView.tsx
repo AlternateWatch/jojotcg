@@ -134,6 +134,7 @@ export function CampaignView() {
         aiErrorRate: getCampaignBossErrorRate(selectedStage),
         campaignStageId: selectedStage.id,
         p2GuaranteedOpeningCardId: selectedStage.featuredCardId,
+        initialLocationId: selectedStage.initialLocationId,
         battleTrackId: stageTrack?.id ?? null,
       },
       settings.hotseatPrivacyScreen,

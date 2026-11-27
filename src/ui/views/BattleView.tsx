@@ -1145,10 +1145,42 @@ export function BattleView() {
             </div>
           </div>
 
-          {/* ============ CENTER CLASH DIVIDER & CONTROLS ============ */}
+          {/* ============ CENTER CLASH DIVIDER, ACTIVE LOCATION & CONTROLS ============ */}
           <div className="relative my-1 flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-[#f2c12e]/50 to-[#e6194b]" />
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {/* SHARED ACTIVE LOCATION SLOT (Horizontal rotated 90°, text facing Active slot, between both players) */}
+              {gameState.activeLocation &&
+                (() => {
+                  const locCard = getCardById(gameState.activeLocation.cardId);
+                  if (!locCard) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => useAppStore.getState().openInspector(locCard.id)}
+                      title={`Lugar Activo: ${locCard.name} — ${locCard.description ?? ''} (Clic para inspeccionar)`}
+                      className="group flex items-center gap-2.5 border-2 border-[#2952d9] bg-[#0e1429]/95 px-2.5 py-1.5 text-left shadow-[3px_3px_0_#060508] transition hover:border-[#f2c12e]"
+                    >
+                      <div className="relative flex h-[76px] w-[106px] shrink-0 items-center justify-center overflow-visible">
+                        <div className="-rotate-90 transition-transform duration-150 group-hover:scale-105">
+                          <CardView card={locCard} size="xs" showInspectButton={false} />
+                        </div>
+                      </div>
+                      <div className="max-w-[200px]">
+                        <div className="font-mono text-[9px] font-black tracking-[0.2em] text-sky-300 uppercase">
+                          LUGAR ACTIVO
+                        </div>
+                        <div className="truncate font-jojo-heading text-xs tracking-wider text-[#f2c12e] uppercase">
+                          {locCard.name}
+                        </div>
+                        <div className="line-clamp-2 text-[10px] leading-tight text-zinc-300">
+                          Afecta a ambos jugadores · Clic para leer
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
+
+              <div className="hidden h-[2px] flex-1 bg-gradient-to-r from-transparent via-[#f2c12e]/50 to-[#e6194b] sm:block" />
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {gameState.phase === 'PREPARATION' && (
                   <>

@@ -44,6 +44,7 @@ export function validateDeck(
       STAND: 0,
       EVOLUTION: 0,
       ITEM: 0,
+      LOCATION: 0,
       ENERGY: 0,
     },
     byCategory: {},

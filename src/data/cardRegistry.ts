@@ -2,6 +2,7 @@ import { CHARACTER_CARDS } from './cards/characters';
 import { STAND_CARDS } from './cards/stands';
 import { EVOLUTION_CARDS } from './cards/evolutions';
 import { ITEM_CARDS } from './cards/items';
+import { LOCATION_CARDS } from './cards/locations';
 import { ENERGY_CARDS } from './cards/energies';
 import { STARTER_DECK } from './progressionData';
 import type {
@@ -10,6 +11,7 @@ import type {
   EnergyCard,
   EvolutionCard,
   ItemCard,
+  LocationCard,
   StandCard,
 } from './schemas/cardTypes';
 import type { SavedDeck } from '../services/storageService';
@@ -19,6 +21,7 @@ export const ALL_CARDS: AnyCard[] = [
   ...STAND_CARDS,
   ...EVOLUTION_CARDS,
   ...ITEM_CARDS,
+  ...LOCATION_CARDS,
   ...ENERGY_CARDS,
 ];
 
@@ -59,6 +62,11 @@ export function getItemCard(cardId: string): ItemCard | undefined {
 export function getEnergyCard(cardId: string): EnergyCard | undefined {
   const card = cardMap.get(cardId);
   return card?.type === 'ENERGY' ? card : undefined;
+}
+
+export function getLocationCard(cardId: string): LocationCard | undefined {
+  const card = cardMap.get(cardId);
+  return card?.type === 'LOCATION' ? card : undefined;
 }
 
 export function getEvolutionsForBase(baseCardId: string): EvolutionCard[] {

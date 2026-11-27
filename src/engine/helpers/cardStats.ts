@@ -3,6 +3,7 @@ import {
   getCharacterCard,
   getEvolutionCard,
   getItemCard,
+  getLocationCard,
   getStandCard,
 } from '../../data/cardRegistry';
 import type {
@@ -115,6 +116,62 @@ export function getEffectiveStandProfile(stand: StandInstance): EffectiveStandPr
   throw new Error(`Invalid stand cardId: ${stand.cardId}`);
 }
 
+const JOESTAR_CHARACTER_IDS = new Set<string>([
+  'char-jonathan-joestar',
+  'char-joseph-joestar',
+  'char-joseph-joestar-viejo',
+  'char-jotaro-kujo',
+  'char-josuke-higashikata',
+  'char-giorno-giovanna',
+]);
+
+export function isJoestarCharacter(cardId: string): boolean {
+  if (JOESTAR_CHARACTER_IDS.has(cardId)) return true;
+  const evo = getEvolutionCard(cardId);
+  if (evo && JOESTAR_CHARACTER_IDS.has(evo.baseCardId)) return true;
+  return false;
+}
+
+export function getLocationHpBonusForCharacter(
+  state: GameState,
+  inst: CharacterInstance,
+): number {
+  if (!state.activeLocation) return 0;
+  const loc = getLocationCard(state.activeLocation.cardId);
+  if (!loc) return 0;
+  const profile = getEffectiveCharacterProfile(inst);
+  let bonus = 0;
+  for (const eff of loc.effects) {
+    if (
+      eff.kind === 'JOESTAR_HP_AND_DAMAGE_BONUS' &&
+      (isJoestarCharacter(inst.cardId) || isJoestarCharacter(profile.currentCardId))
+    ) {
+      bonus += eff.bonusHp;
+    }
+  }
+  return bonus;
+}
+
+export function getLocationDamageBonusForCharacter(
+  state: GameState,
+  inst: CharacterInstance,
+): number {
+  if (!state.activeLocation) return 0;
+  const loc = getLocationCard(state.activeLocation.cardId);
+  if (!loc) return 0;
+  const profile = getEffectiveCharacterProfile(inst);
+  let bonus = 0;
+  for (const eff of loc.effects) {
+    if (
+      eff.kind === 'JOESTAR_HP_AND_DAMAGE_BONUS' &&
+      (isJoestarCharacter(inst.cardId) || isJoestarCharacter(profile.currentCardId))
+    ) {
+      bonus += eff.bonusDamage;
+    }
+  }
+  return bonus;
+}
+
 export function getAvailableAttacks(inst: CharacterInstance): {
   attack: AttackDef;
   source: 'CHARACTER' | 'STAND';
@@ -179,6 +236,9 @@ export function computeEffectiveMaxHp(
       }
     }
   }
+
+  // Active Location passive HP bonuses (e.g. Mansión De Los Joestar +10 HP to all Joestars)
+  maxHp += getLocationHpBonusForCharacter(state, inst);
 
   return Math.max(10, maxHp);
 }
