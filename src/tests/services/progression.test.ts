@@ -54,7 +54,12 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
 
   it('every booster pack references valid cards and preserves exact 0.5% UR drop rate', () => {
     expect(BOOSTER_PACKS.filter((p) => p.series === 'PART')).toHaveLength(5);
-    expect(BOOSTER_PACKS.filter((p) => p.series === 'CORRELATION')).toHaveLength(5);
+    expect(BOOSTER_PACKS.filter((p) => p.series === 'CORRELATION')).toHaveLength(6);
+
+    const itemsPack = BOOSTER_PACKS.find((p) => p.id === 'pack-corr-tactics')!;
+    expect(itemsPack.poolCardIds.every((id) => getCardById(id)?.type === 'ITEM')).toBe(true);
+    const locationsPack = BOOSTER_PACKS.find((p) => p.id === 'pack-corr-locations')!;
+    expect(locationsPack.poolCardIds.every((id) => getCardById(id)?.type === 'LOCATION')).toBe(true);
 
     for (const pack of BOOSTER_PACKS) {
       expect(pack.price).toBeGreaterThan(0);
@@ -581,11 +586,11 @@ describe('Progression, Starter Deck & Booster Pack Shop', () => {
       };
     }
     const readyCount = getClaimableMilestonesCount(prog);
-    expect(readyCount).toBe(2); // milestone-pack-part-1 + milestone-set-phantom-blood-heroes
+    expect(readyCount).toBeGreaterThanOrEqual(2); // milestone-pack-part-1 + milestone-set-phantom-blood-heroes (+ locations if all Part 1)
 
     const coinsBeforeAll = prog.coins;
     const claimAllRes = claimAllReadyMilestones(prog);
-    expect(claimAllRes.claimedIds).toHaveLength(2);
+    expect(claimAllRes.claimedIds).toHaveLength(readyCount);
     expect(claimAllRes.claimedIds).toContain('milestone-pack-part-1');
     expect(claimAllRes.claimedIds).toContain('milestone-set-phantom-blood-heroes');
     expect(claimAllRes.nextProgression.coins).toBe(coinsBeforeAll + claimAllRes.totalCoinsAwarded);

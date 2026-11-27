@@ -26,6 +26,7 @@ const PACK_COMPLETION_REWARDS: Record<string, { title: string; rewardCoins: numb
   'pack-corr-villains': { title: 'Sobre Completo: Villanos & Amenazas', rewardCoins: 1800 },
   'pack-corr-stands': { title: 'Sobre Completo: Despertar de Stand', rewardCoins: 1650 },
   'pack-corr-tactics': { title: 'Sobre Completo: Fundación Speedwagon', rewardCoins: 500 },
+  'pack-corr-locations': { title: 'Sobre Completo: Escenarios Bizarros', rewardCoins: 350 },
 };
 
 function buildPackMilestone(pack: BoosterPackDef): MilestoneDef {
