@@ -76,6 +76,7 @@ interface BattleStoreState {
   rng: RngProvider;
   lastError: string | null;
   coinShowcase: CoinShowcaseState | null;
+  coinShowcaseQueue: CoinShowcaseState[];
   impactBanner: BattleImpactBanner | null;
   vfxCue: IThreeVfxCue | null;
   cardPopups: ICardFloatingPopup[];
@@ -168,14 +169,29 @@ export function getNextActingPlayer(state: GameState): PlayerId | null {
   return state.activePlayerId;
 }
 
-function extractCoinEvent(events: CombatEvent[]): CoinShowcaseState | null {
-  const coinEvt = [...events].reverse().find((e) => e.type === 'COIN_FLIPPED');
-  if (!coinEvt || coinEvt.type !== 'COIN_FLIPPED') return null;
+function extractCoinEvents(events: CombatEvent[]): CoinShowcaseState[] {
+  return events
+    .filter((e): e is Extract<CombatEvent, { type: 'COIN_FLIPPED' }> => e.type === 'COIN_FLIPPED')
+    .map((coinEvt) => ({
+      id: coinEvt.id,
+      attackName: coinEvt.attackName,
+      results: coinEvt.results,
+      message: coinEvt.message,
+    }));
+}
+
+function enqueueCoinShowcases(
+  current: CoinShowcaseState | null,
+  queue: CoinShowcaseState[],
+  incoming: CoinShowcaseState[],
+): { coinShowcase: CoinShowcaseState | null; coinShowcaseQueue: CoinShowcaseState[] } {
+  if (incoming.length === 0) {
+    return { coinShowcase: current, coinShowcaseQueue: queue };
+  }
+  const combined = [...(current ? [current] : []), ...queue, ...incoming];
   return {
-    id: coinEvt.id,
-    attackName: coinEvt.attackName,
-    results: coinEvt.results,
-    message: coinEvt.message,
+    coinShowcase: combined[0] ?? null,
+    coinShowcaseQueue: combined.slice(1),
   };
 }
 
@@ -307,6 +323,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   rng: createSystemRng(),
   lastError: null,
   coinShowcase: null,
+  coinShowcaseQueue: [],
   impactBanner: null,
   vfxCue: null,
   cardPopups: [],
@@ -358,6 +375,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       rng,
       lastError: null,
       coinShowcase: null,
+      coinShowcaseQueue: [],
       impactBanner: null,
       vfxCue: null,
       cardPopups: [],
@@ -428,6 +446,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       rng,
       lastError: null,
       coinShowcase: null,
+      coinShowcaseQueue: [],
       impactBanner: null,
       vfxCue: null,
       cardPopups: [],
@@ -458,6 +477,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       rng: createSystemRng(),
       lastError: null,
       coinShowcase: null,
+      coinShowcaseQueue: [],
       impactBanner: null,
       vfxCue: null,
       cardPopups: [],
@@ -519,7 +539,11 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
     const effectiveRole = onlineRole ?? room.role;
     const viewerId: PlayerId = effectiveRole === 'P2' ? 'P2' : 'P1';
     const events: CombatEvent[] = Array.isArray(room.lastEvents) ? room.lastEvents : [];
-    const coinShowcase = extractCoinEvent(events) ?? get().coinShowcase;
+    const { coinShowcase, coinShowcaseQueue } = enqueueCoinShowcases(
+      get().coinShowcase,
+      get().coinShowcaseQueue,
+      extractCoinEvents(events),
+    );
     const impactBanner = extractImpactBanner(events);
     const vfxCue = extractThreeVfxCue(events, viewerId);
     const cardPopups = extractCardPopups(events);
@@ -536,6 +560,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       onlineChatMessages: chatChanged ? incomingChat : prevChat,
       onlineSpectatorCount: nextSpectators,
       coinShowcase,
+      coinShowcaseQueue,
       impactBanner: impactBanner ?? get().impactBanner,
       vfxCue: vfxCue ?? get().vfxCue,
       cardPopups: cardPopups.length > 0 ? cardPopups : get().cardPopups,
@@ -594,7 +619,11 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
 
     const viewerId = getControllingPlayerId(result.state, mode, onlineRole);
     const nextActor = getNextActingPlayer(result.state);
-    const coinShowcase = extractCoinEvent(result.events) ?? get().coinShowcase;
+    const { coinShowcase, coinShowcaseQueue } = enqueueCoinShowcases(
+      get().coinShowcase,
+      get().coinShowcaseQueue,
+      extractCoinEvents(result.events),
+    );
     const impactBanner = extractImpactBanner(result.events);
     const vfxCue = extractThreeVfxCue(result.events, viewerId);
     const cardPopups = extractCardPopups(result.events);
@@ -623,6 +652,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       onlineVersion: nextVersion,
       lastError: null,
       coinShowcase,
+      coinShowcaseQueue,
       impactBanner: impactBanner ?? get().impactBanner,
       vfxCue: vfxCue ?? get().vfxCue,
       cardPopups: cardPopups.length > 0 ? cardPopups : get().cardPopups,
@@ -677,7 +707,11 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
     }
 
     const viewerId: PlayerId = 'P1';
-    const nextCoin = extractCoinEvent(res.events);
+    const { coinShowcase: nextCoinShowcase, coinShowcaseQueue: nextCoinQueue } = enqueueCoinShowcases(
+      get().coinShowcase,
+      get().coinShowcaseQueue,
+      extractCoinEvents(res.events),
+    );
     const impactBanner = extractImpactBanner(res.events);
     const vfxCue = extractThreeVfxCue(res.events, viewerId);
     const cardPopups = extractCardPopups(res.events);
@@ -689,7 +723,8 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
 
     set({
       gameState: res.state,
-      coinShowcase: nextCoin ?? null,
+      coinShowcase: nextCoinShowcase,
+      coinShowcaseQueue: nextCoinQueue,
       impactBanner: impactBanner ?? get().impactBanner,
       vfxCue: vfxCue ?? get().vfxCue,
       cardPopups: cardPopups.length > 0 ? cardPopups : get().cardPopups,
@@ -704,7 +739,11 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
   toggleAiPaused: () => set((s) => ({ aiPaused: !s.aiPaused })),
   claimBattleReward: (lastBattleReward) => set({ battleRewardClaimed: true, lastBattleReward }),
   setCampaignPackReward: (campaignPackReward) => set({ campaignPackReward }),
-  dismissCoinShowcase: () => set({ coinShowcase: null }),
+  dismissCoinShowcase: () =>
+    set((s) => ({
+      coinShowcase: s.coinShowcaseQueue[0] ?? null,
+      coinShowcaseQueue: s.coinShowcaseQueue.slice(1),
+    })),
   clearImpactBanner: () => set({ impactBanner: null }),
   clearCardPopups: () => set({ cardPopups: [] }),
   clearAttackingPlayer: () => set({ attackingPlayerId: null }),
@@ -721,6 +760,7 @@ export const useBattleStore = create<BattleStoreState>((set, get) => ({
       gameState: null,
       lastError: null,
       coinShowcase: null,
+      coinShowcaseQueue: [],
       impactBanner: null,
       vfxCue: null,
       cardPopups: [],

@@ -1070,7 +1070,7 @@ export function resolveEndOfTurnEffects(
             pushEvent(state, eventsOut, {
               type: 'COIN_FLIPPED',
               playerId: pid,
-              attackName: activeLoc.name,
+              attackName: `${activeLoc.name} · ${targetPlayer.name}`,
               results: [flip],
               message:
                 flip === 'HEADS'
