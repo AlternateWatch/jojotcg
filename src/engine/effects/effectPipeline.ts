@@ -226,8 +226,15 @@ export function computeAttackDamageBonus(
     }
   }
 
-  // 7. Active Location passive damage bonuses (e.g. Mansión De Los Joestar +10 dmg to Joestars & their Stands)
+  // 7. Active Location passive damage bonuses (e.g. Mansión de los Joestar +10 dmg to Joestars & their Stands)
   bonus += getLocationDamageBonusForCharacter(state, attackerInst);
+
+  // 8. Attack-specific active Location bonuses (e.g. Death 13 — Control del Mundo de los Sueños +20 if Mundo de los Sueños is active)
+  for (const eff of attack.specialEffects ?? []) {
+    if (eff.kind === 'DREAM_WORLD_CONTROL' && state.activeLocation?.cardId === eff.locationCardId) {
+      bonus += eff.bonusDamageIfActive;
+    }
+  }
 
   return {
     bonus,

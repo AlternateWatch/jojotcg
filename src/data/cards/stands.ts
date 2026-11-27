@@ -440,6 +440,40 @@ export const STAND_CARDS: StandCard[] = [
     ],
   },
   {
+    id: 'stand-death-13',
+    name: 'Death 13',
+    type: 'STAND',
+    part: 3,
+    imageId: 'death-13',
+    assetFolder: 'official',
+    requiredDg: 4,
+    attacks: [
+      {
+        id: 'atk-guadana',
+        name: 'Guadaña',
+        energyCost: ['PSYCHIC', 'COLORLESS'],
+        baseDamage: 30,
+        damageLabel: '30',
+      },
+      {
+        id: 'atk-control-del-mundo-de-los-suenos',
+        name: 'Control del Mundo de los Sueños',
+        energyCost: ['PSYCHIC', 'PSYCHIC', 'COLORLESS', 'COLORLESS'],
+        baseDamage: 70,
+        damageLabel: '70',
+        effectText:
+          'Si Mundo de los Sueños no está activo, roba una carta de Estadio de tu mazo. Si Mundo de los Sueños está activo, este ataque inflige 20 puntos de daño extra.',
+        specialEffects: [
+          {
+            kind: 'DREAM_WORLD_CONTROL',
+            locationCardId: 'loc-mundo-de-los-suenos',
+            bonusDamageIfActive: 20,
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: 'stand-emperor',
     name: 'Emperor',
     type: 'STAND',

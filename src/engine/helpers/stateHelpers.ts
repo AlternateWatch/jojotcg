@@ -36,6 +36,10 @@ export function pushEvent(
   } as CombatEvent;
   state.eventLog.push(event);
   eventsOut.push(event);
+  if (payload.type === 'CARD_DRAWN') {
+    const p = state.players[payload.playerId];
+    p.cardsDrawnThisTurn = (p.cardsDrawnThisTurn ?? 0) + payload.count;
+  }
 }
 
 export function createCharacterInstance(

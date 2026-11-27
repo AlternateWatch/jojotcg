@@ -57,6 +57,7 @@ export function startNextTurn(
   player.itemsPlayedThisTurn = 0;
   player.extraCombatActionsRemaining = 0;
   player.usedOncePerTurnKeys = [];
+  player.cardsDrawnThisTurn = 0;
 
   state.phase = 'DRAW';
   pushEvent(state, eventsOut, {
@@ -876,6 +877,42 @@ export function executeAttack(
             abilityName: attack.name,
             message: `${player.name} roba ${drawn} carta(s) gracias a ${attack.name}.`,
           });
+        }
+        break;
+      }
+      case 'DREAM_WORLD_CONTROL': {
+        const isDreamWorldActive = state.activeLocation?.cardId === eff.locationCardId;
+        if (!isDreamWorldActive) {
+          let locIdx = player.deck.findIndex((id) => id === eff.locationCardId);
+          if (locIdx === -1) {
+            locIdx = player.deck.findIndex((id) => getCardById(id)?.type === 'LOCATION');
+          }
+          if (locIdx !== -1) {
+            const locCardId = player.deck.splice(locIdx, 1)[0]!;
+            player.hand.push(locCardId);
+            player.deck = rng.shuffle(player.deck);
+            const locName = getCardById(locCardId)?.name ?? locCardId;
+            pushEvent(state, eventsOut, {
+              type: 'CARD_DRAWN',
+              playerId,
+              count: 1,
+              message: `${player.name} busca y roba el Lugar ${locName} de su mazo con ${attack.name}.`,
+            });
+            pushEvent(state, eventsOut, {
+              type: 'ABILITY_TRIGGERED',
+              playerId,
+              abilityName: attack.name,
+              message: `Mundo de los Sueños no está activo: ${player.name} roba ${locName} de su mazo y baraja.`,
+            });
+            checkImmediateDeckOut(state, eventsOut, playerId, rng);
+          } else {
+            pushEvent(state, eventsOut, {
+              type: 'ABILITY_TRIGGERED',
+              playerId,
+              abilityName: attack.name,
+              message: `Mundo de los Sueños no está activo, pero no quedan cartas de Estadio/Lugar en el mazo de ${player.name}.`,
+            });
+          }
         }
         break;
       }

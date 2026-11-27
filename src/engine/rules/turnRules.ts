@@ -1182,6 +1182,9 @@ export function applyUsePrepAbility(
       for (let i = 0; i < drawn; i++) {
         player.hand.push(player.deck.shift()!);
       }
+      if (drawn > 0) {
+        player.cardsDrawnThisTurn = (player.cardsDrawnThisTurn ?? 0) + drawn;
+      }
       pushEvent(state, eventsOut, {
         type: 'ABILITY_TRIGGERED',
         playerId,
@@ -1435,6 +1438,14 @@ export function applySwapOrRetreat(
   const player = state.players[playerId];
   const outgoing = player.active!;
   const outgoingProfile = getEffectiveCharacterProfile(outgoing);
+
+  // Mannish Boy — GENIECILLO: if Mannish Boy is on bench and player drew >= 2 cards this turn,
+  // can swap ANY bench character to active without ending the turn!
+  const hasMannishBoyOnBench = player.bench.some(
+    (b) => getEffectiveCharacterProfile(b).signatureAbility.id === 'GENIECILLO_MANNISH_BOY',
+  );
+  const isGeniecilloFreeSwap = hasMannishBoyOnBench && (player.cardsDrawnThisTurn ?? 0) >= 2;
+
   const idx = player.bench.findIndex((b) => b.instanceId === benchInstanceId);
   const incoming = player.bench.splice(idx, 1)[0]!;
 
@@ -1452,17 +1463,20 @@ export function applySwapOrRetreat(
 
   const incomingProfile = getEffectiveCharacterProfile(incoming);
 
-  // Joseph Joestar (Part 2) — NIGERUNDAYO: can retreat without ending turn!
-  const freeRetreat = outgoingProfile.signatureAbility.id === 'NIGERUNDAYO';
+  // Joseph Joestar (Part 2) — NIGERUNDAYO or Mannish Boy — GENIECILLO: retreat/swap without ending turn!
+  const isJosephNigerundayo = outgoingProfile.signatureAbility.id === 'NIGERUNDAYO';
+  const freeRetreat = isJosephNigerundayo || isGeniecilloFreeSwap;
 
   pushEvent(state, eventsOut, {
     type: 'BENCH_SWAP',
     playerId,
     newActiveCardId: incomingProfile.currentCardId,
     endedTurn: !freeRetreat,
-    message: freeRetreat
+    message: isJosephNigerundayo
       ? `¡NIGERUNDAYO! ${outgoingProfile.name} se retira sin terminar el turno; entra ${incomingProfile.name}.`
-      : `${player.name} cambia a ${outgoingProfile.name} por ${incomingProfile.name} (el Stand lo acompaña a la banca; finaliza el turno).`,
+      : isGeniecilloFreeSwap
+        ? `¡GENIECILLO! Mannish Boy en banca permite cambiar a ${outgoingProfile.name} por ${incomingProfile.name} sin perder el turno.`
+        : `${player.name} cambia a ${outgoingProfile.name} por ${incomingProfile.name} (el Stand lo acompaña a la banca; finaliza el turno).`,
   });
 
   if (!freeRetreat) {

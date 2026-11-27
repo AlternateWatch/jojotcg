@@ -83,7 +83,8 @@ export type AttackSpecialEffect =
   | { kind: 'BONUS_IF_MIRROR_CHARACTER_ON_BOARD'; bonusDamage: number }
   | { kind: 'DRAW_CARDS'; count: number }
   | { kind: 'CONTROL_BY_WOUNDS' }
-  | { kind: 'REFLECT_NEXT_INCOMING_ATTACK'; bonusDamage: number };
+  | { kind: 'REFLECT_NEXT_INCOMING_ATTACK'; bonusDamage: number }
+  | { kind: 'DREAM_WORLD_CONTROL'; locationCardId: string; bonusDamageIfActive: number };
 
 export interface AttackDef {
   id: string;
@@ -163,6 +164,7 @@ export type SignatureEffectId =
   | 'DIO_LACKEY_ENYABA'
   | 'AUDACITY_STEELY_DAN'
   | 'ESCONDITE_ARABIA_FATS'
+  | 'GENIECILLO_MANNISH_BOY'
   | 'NONE';
 
 export interface SignatureAbilityDef {

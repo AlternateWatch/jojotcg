@@ -17,9 +17,9 @@ import { CAMPAIGN_PARTS } from '../../data/campaignData';
 import { buildControlledBattleState, mustDispatch } from '../helpers/testFixtures';
 
 describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI Stress Tests', () => {
-  it('verifies all 96 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
+  it('verifies all 98 official card assets, all 16 official Item PNG cards, and all 6 JoJo pattern files exist on disk', () => {
     const projectRoot = path.resolve(process.cwd());
-    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(96);
+    expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(98);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
     expect(OFFICIAL_LOCATION_IMAGE_IDS.size).toBe(1);
@@ -2022,5 +2022,102 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     }
     const ogreStage = part1.stages.find((s) => s.id === 'p1-s3')!;
     expect(ogreStage.initialLocationId).toBeUndefined();
+  });
+
+  it('supports Mannish Boy (Geniecillo free bench swap after >=2 draws) and Death 13 (Guadaña + Control del Mundo de los Sueños)', () => {
+    // 1. Official PNGs exist on disk
+    const projectRoot = path.resolve(process.cwd());
+    expect(
+      fs.existsSync(path.join(projectRoot, 'public', 'assets', 'cards', 'official', 'mannish-boy.png')),
+    ).toBe(true);
+    expect(
+      fs.existsSync(path.join(projectRoot, 'public', 'assets', 'cards', 'official', 'death-13.png')),
+    ).toBe(true);
+
+    // 2. Mannish Boy on bench with <2 cards drawn this turn -> bench swap ends the turn normally
+    let normalSwapState = buildControlledBattleState({
+      p1ActiveId: 'char-jotaro-kujo',
+      p1BenchIds: ['char-mannish-boy', 'char-noriaki-kakyoin'],
+      p2ActiveId: 'char-dio',
+      phase: 'PREPARATION',
+    });
+    normalSwapState.players.P1.cardsDrawnThisTurn = 1;
+    normalSwapState = mustDispatch(normalSwapState, {
+      type: 'SWAP_ACTIVE_WITH_BENCH',
+      playerId: 'P1',
+      benchInstanceId: normalSwapState.players.P1.bench[1]!.instanceId,
+    });
+    expect(normalSwapState.activePlayerId).toBe('P2');
+
+    // 3. Mannish Boy on bench with >=2 cards drawn this turn -> Geniecillo swaps WITHOUT ending the turn!
+    let freeSwapState = buildControlledBattleState({
+      p1ActiveId: 'char-jotaro-kujo',
+      p1BenchIds: ['char-mannish-boy', 'char-noriaki-kakyoin'],
+      p2ActiveId: 'char-dio',
+      phase: 'PREPARATION',
+    });
+    freeSwapState.players.P1.cardsDrawnThisTurn = 2;
+    freeSwapState = mustDispatch(freeSwapState, {
+      type: 'SWAP_ACTIVE_WITH_BENCH',
+      playerId: 'P1',
+      benchInstanceId: freeSwapState.players.P1.bench[0]!.instanceId, // swapping Mannish Boy himself!
+    });
+    expect(freeSwapState.activePlayerId).toBe('P1');
+    expect(freeSwapState.phase).toBe('PREPARATION');
+    expect(freeSwapState.players.P1.active!.cardId).toBe('char-mannish-boy');
+
+    // 4. Death 13 — Guadaña deals 30 damage
+    let scytheState = buildControlledBattleState({
+      p1ActiveId: 'char-mannish-boy',
+      p1ActiveStandId: 'stand-death-13',
+      p1ActiveEnergies: ['PSYCHIC', 'COLORLESS'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    scytheState = mustDispatch(scytheState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-guadana',
+    });
+    expect(scytheState.players.P2.active!.currentHp).toBe(130);
+
+    // 5. Death 13 — Control del Mundo de los Sueños (Mundo de los Sueños NOT active): 70 dmg + searches Location from deck
+    let dreamSearchState = buildControlledBattleState({
+      p1ActiveId: 'char-mannish-boy',
+      p1ActiveStandId: 'stand-death-13',
+      p1ActiveEnergies: ['PSYCHIC', 'PSYCHIC', 'COLORLESS', 'COLORLESS'],
+      p1Deck: ['energy-psychic', 'loc-mansion-de-los-joestar', 'energy-colorless'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    dreamSearchState = mustDispatch(dreamSearchState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-control-del-mundo-de-los-suenos',
+    });
+    expect(dreamSearchState.players.P2.active!.currentHp).toBe(90); // 160 - 70
+    expect(dreamSearchState.players.P1.hand).toContain('loc-mansion-de-los-joestar');
+    expect(dreamSearchState.players.P1.deck).not.toContain('loc-mansion-de-los-joestar');
+
+    // 6. Death 13 — Control del Mundo de los Sueños (Mundo de los Sueños IS active): 70 + 20 = 90 dmg, no search
+    let dreamActiveState = buildControlledBattleState({
+      p1ActiveId: 'char-mannish-boy',
+      p1ActiveStandId: 'stand-death-13',
+      p1ActiveEnergies: ['PSYCHIC', 'PSYCHIC', 'COLORLESS', 'COLORLESS'],
+      p1Deck: ['loc-mansion-de-los-joestar', 'energy-psychic'],
+      p2ActiveId: 'char-dio', // 160 HP
+      phase: 'COMBAT',
+    });
+    dreamActiveState.activeLocation = {
+      cardId: 'loc-mundo-de-los-suenos',
+      playedBy: 'P1',
+    };
+    dreamActiveState = mustDispatch(dreamActiveState, {
+      type: 'USE_ATTACK',
+      playerId: 'P1',
+      attackId: 'atk-control-del-mundo-de-los-suenos',
+    });
+    expect(dreamActiveState.players.P2.active!.currentHp).toBe(70); // 160 - 90
+    expect(dreamActiveState.players.P1.hand).not.toContain('loc-mansion-de-los-joestar');
   });
 });

@@ -138,6 +138,8 @@ export interface PlayerState {
   /** Tracks whether this player KO'd an enemy character during their current / previous turn (Gray Fly) */
   koEnemyThisTurn?: boolean;
   koEnemyLastTurn?: boolean;
+  /** Number of cards drawn during the current turn (Mannish Boy — Geniecillo) */
+  cardsDrawnThisTurn?: number;
 }
 
 export type PromptContinuation =

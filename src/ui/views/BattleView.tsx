@@ -595,6 +595,11 @@ export function BattleView() {
 
   const myActiveProfile = myPlayer.active ? getEffectiveCharacterProfile(myPlayer.active) : null;
   const isJosephFreeRetreat = myActiveProfile?.signatureAbility.id === 'NIGERUNDAYO';
+  const isGeniecilloFreeSwap =
+    myPlayer.bench.some(
+      (b) => getEffectiveCharacterProfile(b).signatureAbility.id === 'GENIECILLO_MANNISH_BOY',
+    ) && (myPlayer.cardsDrawnThisTurn ?? 0) >= 2;
+  const isFreeBenchSwap = isJosephFreeRetreat || isGeniecilloFreeSwap;
 
   const enterCombatCheck = validateAction(gameState, {
     type: 'ENTER_COMBAT_PHASE',
@@ -1410,8 +1415,12 @@ export function BattleView() {
                         actionButton={
                           canSwap
                             ? {
-                                label: isJosephFreeRetreat ? 'Nigerundayo!' : 'Cambiar (Fin)',
-                                variant: isJosephFreeRetreat ? 'gold' : 'warn',
+                                label: isJosephFreeRetreat
+                                  ? 'Nigerundayo!'
+                                  : isGeniecilloFreeSwap
+                                    ? 'Geniecillo!'
+                                    : 'Cambiar (Fin)',
+                                variant: isFreeBenchSwap ? 'gold' : 'warn',
                                 onClick: () =>
                                   handleDispatch({
                                     type: 'SWAP_ACTIVE_WITH_BENCH',

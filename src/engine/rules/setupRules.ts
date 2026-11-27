@@ -340,6 +340,7 @@ export function applyChooseStartingActive(
     state.turnNumber = 1;
     state.activePlayerId = state.firstPlayerId;
     const firstPlayer = state.players[state.firstPlayerId];
+    firstPlayer.cardsDrawnThisTurn = 0;
 
     state.phase = 'DRAW';
     pushEvent(state, eventsOut, {
