@@ -9,7 +9,7 @@ import type { LocationCard } from '../schemas/cardTypes';
 export const LOCATION_CARDS: LocationCard[] = [
   {
     id: 'loc-mansion-de-los-joestar',
-    name: 'Mansión De Los Joestar',
+    name: 'Mansión de los Joestar',
     type: 'LOCATION',
     part: 1,
     imageId: 'mansion-de-los-joestar',
