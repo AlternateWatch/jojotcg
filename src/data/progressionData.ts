@@ -152,6 +152,7 @@ export const CARD_RARITY_MAP: Record<string, CardRarity> = {
   'item-flecha-de-stand': 'RARE',
   'item-mascara-de-piedra': 'RARE',
   'loc-mansion-de-los-joestar': 'RARE',
+  'loc-ogre-street': 'RARE',
   'item-piedra-roja-de-aja': 'RARE',
   'item-cinta-de-caesar': 'RARE',
   'item-mechero-de-polpo': 'RARE',
@@ -303,6 +304,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'item-muerte-de-danny',
       'item-estilo-de-combate-ogre-street',
       'loc-mansion-de-los-joestar',
+      'loc-ogre-street',
     ],
   },
   {
@@ -532,6 +534,7 @@ export const BOOSTER_PACKS: BoosterPackDef[] = [
       'item-suministros-speedwagon',
       'item-estilo-de-combate-ogre-street',
       'loc-mansion-de-los-joestar',
+      'loc-ogre-street',
     ],
   },
   {

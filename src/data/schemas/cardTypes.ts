@@ -255,11 +255,15 @@ export interface EnergyCard extends BaseCard {
   energyType: EnergyType;
 }
 
-export type LocationEffect = {
-  kind: 'JOESTAR_HP_AND_DAMAGE_BONUS';
-  bonusHp: number;
-  bonusDamage: number;
-};
+export type LocationEffect =
+  | {
+      kind: 'JOESTAR_HP_AND_DAMAGE_BONUS';
+      bonusHp: number;
+      bonusDamage: number;
+    }
+  | {
+      kind: 'END_TURN_BOTH_PLAYERS_COIN_BLEED';
+    };
 
 export interface LocationCard extends BaseCard {
   type: 'LOCATION';

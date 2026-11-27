@@ -150,6 +150,7 @@ export const OFFICIAL_ENERGY_IMAGE_IDS = new Set<string>([
 
 export const OFFICIAL_LOCATION_IMAGE_IDS = new Set<string>([
   'mansion-de-los-joestar',
+  'ogre-street',
 ]);
 
 export const OFFICIAL_CARD_EXTENSIONS: Record<string, 'webp'> = {

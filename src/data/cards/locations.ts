@@ -19,4 +19,16 @@ export const LOCATION_CARDS: LocationCard[] = [
     effects: [{ kind: 'JOESTAR_HP_AND_DAMAGE_BONUS', bonusHp: 10, bonusDamage: 10 }],
     tags: ['official', 'location', 'joestar'],
   },
+  {
+    id: 'loc-ogre-street',
+    name: 'Ogre Street',
+    type: 'LOCATION',
+    part: 1,
+    imageId: 'ogre-street',
+    assetFolder: 'locations',
+    description:
+      'Una de las calles más peligrosas de Lóndres. Aquí encontrarás a la peor calaña que existe. Al estar en activo: Al final del turno, ambos jugadores lanzan una moneda. Si a alguno le sale cara, el personaje activo de ese jugador pasa a tener sangrado.',
+    effects: [{ kind: 'END_TURN_BOTH_PLAYERS_COIN_BLEED' }],
+    tags: ['official', 'location', 'ogre-street'],
+  },
 ];

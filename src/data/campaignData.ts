@@ -195,6 +195,7 @@ const PART_1_STAGES: CampaignStageDef[] = [
     stageNumber: 3,
     title: 'Emboscada en Calle Ogre',
     location: 'Calle Ogre · Londres',
+    initialLocationId: 'loc-ogre-street',
     storyText:
       'En busca del antídoto para George Joestar, Jonathan se adentra en el barrio más peligroso de Londres y se topa con Speedwagon.',
     opponentName: 'Robert E.O. Speedwagon',

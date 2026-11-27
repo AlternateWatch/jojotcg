@@ -1,4 +1,4 @@
-import { getItemCard } from '../../data/cardRegistry';
+import { getItemCard, getLocationCard } from '../../data/cardRegistry';
 import type { AttackDef, EnergyType } from '../../data/schemas/cardTypes';
 import {
   computeEffectiveMaxHp,
@@ -18,7 +18,7 @@ import {
   setGameOver,
 } from '../helpers/stateHelpers';
 import type { RngProvider } from '../rng';
-import { cleanseBurn } from '../statuses/statusSystem';
+import { cleanseBurn, tryApplyElementalStatus } from '../statuses/statusSystem';
 import type { CombatEvent } from '../types/events';
 import type { CharacterInstance, GameState, PlayerId } from '../types/state';
 
@@ -1052,6 +1052,44 @@ export function resolveEndOfTurnEffects(
       character.attachedStand.rapidReloadTurnsRemaining > 0
     ) {
       character.attachedStand.rapidReloadTurnsRemaining -= 1;
+    }
+  }
+
+  // Active Location end-of-turn effects (e.g. Ogre Street: both players flip a coin; HEADS inflicts BLEED on that player's Active)
+  if (state.activeLocation && !isGameOver(state)) {
+    const activeLoc = getLocationCard(state.activeLocation.cardId);
+    if (activeLoc) {
+      for (const eff of activeLoc.effects) {
+        if (eff.kind === 'END_TURN_BOTH_PLAYERS_COIN_BLEED') {
+          for (const pid of [endingPlayerId, opponentId] as const) {
+            if (isGameOver(state)) break;
+            const targetPlayer = state.players[pid];
+            if (!targetPlayer.active) continue;
+            const flip = rng.flipCoin();
+            const activeName = getEffectiveCharacterProfile(targetPlayer.active).name;
+            pushEvent(state, eventsOut, {
+              type: 'COIN_FLIPPED',
+              playerId: pid,
+              attackName: activeLoc.name,
+              results: [flip],
+              message:
+                flip === 'HEADS'
+                  ? `${activeLoc.name}: ${targetPlayer.name} saca CARA — ${activeName} pasa a tener Sangrado.`
+                  : `${activeLoc.name}: ${targetPlayer.name} saca cruz (${activeName} evita el Sangrado).`,
+            });
+            if (flip === 'HEADS') {
+              tryApplyElementalStatus(
+                state,
+                eventsOut,
+                pid,
+                targetPlayer.active.instanceId,
+                'BLEED',
+                activeLoc.name,
+              );
+            }
+          }
+        }
+      }
     }
   }
 

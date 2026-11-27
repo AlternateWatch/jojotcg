@@ -22,7 +22,7 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
     expect(OFFICIAL_CARD_IMAGE_IDS.size).toBe(98);
     expect(OFFICIAL_ITEM_IMAGE_IDS.size).toBe(16);
     expect(OFFICIAL_ENERGY_IMAGE_IDS.size).toBe(8);
-    expect(OFFICIAL_LOCATION_IMAGE_IDS.size).toBe(1);
+    expect(OFFICIAL_LOCATION_IMAGE_IDS.size).toBe(2);
 
     for (const imageId of OFFICIAL_CARD_IMAGE_IDS) {
       const filePath = path.join(
@@ -2021,7 +2021,43 @@ describe('Asset Integrity, Additional Official Card Abilities & Multi-Match AI S
       expect(stage.initialLocationId).toBe('loc-mansion-de-los-joestar');
     }
     const ogreStage = part1.stages.find((s) => s.id === 'p1-s3')!;
-    expect(ogreStage.initialLocationId).toBeUndefined();
+    expect(ogreStage.initialLocationId).toBe('loc-ogre-street');
+  });
+
+  it('supports Ogre Street Location (replaces active Location, pre-active in p1-s3, end-of-turn coin flip Bleed for both players)', () => {
+    const projectRoot = path.resolve(process.cwd());
+    expect(
+      fs.existsSync(
+        path.join(projectRoot, 'public', 'assets', 'cards', 'locations', 'ogre-street.png'),
+      ),
+    ).toBe(true);
+
+    let state = buildControlledBattleState({
+      p1ActiveId: 'char-jonathan-joestar',
+      p1Hand: ['loc-ogre-street'],
+      p2ActiveId: 'char-dio-brando',
+      phase: 'PREPARATION',
+    });
+    state.activeLocation = {
+      cardId: 'loc-mansion-de-los-joestar',
+      playedBy: 'P2',
+    };
+
+    // Playing Ogre Street replaces Mansión de los Joestar (and discards it to P2's discard)
+    state = mustDispatch(state, {
+      type: 'PLAY_LOCATION',
+      playerId: 'P1',
+      handIndex: 0,
+    });
+    expect(state.activeLocation?.cardId).toBe('loc-ogre-street');
+    expect(state.players.P2.discard).toContain('loc-mansion-de-los-joestar');
+
+    // End turn: P1 flips HEADS (gets BLEED), P2 flips TAILS (avoids BLEED)
+    const flips: ('HEADS' | 'TAILS')[] = ['HEADS', 'TAILS'];
+    const seqRng = { ...createSeededRng(1), flipCoin: () => flips.shift() ?? 'TAILS' };
+    state = mustDispatch(state, { type: 'END_TURN', playerId: 'P1' }, seqRng);
+    expect(state.players.P1.active!.statuses.bleedStacks.length).toBe(1);
+    expect(state.players.P2.active!.statuses.bleedStacks.length).toBe(0);
   });
 
   it('supports Mannish Boy (Geniecillo free bench swap after >=2 draws) and Death 13 (Guadaña + Control del Mundo de los Sueños)', () => {
