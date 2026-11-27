@@ -549,8 +549,40 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   resetProgression: () =>
     set((state) => {
       const fresh = createInitialProgression();
-      if (state.authUser) void authService.syncAccountData({ progression: fresh });
-      return { progression: fresh };
+      const freshSettings: UserSettings = {
+        ...DEFAULT_SETTINGS,
+        customImageOverrides: {},
+      };
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          window.localStorage.removeItem('jojo_tcg_roguelike_v1');
+          window.localStorage.removeItem('jojo_tcg_roguelike_best_v1');
+          window.localStorage.removeItem('jojo_tcg_draft_v1');
+          window.localStorage.removeItem('jojo_tcg_progression_v1');
+          window.localStorage.removeItem('jojo_tcg_decks_v1');
+          window.localStorage.removeItem('jojo_tcg_settings_v1');
+        } catch {
+          // Ignore storage errors
+        }
+      }
+      if (state.authUser) {
+        void authService.syncAccountData({
+          progression: fresh,
+          customDecks: [],
+          settings: freshSettings,
+        });
+      }
+      return {
+        progression: fresh,
+        customDecks: [],
+        allDecks: [...PRESET_DECKS],
+        settings: freshSettings,
+        roguelikeRun: null,
+        bestRoguelikeFloor: 0,
+        draftRun: null,
+        preselectedDeckId: null,
+        selectedCampaignPart: 1,
+      };
     }),
 
   roguelikeRun: (() => {

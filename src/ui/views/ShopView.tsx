@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Coins, Eye, Lock, RotateCcw, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, Coins, Eye, Lock, RotateCcw, Sparkles, X } from 'lucide-react';
 import { getCardById } from '../../data/cardRegistry';
 import {
   BOOSTER_PACKS,
@@ -103,35 +103,13 @@ export function ShopView() {
 
             {/* Reset Control */}
             <div className="flex flex-col gap-1.5">
-              {!confirmReset ? (
-                <button
-                  type="button"
-                  onClick={() => setConfirmReset(true)}
-                  className="jojo-btn-ink inline-flex items-center justify-center gap-1 px-2.5 py-1 font-mono text-[10px] font-bold text-zinc-400 uppercase hover:text-rose-300"
-                >
-                  <RotateCcw size={10} /> Reiniciar
-                </button>
-              ) : (
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      resetProgression();
-                      setConfirmReset(false);
-                    }}
-                    className="jojo-btn-crimson px-2 py-1 font-mono text-[10px] font-bold uppercase"
-                  >
-                    Confirmar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmReset(false)}
-                    className="jojo-btn-ink px-2 py-1 font-mono text-[10px] uppercase"
-                  >
-                    No
-                  </button>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => setConfirmReset(true)}
+                className="jojo-btn-ink inline-flex items-center justify-center gap-1 px-2.5 py-1 font-mono text-[10px] font-bold text-zinc-400 uppercase hover:border-[#e6194b] hover:text-rose-300"
+              >
+                <RotateCcw size={10} /> Reiniciar
+              </button>
             </div>
           </div>
         </div>
@@ -400,6 +378,100 @@ export function ShopView() {
             </motion.div>
           );
         })()}
+      </AnimatePresence>
+
+      {/* FULL RESET WARNING POPUP MODAL */}
+      <AnimatePresence>
+        {confirmReset && (
+          <motion.div
+            key="reset-warning-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirmar reinicio total"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setConfirmReset(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#060508]/88 p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 14 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 10 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              className="jojo-panel relative w-full max-w-md border-[3px] border-[#e6194b] p-6"
+            >
+              <button
+                type="button"
+                onClick={() => setConfirmReset(false)}
+                aria-label="Cerrar aviso"
+                className="jojo-btn-ink absolute top-4 right-4 flex h-7 w-7 items-center justify-center"
+              >
+                <X size={14} />
+              </button>
+
+              <div className="flex items-center gap-3 border-b-2 border-[#e6194b]/40 pb-3 pr-8">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-[#060508] bg-[#e6194b] text-white shadow-[3px_3px_0_#060508]">
+                  <AlertTriangle size={22} />
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] font-black tracking-[0.22em] text-[#ff6b8d] uppercase">
+                    ACCIÓN IRREVERSIBLE
+                  </div>
+                  <h2 className="font-jojo-display text-2xl text-[#f5efe0] uppercase">
+                    ¿REINICIAR TODO EL PROGRESO?
+                  </h2>
+                </div>
+              </div>
+
+              <p className="mt-4 text-xs leading-relaxed text-zinc-200">
+                Si confirmas, se borrará <strong>TODO</strong> tu progreso de forma permanente y
+                empezarás de cero:
+              </p>
+
+              <ul className="mt-3 space-y-1.5 border-2 border-[#060508] bg-[#0e0b14] p-3 text-xs text-zinc-300">
+                <li>
+                  <span className="text-[#e6194b]">▸</span> <strong>Colección completa</strong>,
+                  sobres abiertos y cartas <strong>Holográficas</strong>.
+                </li>
+                <li>
+                  <span className="text-[#e6194b]">▸</span> <strong>Monedas Speedwagon</strong>,
+                  Campaña, Tutorial e Hitos reclamados.
+                </li>
+                <li>
+                  <span className="text-[#e6194b]">▸</span> Todos tus{' '}
+                  <strong>Mazos Personalizados</strong> y ajustes guardados.
+                </li>
+                <li>
+                  <span className="text-[#e6194b]">▸</span> Partidas activas, récords y rangos de{' '}
+                  <strong>Roguelike (Ascensión)</strong>, <strong>Draft</strong> y{' '}
+                  <strong>Competitivo</strong>.
+                </li>
+              </ul>
+
+              <div className="mt-5 flex flex-wrap justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setConfirmReset(false)}
+                  className="jojo-btn-ink px-4 py-2 font-jojo-heading text-xs tracking-widest uppercase"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetProgression();
+                    setConfirmReset(false);
+                  }}
+                  className="jojo-btn-crimson inline-flex items-center gap-1.5 px-4 py-2 font-jojo-heading text-xs tracking-widest uppercase"
+                >
+                  <RotateCcw size={13} /> Sí, reiniciar TODO
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Pack Opening Interactive Modal */}
